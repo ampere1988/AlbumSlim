@@ -45,6 +45,7 @@ final class StorageAnalyzer {
             }
         }
 
+        stats.estimatedSavable = stats.screenshotSize + Int64(Double(stats.photoSize) * 0.1)
         self.stats = stats
         self.progress = 1.0
     }

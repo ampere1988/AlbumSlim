@@ -3,15 +3,15 @@ import AVFoundation
 import Photos
 
 enum CompressionQuality: String, CaseIterable {
-    case high   = "高质量"   // 1920x1080
-    case medium = "中质量"   // 1280x720
-    case low    = "省空间"   // 640x480
+    case high   = "高质量"
+    case medium = "中质量"
+    case low    = "省空间"
 
     var exportPreset: String {
         switch self {
         case .high:   return AVAssetExportPresetHEVC1920x1080
-        case .medium: return AVAssetExportPresetHEVC1920x1080 // 降级处理
-        case .low:    return AVAssetExportPresetHEVCHighestQuality
+        case .medium: return AVAssetExportPresetMediumQuality
+        case .low:    return AVAssetExportPresetLowQuality
         }
     }
 
@@ -47,7 +47,6 @@ final class VideoCompressionService {
         session.outputFileType = .mov
         session.shouldOptimizeForNetworkUse = true
 
-        // 监控进度
         let progressTask = Task {
             while !Task.isCancelled {
                 progress = Double(session.progress)
@@ -58,10 +57,17 @@ final class VideoCompressionService {
         await session.export()
         progressTask.cancel()
 
+        // 清理临时输入文件（如果是我们拷贝出来的）
+        if inputURL.path.contains(NSTemporaryDirectory()) {
+            try? FileManager.default.removeItem(at: inputURL)
+        }
+
         if session.status == .completed {
             progress = 1.0
             return outputURL
         } else {
+            // 清理失败的输出文件
+            try? FileManager.default.removeItem(at: outputURL)
             throw session.error ?? CompressionError.unknown
         }
     }
@@ -79,17 +85,62 @@ final class VideoCompressionService {
         return Int64(Double(originalSize) * ratio)
     }
 
+    func saveCompressedToLibrary(url: URL) async throws {
+        try await PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
+        }
+        cleanupTempFile(url)
+    }
+
+    func replaceOriginal(asset: PHAsset, with url: URL) async throws {
+        try await PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
+            PHAssetChangeRequest.deleteAssets([asset] as NSFastEnumeration)
+        }
+        cleanupTempFile(url)
+    }
+
+    func cleanupTempFile(_ url: URL) {
+        try? FileManager.default.removeItem(at: url)
+    }
+
     // MARK: - Private
 
     private func exportOriginalVideo(asset: PHAsset) async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in
             let options = PHVideoRequestOptions()
-            options.isNetworkAccessAllowed = false
+            options.isNetworkAccessAllowed = true
             options.deliveryMode = .highQualityFormat
 
-            PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { avAsset, _, _ in
+            PHImageManager.default().requestAVAsset(forVideo: asset, options: options) { avAsset, _, info in
+                if let error = info?[PHImageErrorKey] as? Error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
                 if let urlAsset = avAsset as? AVURLAsset {
                     continuation.resume(returning: urlAsset.url)
+                } else if let composition = avAsset as? AVComposition {
+                    // 慢动作视频等返回 AVComposition，需要导出为临时文件
+                    let tempURL = FileManager.default.temporaryDirectory
+                        .appendingPathComponent(UUID().uuidString)
+                        .appendingPathExtension("mov")
+                    guard let exportSession = AVAssetExportSession(
+                        asset: composition,
+                        presetName: AVAssetExportPresetPassthrough
+                    ) else {
+                        continuation.resume(throwing: CompressionError.exportSessionFailed)
+                        return
+                    }
+                    exportSession.outputURL = tempURL
+                    exportSession.outputFileType = .mov
+                    exportSession.exportAsynchronously {
+                        if exportSession.status == .completed {
+                            continuation.resume(returning: tempURL)
+                        } else {
+                            continuation.resume(throwing: exportSession.error ?? CompressionError.assetNotAvailable)
+                        }
+                    }
                 } else {
                     continuation.resume(throwing: CompressionError.assetNotAvailable)
                 }
@@ -101,12 +152,14 @@ final class VideoCompressionService {
 enum CompressionError: LocalizedError {
     case exportSessionFailed
     case assetNotAvailable
+    case saveFailed
     case unknown
 
     var errorDescription: String? {
         switch self {
         case .exportSessionFailed: return "无法创建压缩会话"
-        case .assetNotAvailable:   return "视频不可用"
+        case .assetNotAvailable:   return "视频不可用（可能在 iCloud 中）"
+        case .saveFailed:          return "保存失败"
         case .unknown:             return "压缩失败"
         }
     }

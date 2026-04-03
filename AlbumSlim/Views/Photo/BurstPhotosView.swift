@@ -1,9 +1,12 @@
 import SwiftUI
+import Photos
 
 struct BurstPhotosView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var burstGroups: [CleanupGroup] = []
     @State private var isLoading = false
+    @State private var showDeleteConfirm = false
+    @State private var pendingGroupIndex: Int?
 
     var body: some View {
         Group {
@@ -19,13 +22,46 @@ struct BurstPhotosView: View {
                     .buttonStyle(.borderedProminent)
                 }
             } else {
-                List(burstGroups) { group in
-                    Section("连拍组 · \(group.items.count) 张") {
-                        MediaGridView(
-                            items: group.items,
-                            bestItemID: group.bestItemID,
-                            services: services
-                        )
+                List {
+                    ForEach(Array(burstGroups.enumerated()), id: \.element.id) { index, group in
+                        Section {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 6) {
+                                    ForEach(group.items) { item in
+                                        BurstThumbnail(
+                                            item: item,
+                                            isBest: item.id == group.bestItemID,
+                                            services: services
+                                        )
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+
+                            Button("只保留最佳") {
+                                pendingGroupIndex = index
+                                showDeleteConfirm = true
+                            }
+                            .font(.footnote)
+                            .foregroundStyle(.red)
+                        } header: {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("连拍组 · \(group.items.count) 张 · 可省 \(group.savableSize.formattedFileSize)")
+                                if let date = group.items.first?.creationDate {
+                                    Text(date.formatted(date: .abbreviated, time: .shortened))
+                                        .font(.caption2)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                    }
+                }
+                .confirmationDialog("确认删除", isPresented: $showDeleteConfirm) {
+                    if let idx = pendingGroupIndex {
+                        let count = burstGroups[idx].items.count - 1
+                        Button("删除 \(count) 张，只保留最佳", role: .destructive) {
+                            Task { await keepOnlyBest(at: idx) }
+                        }
                     }
                 }
             }
@@ -39,7 +75,6 @@ struct BurstPhotosView: View {
         let fetchResult = services.photoLibrary.fetchBurstAssets()
         let items = services.photoLibrary.buildMediaItems(from: fetchResult)
 
-        // 按 burstIdentifier 分组
         var groups: [String: [MediaItem]] = [:]
         for item in items {
             if let burstID = item.asset.burstIdentifier {
@@ -53,5 +88,64 @@ struct BurstPhotosView: View {
                 let best = items.max(by: { $0.fileSize < $1.fileSize })
                 return CleanupGroup(type: .burst, items: items, bestItemID: best?.id)
             }
+    }
+
+    private func keepOnlyBest(at index: Int) async {
+        let group = burstGroups[index]
+        let toDelete = group.items.filter { $0.id != group.bestItemID }
+        guard !toDelete.isEmpty else { return }
+        try? await services.photoLibrary.deleteAssets(toDelete.map(\.asset))
+        burstGroups.remove(at: index)
+    }
+}
+
+private struct BurstThumbnail: View {
+    let item: MediaItem
+    let isBest: Bool
+    let services: AppServiceContainer
+    @State private var image: UIImage?
+
+    var body: some View {
+        ZStack(alignment: .topTrailing) {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: 100, height: 100)
+                    .clipped()
+            } else {
+                Rectangle().fill(.quaternary)
+                    .frame(width: 100, height: 100)
+                    .overlay { ProgressView() }
+            }
+
+            if isBest {
+                Image(systemName: "star.fill")
+                    .font(.caption)
+                    .padding(4)
+                    .background(.yellow, in: Circle())
+                    .padding(4)
+            }
+
+            VStack {
+                Spacer()
+                Text(item.fileSizeText)
+                    .font(.system(size: 9))
+                    .padding(.horizontal, 3)
+                    .padding(.vertical, 1)
+                    .background(.ultraThinMaterial, in: Capsule())
+                    .padding(3)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .overlay {
+            if isBest {
+                RoundedRectangle(cornerRadius: 6).stroke(.yellow, lineWidth: 2)
+            }
+        }
+        .task {
+            image = await services.photoLibrary.thumbnail(for: item.asset, size: CGSize(width: 200, height: 200))
+        }
     }
 }

@@ -5,14 +5,15 @@ import Photos
 @MainActor
 final class ImageSimilarityService {
 
-    func findSimilarGroups(from items: [MediaItem], using photoLibrary: PhotoLibraryService) async -> [CleanupGroup] {
-        // 按时间窗口预分组，减少计算量
+    func findSimilarGroups(from items: [MediaItem], using photoLibrary: PhotoLibraryService, onProgress: @escaping (Double) -> Void) async -> [CleanupGroup] {
         let timeGroups = groupByTimeWindow(items)
         var allGroups: [CleanupGroup] = []
+        let totalGroups = timeGroups.count
 
-        for group in timeGroups {
+        for (index, group) in timeGroups.enumerated() {
             let similar = await findSimilarInGroup(group, using: photoLibrary)
             allGroups.append(contentsOf: similar)
+            onProgress(Double(index + 1) / Double(max(totalGroups, 1)))
         }
 
         return allGroups
@@ -46,18 +47,22 @@ final class ImageSimilarityService {
         let engine = AIAnalysisEngine()
         let size = CGSize(width: 300, height: 300)
 
-        // 提取特征向量
         var featurePrints: [(item: MediaItem, fp: VNFeaturePrintObservation)] = []
 
-        for item in items {
-            if let image = await photoLibrary.thumbnail(for: item.asset, size: size),
-               let cgImage = image.cgImage,
-               let fp = engine.featurePrint(for: cgImage) {
-                featurePrints.append((item: item, fp: fp))
+        // 分批处理
+        let batchSize = AppConstants.Analysis.batchSize
+        for batchStart in stride(from: 0, to: items.count, by: batchSize) {
+            let batchEnd = min(batchStart + batchSize, items.count)
+            let batch = items[batchStart..<batchEnd]
+            for item in batch {
+                if let image = await photoLibrary.thumbnail(for: item.asset, size: size),
+                   let cgImage = image.cgImage,
+                   let fp = engine.featurePrint(for: cgImage) {
+                    featurePrints.append((item: item, fp: fp))
+                }
             }
         }
 
-        // 计算相似度，聚类
         var visited = Set<String>()
         var groups: [CleanupGroup] = []
 
@@ -69,7 +74,6 @@ final class ImageSimilarityService {
                 guard !visited.contains(featurePrints[j].item.id) else { continue }
                 var distance: Float = 0
                 try? featurePrints[i].fp.computeDistance(&distance, to: featurePrints[j].fp)
-                // distance 越小越相似，转换为相似度
                 let similarity = 1.0 - distance
                 if similarity >= AppConstants.Similarity.highThreshold {
                     similarItems.append(featurePrints[j].item)
@@ -79,7 +83,6 @@ final class ImageSimilarityService {
 
             if similarItems.count > 1 {
                 visited.insert(featurePrints[i].item.id)
-                // 推荐保留文件最大（通常质量最好）的一张
                 let best = similarItems.max(by: { $0.fileSize < $1.fileSize })
                 groups.append(CleanupGroup(type: .similar, items: similarItems, bestItemID: best?.id))
             }

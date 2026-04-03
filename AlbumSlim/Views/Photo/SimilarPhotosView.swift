@@ -3,6 +3,13 @@ import SwiftUI
 struct SimilarPhotosView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var viewModel = PhotoCleanerViewModel()
+    @State private var showDeleteConfirm = false
+
+    private var selectedSize: Int64 {
+        let allItems = viewModel.similarGroups.flatMap(\.items)
+        return allItems.filter { viewModel.selectedForDeletion.contains($0.id) }
+            .reduce(Int64(0)) { $0 + $1.fileSize }
+    }
 
     var body: some View {
         Group {
@@ -26,24 +33,75 @@ struct SimilarPhotosView: View {
                     .buttonStyle(.borderedProminent)
                 }
             } else {
-                List {
-                    SpaceSavedBanner(
-                        count: viewModel.similarGroups.flatMap(\.items).count,
-                        size: viewModel.similarGroups.reduce(0) { $0 + $1.savableSize }
-                    )
-                    .listRowInsets(EdgeInsets())
+                VStack(spacing: 0) {
+                    List {
+                        SpaceSavedBanner(
+                            count: viewModel.similarGroups.flatMap(\.items).count,
+                            size: viewModel.similarGroups.reduce(0) { $0 + $1.savableSize }
+                        )
+                        .listRowInsets(EdgeInsets())
 
-                    ForEach(viewModel.similarGroups) { group in
-                        Section("相似组 · \(group.items.count) 张 · 可省 \(group.savableSize.formattedFileSize)") {
-                            MediaGridView(
-                                items: group.items,
-                                bestItemID: group.bestItemID,
-                                services: services
-                            )
+                        ForEach(viewModel.similarGroups) { group in
+                            Section {
+                                MediaGridView(
+                                    items: group.items,
+                                    bestItemID: group.bestItemID,
+                                    services: services,
+                                    isSelectable: true,
+                                    selection: $viewModel.selectedForDeletion
+                                )
+
+                                Button("选中除最佳外全部") {
+                                    viewModel.selectAllExceptBest(in: group)
+                                }
+                                .font(.footnote)
+                            } header: {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("相似组 · \(group.items.count) 张 · 可省 \(group.savableSize.formattedFileSize)")
+                                    if let range = timeRange(for: group) {
+                                        Text(range)
+                                            .font(.caption2)
+                                            .foregroundStyle(.secondary)
+                                    }
+                                }
+                            }
                         }
+                    }
+
+                    // 底部操作栏
+                    if !viewModel.selectedForDeletion.isEmpty {
+                        bottomBar
                     }
                 }
             }
         }
+    }
+
+    private var bottomBar: some View {
+        HStack {
+            Text("已选 \(viewModel.selectedForDeletion.count) 张")
+            Spacer()
+            Text("可释放 \(selectedSize.formattedFileSize)")
+                .foregroundStyle(.secondary)
+            Button("删除选中", role: .destructive) {
+                showDeleteConfirm = true
+            }
+            .buttonStyle(.borderedProminent)
+        }
+        .padding()
+        .background(.bar)
+        .confirmationDialog("确认删除", isPresented: $showDeleteConfirm) {
+            Button("删除 \(viewModel.selectedForDeletion.count) 张照片", role: .destructive) {
+                Task { try? await viewModel.deleteSelected(services: services) }
+            }
+        }
+    }
+
+    private func timeRange(for group: CleanupGroup) -> String? {
+        let dates = group.items.compactMap(\.creationDate).sorted()
+        guard let first = dates.first, let last = dates.last else { return nil }
+        let fmt = DateFormatter()
+        fmt.dateFormat = "MM/dd HH:mm"
+        return "\(fmt.string(from: first)) ~ \(fmt.string(from: last))"
     }
 }

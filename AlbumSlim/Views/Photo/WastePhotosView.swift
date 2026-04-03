@@ -1,9 +1,16 @@
 import SwiftUI
+import Photos
 
 struct WastePhotosView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var viewModel = PhotoCleanerViewModel()
     @State private var showDeleteConfirm = false
+
+    private var selectedSize: Int64 {
+        viewModel.wasteItems
+            .filter { viewModel.selectedForDeletion.contains($0.id) }
+            .reduce(Int64(0)) { $0 + $1.fileSize }
+    }
 
     var body: some View {
         Group {
@@ -27,34 +34,117 @@ struct WastePhotosView: View {
                     .buttonStyle(.borderedProminent)
                 }
             } else {
-                VStack {
-                    SpaceSavedBanner(
-                        count: viewModel.wasteItems.count,
-                        size: viewModel.wasteItems.reduce(0) { $0 + $1.fileSize }
-                    )
+                VStack(spacing: 0) {
+                    List {
+                        SpaceSavedBanner(
+                            count: viewModel.wasteItems.count,
+                            size: viewModel.wasteItems.reduce(0) { $0 + $1.fileSize }
+                        )
+                        .listRowInsets(EdgeInsets())
 
-                    MediaGridView(
-                        items: viewModel.wasteItems,
-                        bestItemID: nil,
-                        services: services
-                    )
+                        HStack {
+                            Button("全选") {
+                                for item in viewModel.wasteItems {
+                                    viewModel.selectedForDeletion.insert(item.id)
+                                }
+                            }
+                            Button("全不选") {
+                                viewModel.selectedForDeletion.removeAll()
+                            }
+                        }
+                        .font(.footnote)
 
-                    Button("删除所有废片", role: .destructive) {
-                        showDeleteConfirm = true
+                        ForEach(viewModel.wasteItems) { item in
+                            HStack(spacing: 12) {
+                                // 勾选框
+                                Image(systemName: viewModel.selectedForDeletion.contains(item.id) ? "checkmark.circle.fill" : "circle")
+                                    .foregroundStyle(viewModel.selectedForDeletion.contains(item.id) ? .blue : .secondary)
+                                    .onTapGesture { viewModel.toggleSelection(item.id) }
+
+                                AsyncThumbnail(asset: item.asset, services: services)
+                                    .frame(width: 60, height: 60)
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    if let reason = viewModel.wasteReasons[item.id] {
+                                        reasonTag(reason)
+                                    }
+                                    Text(item.fileSizeText)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+
+                                Spacer()
+
+                                Button("保留") {
+                                    viewModel.wasteItems.removeAll { $0.id == item.id }
+                                    viewModel.selectedForDeletion.remove(item.id)
+                                    viewModel.wasteReasons.removeValue(forKey: item.id)
+                                }
+                                .font(.caption)
+                                .buttonStyle(.bordered)
+                            }
+                        }
                     }
-                    .buttonStyle(.borderedProminent)
-                    .padding()
-                }
-                .confirmationDialog("确认删除", isPresented: $showDeleteConfirm) {
-                    Button("删除 \(viewModel.wasteItems.count) 张废片", role: .destructive) {
-                        Task {
-                            let assets = viewModel.wasteItems.map(\.asset)
-                            try? await services.photoLibrary.deleteAssets(assets)
-                            viewModel.wasteItems.removeAll()
+
+                    if !viewModel.selectedForDeletion.isEmpty {
+                        HStack {
+                            Text("已选 \(viewModel.selectedForDeletion.count) 张")
+                            Spacer()
+                            Button("删除选中", role: .destructive) {
+                                showDeleteConfirm = true
+                            }
+                            .buttonStyle(.borderedProminent)
+                        }
+                        .padding()
+                        .background(.bar)
+                        .confirmationDialog("确认删除", isPresented: $showDeleteConfirm) {
+                            Button("删除 \(viewModel.selectedForDeletion.count) 张废片", role: .destructive) {
+                                Task { try? await viewModel.deleteSelected(services: services) }
+                            }
                         }
                     }
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private func reasonTag(_ reason: WasteReason) -> some View {
+        let (text, color): (String, Color) = switch reason {
+        case .pureBlack: ("纯黑", .gray)
+        case .pureWhite: ("纯白", .gray)
+        case .blurry: ("模糊", .orange)
+        case .fingerBlock: ("遮挡", .red)
+        case .accidental: ("误拍", .purple)
+        }
+        Text(text)
+            .font(.caption2.bold())
+            .padding(.horizontal, 6)
+            .padding(.vertical, 2)
+            .background(color.opacity(0.15), in: Capsule())
+            .foregroundStyle(color)
+    }
+}
+
+private struct AsyncThumbnail: View {
+    let asset: PHAsset
+    let services: AppServiceContainer
+    @State private var image: UIImage?
+
+    var body: some View {
+        Group {
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(contentMode: .fill)
+            } else {
+                Rectangle().fill(.quaternary)
+                    .overlay { ProgressView() }
+            }
+        }
+        .task {
+            image = await services.photoLibrary.thumbnail(for: asset, size: CGSize(width: 120, height: 120))
         }
     }
 }

@@ -5,6 +5,8 @@ struct MediaGridView: View {
     let items: [MediaItem]
     let bestItemID: String?
     let services: AppServiceContainer
+    var isSelectable: Bool = false
+    var selection: Binding<Set<String>>?
 
     private let columns = [GridItem(.adaptive(minimum: 100), spacing: 4)]
 
@@ -14,8 +16,18 @@ struct MediaGridView: View {
                 ThumbnailCell(
                     item: item,
                     isBest: item.id == bestItemID,
+                    isSelectable: isSelectable,
+                    isSelected: selection?.wrappedValue.contains(item.id) ?? false,
                     services: services
-                )
+                ) {
+                    if let selection {
+                        if selection.wrappedValue.contains(item.id) {
+                            selection.wrappedValue.remove(item.id)
+                        } else {
+                            selection.wrappedValue.insert(item.id)
+                        }
+                    }
+                }
             }
         }
     }
@@ -24,7 +36,10 @@ struct MediaGridView: View {
 private struct ThumbnailCell: View {
     let item: MediaItem
     let isBest: Bool
+    let isSelectable: Bool
+    let isSelected: Bool
     let services: AppServiceContainer
+    var onTap: () -> Void
     @State private var image: UIImage?
 
     var body: some View {
@@ -41,6 +56,16 @@ private struct ThumbnailCell: View {
                     .overlay { ProgressView() }
             }
 
+            // 选中覆盖层
+            if isSelectable && isSelected {
+                Rectangle()
+                    .fill(.blue.opacity(0.3))
+                Image(systemName: "checkmark.circle.fill")
+                    .font(.title3)
+                    .foregroundStyle(.white, .blue)
+                    .padding(6)
+            }
+
             if isBest {
                 Image(systemName: "star.fill")
                     .font(.caption)
@@ -49,7 +74,6 @@ private struct ThumbnailCell: View {
                     .padding(4)
             }
 
-            // 文件大小标签
             VStack {
                 Spacer()
                 Text(item.fileSizeText)
@@ -67,6 +91,10 @@ private struct ThumbnailCell: View {
                 RoundedRectangle(cornerRadius: 6)
                     .stroke(.yellow, lineWidth: 2)
             }
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if isSelectable { onTap() }
         }
         .task {
             image = await services.photoLibrary.thumbnail(

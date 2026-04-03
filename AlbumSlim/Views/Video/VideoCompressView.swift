@@ -1,77 +1,158 @@
 import SwiftUI
+import Photos
 
 struct VideoCompressView: View {
     @Environment(AppServiceContainer.self) private var services
+    @Environment(\.dismiss) private var dismiss
     let item: MediaItem
     @State private var selectedQuality: CompressionQuality = .high
     @State private var isCompressing = false
-    @State private var showResult = false
+    @State private var compressedURL: URL?
+    @State private var compressedSize: Int64?
     @State private var error: String?
+    @State private var thumbnail: UIImage?
+
+    private var isCompleted: Bool { compressedSize != nil }
 
     var body: some View {
         List {
+            // 视频缩略图预览
+            Section {
+                HStack {
+                    Spacer()
+                    Group {
+                        if let thumbnail {
+                            Image(uiImage: thumbnail)
+                                .resizable()
+                                .aspectRatio(contentMode: .fit)
+                        } else {
+                            Image(systemName: "video.fill")
+                                .font(.system(size: 40))
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .frame(maxHeight: 200)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    Spacer()
+                }
+                .listRowBackground(Color.clear)
+            }
+
             Section("视频信息") {
                 LabeledContent("分辨率", value: item.resolution)
                 LabeledContent("时长", value: formatDuration(item.duration))
                 LabeledContent("原始大小", value: item.fileSizeText)
             }
 
-            Section("压缩质量") {
-                Picker("质量", selection: $selectedQuality) {
-                    ForEach(CompressionQuality.allCases, id: \.self) { quality in
-                        VStack(alignment: .leading) {
-                            Text(quality.rawValue)
-                            Text("预估节省 \(quality.estimatedSavingsPercent)")
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+            if !isCompressing && !isCompleted {
+                Section("压缩质量") {
+                    Picker("质量", selection: $selectedQuality) {
+                        ForEach(CompressionQuality.allCases, id: \.self) { quality in
+                            VStack(alignment: .leading) {
+                                Text(quality.rawValue)
+                                Text("预估节省 \(quality.estimatedSavingsPercent)")
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .tag(quality)
                         }
-                        .tag(quality)
                     }
+                    .pickerStyle(.inline)
+                    .labelsHidden()
                 }
-                .pickerStyle(.inline)
-                .labelsHidden()
-            }
 
-            Section {
-                let estimated = services.videoCompression.estimateCompressedSize(
-                    asset: item.asset, quality: selectedQuality
-                )
-                LabeledContent("预估压缩后", value: estimated.formattedFileSize)
-                LabeledContent("预估节省", value: (item.fileSize - estimated).formattedFileSize)
-            }
+                Section("预估结果") {
+                    let estimated = services.videoCompression.estimateCompressedSize(
+                        asset: item.asset, quality: selectedQuality
+                    )
+                    let saved = item.fileSize - estimated
+                    let percent = item.fileSize > 0 ? Int(Double(saved) / Double(item.fileSize) * 100) : 0
+                    LabeledContent("压缩后大小", value: estimated.formattedFileSize)
+                    LabeledContent("预估节省", value: "\(saved.formattedFileSize)（\(percent)%）")
+                }
 
-            Section {
-                if isCompressing {
-                    ProgressView(value: services.videoCompression.progress) {
-                        Text("压缩中...")
+                Section {
+                    Button("压缩并替换原视频") {
+                        Task { await compressAndReplace() }
                     }
-                } else {
-                    Button("开始压缩") {
-                        Task { await compress() }
+                    .frame(maxWidth: .infinity)
+
+                    Button("压缩保存为新视频") {
+                        Task { await compressAndSaveNew() }
                     }
                     .frame(maxWidth: .infinity)
                 }
             }
+
+            if isCompressing {
+                Section {
+                    VStack(spacing: 8) {
+                        ProgressView(value: services.videoCompression.progress) {
+                            Text("压缩中...")
+                        }
+                        Text("\(Int(services.videoCompression.progress * 100))%")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+            }
+
+            if let compressedSize {
+                Section("压缩结果") {
+                    let saved = item.fileSize - compressedSize
+                    let percent = item.fileSize > 0 ? Int(Double(saved) / Double(item.fileSize) * 100) : 0
+                    LabeledContent("原始大小", value: item.fileSizeText)
+                    LabeledContent("压缩后", value: compressedSize.formattedFileSize)
+                    LabeledContent("实际节省", value: "\(saved.formattedFileSize)（\(percent)%）")
+                }
+
+                Section {
+                    Button("完成") { dismiss() }
+                        .frame(maxWidth: .infinity)
+                        .bold()
+                }
+            }
         }
         .navigationTitle("视频压缩")
+        .task {
+            thumbnail = await services.photoLibrary.thumbnail(
+                for: item.asset, size: CGSize(width: 600, height: 400)
+            )
+        }
         .alert("压缩失败", isPresented: .init(get: { error != nil }, set: { if !$0 { error = nil } })) {
             Button("确定") {}
         } message: {
             Text(error ?? "")
         }
-        .alert("压缩完成", isPresented: $showResult) {
-            Button("好的") {}
-        }
     }
 
-    private func compress() async {
+    private func compressAndReplace() async {
         isCompressing = true
         defer { isCompressing = false }
         do {
-            _ = try await services.videoCompression.compressVideo(
+            let url = try await services.videoCompression.compressVideo(
                 asset: item.asset, quality: selectedQuality
             )
-            showResult = true
+            let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+            let size = attrs?[.size] as? Int64 ?? 0
+            try await services.videoCompression.replaceOriginal(asset: item.asset, with: url)
+            compressedSize = size
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    private func compressAndSaveNew() async {
+        isCompressing = true
+        defer { isCompressing = false }
+        do {
+            let url = try await services.videoCompression.compressVideo(
+                asset: item.asset, quality: selectedQuality
+            )
+            let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
+            let size = attrs?[.size] as? Int64 ?? 0
+            try await services.videoCompression.saveCompressedToLibrary(url: url)
+            compressedSize = size
         } catch {
             self.error = error.localizedDescription
         }
