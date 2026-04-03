@@ -9,6 +9,7 @@
 - **数据**: SwiftData
 - **最低版本**: iOS 17.0
 - **架构**: MVVM + 服务容器 (依赖注入)
+- **构建**: XcodeGen (`project.yml` → `.xcodeproj`)
 
 ### 核心框架
 
@@ -38,6 +39,7 @@ AlbumSlim/
 │   └── CleanupCoordinator        # 清理协调器
 ├── ViewModels/             # 视图模型
 ├── Views/                  # SwiftUI 视图
+│   ├── Onboarding/         # 首次启动引导
 │   ├── Dashboard/          # 存储仪表盘
 │   ├── Video/              # 视频管理
 │   ├── Photo/              # 照片清理
@@ -48,39 +50,48 @@ AlbumSlim/
 
 ## 编码规范
 
+- 所有 `@Observable` 类标记 `@MainActor`
 - 使用 `@Observable` macro (iOS 17+) 而非 ObservableObject
-- 服务层通过 `AppServiceContainer` 注入，不使用全局单例
+- 服务层通过 `AppServiceContainer` 注入，View 中用 `@Environment(AppServiceContainer.self)`
 - Photos 操作必须通过 `PHPhotoLibrary.shared().performChanges` 异步执行
-- 大量资源处理使用 `TaskGroup` 并发，限制并发数 ≤ 4
-- 特征向量等耗时计算结果缓存到 SwiftData
-- 每批处理 100 张，使用 `autoreleasepool` 避免 OOM
+- 大批量处理分批（每批 100 张 `AppConstants.Analysis.batchSize`），避免 OOM
+- 特征向量等耗时计算结果缓存到 SwiftData（`CachedAnalysis` 模型）
+- 并发严格性: `SWIFT_STRICT_CONCURRENCY = targeted`
 - git commit 消息用中文
+- 修改 Swift 文件后需 `xcodegen generate` 重新生成 xcodeproj
+- 编译验证: `xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'`
 
-## 功能优先级
+## 开发进度
 
-### P0 - MVP
-1. 存储空间仪表盘
-2. 视频按大小排序
-3. 视频压缩 (HEVC 三档)
-4. 废片检测 (黑屏/模糊/遮挡)
-5. 相似照片分组
-6. 批量删除
+### ✅ P0 - MVP (已完成)
+1. ~~存储空间仪表盘~~ — 环形图 + 分类统计 + 预估可释放
+2. ~~视频按大小排序~~ — 缩略图 + 排序(大小/时长/日期) + 多选
+3. ~~视频压缩~~ — HEVC 三档 + 替换原视频/保存新视频
+4. ~~废片检测~~ — 纯黑/纯白/模糊/手指遮挡 + 原因标签
+5. ~~相似照片分组~~ — VNFeaturePrint 余弦相似度 + 推荐最佳
+6. ~~批量删除~~ — 选择模式 + 确认对话框
+7. ~~首次启动引导~~ — 权限请求 + 隐私说明
+8. ~~连拍清理~~ — 分组展示 + 只保留最佳
 
-### P1
-7. 连拍清理
-8. 截图 OCR
-9. 截图导出备忘录
-10. 视频清理建议
-11. 一键清理方案
+### 🔲 P1 - 功能完善 (下一阶段)
+9. 截图 OCR 分析 — OCRService 已有骨架，需接入 ScreenshotListView
+10. 截图导出备忘录 — NotesExportService 已有骨架
+11. 视频清理建议 — 超长/重复/低质量视频识别
+12. 智能一键清理 — 聚合所有模块结果生成方案
+13. StoreKit 2 订阅 — 付费墙 + 免费/Pro 功能限制
 
-### P2
-12. Foundation Models 智能总结 (iOS 26+)
-13. Live Photo 优化
-14. Widget / 提醒 / 成就系统
-15. Shortcuts 集成
+### 🔲 P2 - 增长优化
+14. Foundation Models 智能总结 (iOS 26+)
+15. Live Photo 优化
+16. Widget 小组件 + 定期清理提醒
+17. 清理成就系统 + 分享卡片
+18. 微信/QQ 图片识别清理
+19. 证件照安全提醒
+20. Shortcuts / AppIntents 集成
+21. ASO 优化 + 营销素材
 
 ## 商业模式
 
 免费 + Pro 订阅 (月￥6 / 年￥38 / 终身￥98)
-- 免费: 仪表盘 + 视频排序 + 有限清理
-- Pro: 无限清理 + 视频压缩 + OCR + 一键清理
+- 免费: 仪表盘 + 视频排序 + 废片检测(限20张) + 相似照片(前3组)
+- Pro: 无限清理 + 视频压缩 + OCR + 一键清理 + 所有新功能
