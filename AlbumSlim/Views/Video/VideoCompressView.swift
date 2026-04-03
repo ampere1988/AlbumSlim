@@ -11,6 +11,7 @@ struct VideoCompressView: View {
     @State private var compressedSize: Int64?
     @State private var error: String?
     @State private var thumbnail: UIImage?
+    @State private var showPaywall = false
 
     private var isCompleted: Bool { compressedSize != nil }
 
@@ -73,12 +74,20 @@ struct VideoCompressView: View {
 
                 Section {
                     Button("压缩并替换原视频") {
-                        Task { await compressAndReplace() }
+                        if ProFeatureGate.canCompress(isPro: services.subscription.isPro) {
+                            Task { await compressAndReplace() }
+                        } else {
+                            showPaywall = true
+                        }
                     }
                     .frame(maxWidth: .infinity)
 
                     Button("压缩保存为新视频") {
-                        Task { await compressAndSaveNew() }
+                        if ProFeatureGate.canCompress(isPro: services.subscription.isPro) {
+                            Task { await compressAndSaveNew() }
+                        } else {
+                            showPaywall = true
+                        }
                     }
                     .frame(maxWidth: .infinity)
                 }
@@ -119,6 +128,7 @@ struct VideoCompressView: View {
                 for: item.asset, size: CGSize(width: 600, height: 400)
             )
         }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
         .alert("压缩失败", isPresented: .init(get: { error != nil }, set: { if !$0 { error = nil } })) {
             Button("确定") {}
         } message: {

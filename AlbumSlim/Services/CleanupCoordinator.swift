@@ -54,6 +54,98 @@ final class CleanupCoordinator {
         return freedSize
     }
 
+    // MARK: - 智能扫描
+
+    enum ScanPhase: String {
+        case waste = "检测废片..."
+        case similar = "查找相似照片..."
+        case burst = "分析连拍照片..."
+        case largeVideo = "查找大视频..."
+        case done = "扫描完成"
+    }
+
+    private(set) var scanPhase: ScanPhase = .done
+    private(set) var scanProgress: Double = 0
+
+    func smartScan(services: AppServiceContainer) async -> [CleanupGroup] {
+        clearAll()
+        var allGroups: [CleanupGroup] = []
+        let photoLibrary = services.photoLibrary
+        let engine = services.aiEngine
+
+        // 1. 废片检测
+        scanPhase = .waste
+        scanProgress = 0
+        let photoFetch = photoLibrary.fetchAllAssets(mediaType: .image)
+        let photoItems = photoLibrary.buildMediaItems(from: photoFetch)
+        let thumbSize = CGSize(width: 300, height: 300)
+        var wasteItems: [MediaItem] = []
+        let batchSize = AppConstants.Analysis.batchSize
+
+        for batchStart in stride(from: 0, to: photoItems.count, by: batchSize) {
+            let batchEnd = min(batchStart + batchSize, photoItems.count)
+            for index in batchStart..<batchEnd {
+                let item = photoItems[index]
+                if let image = await photoLibrary.thumbnail(for: item.asset, size: thumbSize) {
+                    let result = engine.detectWaste(image: image)
+                    if result.isWaste {
+                        wasteItems.append(item)
+                    }
+                }
+            }
+            scanProgress = Double(batchEnd) / Double(photoItems.count) * 0.3
+        }
+        if !wasteItems.isEmpty {
+            allGroups.append(CleanupGroup(type: .waste, items: wasteItems, bestItemID: nil))
+        }
+
+        // 2. 相似照片检测
+        scanPhase = .similar
+        let similarGroups = await services.imageSimilarity.findSimilarGroups(
+            from: photoItems,
+            using: photoLibrary,
+            onProgress: { [weak self] p in
+                self?.scanProgress = 0.3 + p * 0.4
+            }
+        )
+        allGroups.append(contentsOf: similarGroups)
+
+        // 3. 连拍照片检测
+        scanPhase = .burst
+        scanProgress = 0.7
+        let burstFetch = photoLibrary.fetchBurstAssets()
+        let burstItems = photoLibrary.buildMediaItems(from: burstFetch)
+        var burstMap: [String: [MediaItem]] = [:]
+        for item in burstItems {
+            if let burstID = item.asset.burstIdentifier {
+                burstMap[burstID, default: []].append(item)
+            }
+        }
+        let burstGroups = burstMap.values
+            .filter { $0.count > 1 }
+            .map { items in
+                let best = items.max(by: { $0.fileSize < $1.fileSize })
+                return CleanupGroup(type: .burst, items: items, bestItemID: best?.id)
+            }
+        allGroups.append(contentsOf: burstGroups)
+
+        // 4. 大视频检测 (>100MB)
+        scanPhase = .largeVideo
+        scanProgress = 0.85
+        let videoFetch = photoLibrary.fetchAllAssets(mediaType: .video)
+        let videoItems = photoLibrary.buildMediaItems(from: videoFetch)
+        let largeVideoThreshold: Int64 = 100 * 1024 * 1024
+        let largeVideos = videoItems.filter { $0.fileSize > largeVideoThreshold }
+        if !largeVideos.isEmpty {
+            allGroups.append(CleanupGroup(type: .largeVideo, items: largeVideos, bestItemID: nil))
+        }
+
+        scanPhase = .done
+        scanProgress = 1.0
+        addGroups(allGroups)
+        return allGroups
+    }
+
     private func recalculateSavable() {
         totalSavableSize = pendingGroups.reduce(0) { $0 + $1.savableSize }
     }

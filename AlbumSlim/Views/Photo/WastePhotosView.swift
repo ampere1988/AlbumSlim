@@ -5,6 +5,7 @@ struct WastePhotosView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var viewModel = PhotoCleanerViewModel()
     @State private var showDeleteConfirm = false
+    @State private var showPaywall = false
 
     private var selectedSize: Int64 {
         viewModel.wasteItems
@@ -92,7 +93,14 @@ struct WastePhotosView: View {
                             Text("已选 \(viewModel.selectedForDeletion.count) 张")
                             Spacer()
                             Button("删除选中", role: .destructive) {
-                                showDeleteConfirm = true
+                                if ProFeatureGate.canCleanWaste(
+                                    currentCount: viewModel.selectedForDeletion.count,
+                                    isPro: services.subscription.isPro
+                                ) {
+                                    showDeleteConfirm = true
+                                } else {
+                                    showPaywall = true
+                                }
                             }
                             .buttonStyle(.borderedProminent)
                         }
@@ -107,6 +115,7 @@ struct WastePhotosView: View {
                 }
             }
         }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
     }
 
     @ViewBuilder

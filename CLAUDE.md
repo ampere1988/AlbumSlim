@@ -73,12 +73,11 @@ AlbumSlim/
 7. ~~首次启动引导~~ — 权限请求 + 隐私说明
 8. ~~连拍清理~~ — 分组展示 + 只保留最佳
 
-### 🔲 P1 - 功能完善 (下一阶段)
-9. 截图 OCR 分析 — OCRService 已有骨架，需接入 ScreenshotListView
-10. 截图导出备忘录 — NotesExportService 已有骨架
-11. 视频清理建议 — 超长/重复/低质量视频识别
-12. 智能一键清理 — 聚合所有模块结果生成方案
-13. StoreKit 2 订阅 — 付费墙 + 免费/Pro 功能限制
+### ✅ P1 - 功能完善 (已完成)
+9. ~~截图管理完善~~ — 分类优化 + 详情页 + 批量操作 + Pro 限制
+10. ~~视频清理建议~~ — VideoAnalysisService + 超长/低质/大文件/重复识别
+11. ~~智能一键清理~~ — smartScan 聚合 + QuickCleanView 三阶段 UI
+12. ~~StoreKit 2 订阅~~ — SubscriptionService + PaywallView + ProFeatureGate
 
 ### 🔲 P2 - 增长优化
 14. Foundation Models 智能总结 (iOS 26+)

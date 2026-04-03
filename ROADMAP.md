@@ -1,6 +1,6 @@
 # AlbumSlim 开发路线图
 
-> 最后更新: 2026-04-03
+> 最后更新: 2026-04-04
 
 ## Phase 1: MVP ✅ (已完成)
 
@@ -40,46 +40,32 @@
 
 ---
 
-## Phase 2: 功能完善 (下一阶段)
+## Phase 2: 功能完善 ✅ (已完成)
 
 > 目标: 补全截图管理、智能推荐、订阅系统，提升付费转化
 
-### 2.1 截图管理 (优先)
-- [ ] 接通 ScreenshotListView ↔ OCRService
-  - ScreenshotViewModel.analyzeScreenshot 已实现，需真机验证 OCR 效果
-  - VNRecognizeTextRequest: `recognitionLanguages = ["zh-Hans", "zh-Hant", "en"]`
-- [ ] 截图内容分类优化
-  - 当前 OCRService.categorize 基于关键词，需增加更多中文场景
-  - 添加: 快递单号、会议截图、代码截图 等类别
-- [ ] 截图详情页: 显示 OCR 全文 + 分类标签 + 操作按钮
-- [ ] 导出到 Apple Notes
-  - 当前 NotesExportService 使用 `mobilenotes://` URL Scheme
-  - 需真机验证兼容性，备选方案: UIPasteboard + 打开备忘录
-- [ ] 批量操作: 全选分析 → 导出有价值内容 → 批量删除截图
+### 2.1 截图管理 ✅
+- [x] 接通 ScreenshotListView ↔ OCRService
+- [x] 截图内容分类优化 (新增: 快递、会议、代码、社交媒体)
+- [x] 截图详情页: 大图预览 + OCR 全文 + 复制/导出/删除
+- [x] 导出到 Apple Notes (mobilenotes:// URL Scheme)
+- [x] 批量操作: 编辑模式多选 + 分类筛选 + 批量导出/删除
 
-### 2.2 视频清理建议
-- [ ] 识别超长视频 (>5min) 并建议裁剪或压缩
-- [ ] 检测重复录制 (时间相近 + 时长相近 + 采样帧相似)
-- [ ] 低质量视频标记 (低分辨率、短时长抖动视频)
-- [ ] 视频清理建议页面整合
+### 2.2 视频清理建议 ✅
+- [x] VideoAnalysisService: 识别超长(>5min)/低质量/大文件(>100MB)/疑似重复
+- [x] VideoSuggestionsView: 按类型分 Section 展示 + 多选批量操作
+- [x] 集成到 VideoListView 工具栏
 
-### 2.3 智能一键清理
-- [ ] CleanupCoordinator 聚合: 废片 + 相似多余 + 连拍多余 + 大视频
-- [ ] 生成清理方案预览 (分类展示 + 总可释放空间)
-- [ ] "一键清理"按钮 → 系统确认 → 执行 → 结果报告
-- [ ] 清理结果动画 (显示释放了多少空间)
+### 2.3 智能一键清理 ✅
+- [x] CleanupCoordinator.smartScan: 聚合废片+相似+连拍+大视频
+- [x] QuickCleanView: 三阶段 UI (扫描→预览→完成动画)
+- [x] DashboardView 添加智能清理入口卡片
 
-### 2.4 StoreKit 2 订阅
-- [ ] 定义产品 ID: `com.huge.albumslim.monthly` / `.yearly` / `.lifetime`
-- [ ] App Store Connect 配置订阅组
-- [ ] 付费墙 UI (PaywallView)
-  - 功能对比表
-  - 推荐年订阅
-  - 恢复购买
-- [ ] 功能限制逻辑
-  - 免费: 废片检测限清理20张，相似照片展示前3组
-  - Pro: 解锁全部
-- [ ] 订阅状态持久化 (Transaction.currentEntitlements)
+### 2.4 StoreKit 2 订阅 ✅
+- [x] SubscriptionService: StoreKit 2 购买/恢复/状态监听
+- [x] PaywallView: 功能对比 + 三档订阅卡片 + 购买流程
+- [x] ProFeatureGate: 废片20张/相似3组/压缩/OCR/一键清理限制
+- [x] 付费墙集成: WastePhotos/SimilarPhotos/VideoCompress/Screenshot
 
 ### 2.5 关键技术文件
 

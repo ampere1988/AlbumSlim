@@ -4,6 +4,7 @@ struct SimilarPhotosView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var viewModel = PhotoCleanerViewModel()
     @State private var showDeleteConfirm = false
+    @State private var showPaywall = false
 
     private var selectedSize: Int64 {
         let allItems = viewModel.similarGroups.flatMap(\.items)
@@ -41,20 +42,27 @@ struct SimilarPhotosView: View {
                         )
                         .listRowInsets(EdgeInsets())
 
-                        ForEach(viewModel.similarGroups) { group in
+                        ForEach(Array(viewModel.similarGroups.enumerated()), id: \.element.id) { index, group in
+                            let locked = !ProFeatureGate.canViewSimilarGroup(
+                                groupIndex: index, isPro: services.subscription.isPro
+                            )
                             Section {
-                                MediaGridView(
-                                    items: group.items,
-                                    bestItemID: group.bestItemID,
-                                    services: services,
-                                    isSelectable: true,
-                                    selection: $viewModel.selectedForDeletion
-                                )
+                                if locked {
+                                    lockedGroupOverlay
+                                } else {
+                                    MediaGridView(
+                                        items: group.items,
+                                        bestItemID: group.bestItemID,
+                                        services: services,
+                                        isSelectable: true,
+                                        selection: $viewModel.selectedForDeletion
+                                    )
 
-                                Button("选中除最佳外全部") {
-                                    viewModel.selectAllExceptBest(in: group)
+                                    Button("选中除最佳外全部") {
+                                        viewModel.selectAllExceptBest(in: group)
+                                    }
+                                    .font(.footnote)
                                 }
-                                .font(.footnote)
                             } header: {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text("相似组 · \(group.items.count) 张 · 可省 \(group.savableSize.formattedFileSize)")
@@ -75,6 +83,23 @@ struct SimilarPhotosView: View {
                 }
             }
         }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
+    }
+
+    private var lockedGroupOverlay: some View {
+        VStack(spacing: 8) {
+            Image(systemName: "lock.fill")
+                .font(.title2)
+                .foregroundStyle(.secondary)
+            Text("升级 Pro 查看更多相似组")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
+            Button("解锁 Pro") { showPaywall = true }
+                .font(.footnote)
+                .buttonStyle(.borderedProminent)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 20)
     }
 
     private var bottomBar: some View {

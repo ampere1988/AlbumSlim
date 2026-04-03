@@ -16,6 +16,8 @@ final class VideoManagerViewModel {
     var selectedVideos: Set<String> = []
     var sortOrder: SortOrder = .size
     var isEditing = false
+    var suggestions: [VideoAnalysisService.VideoSuggestion] = []
+    var isAnalyzingSuggestions = false
 
     var totalVideoSize: Int64 {
         videos.reduce(0) { $0 + $1.fileSize }
@@ -82,5 +84,15 @@ final class VideoManagerViewModel {
 
     func estimatedSize(for item: MediaItem, services: AppServiceContainer) -> Int64 {
         services.videoCompression.estimateCompressedSize(asset: item.asset, quality: selectedQuality)
+    }
+
+    var totalSuggestedSaving: Int64 {
+        suggestions.reduce(0) { $0 + $1.estimatedSaving }
+    }
+
+    func analyzeSuggestions(services: AppServiceContainer) async {
+        isAnalyzingSuggestions = true
+        defer { isAnalyzingSuggestions = false }
+        suggestions = await services.videoAnalysis.analyzeVideos(videos)
     }
 }

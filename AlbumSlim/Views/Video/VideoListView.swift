@@ -50,6 +50,13 @@ struct VideoListView: View {
             .navigationTitle("视频管理")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
+                    NavigationLink {
+                        VideoSuggestionsView(viewModel: viewModel)
+                    } label: {
+                        Label("清理建议", systemImage: "lightbulb")
+                    }
+                }
+                ToolbarItem(placement: .topBarLeading) {
                     Menu {
                         ForEach(SortOrder.allCases, id: \.self) { order in
                             Button {

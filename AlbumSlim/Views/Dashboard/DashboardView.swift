@@ -3,6 +3,7 @@ import SwiftUI
 struct DashboardView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var viewModel = DashboardViewModel()
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -67,6 +68,35 @@ struct DashboardView: View {
                             .padding(.horizontal)
                         }
 
+                        NavigationLink {
+                            QuickCleanView()
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "wand.and.stars")
+                                    .font(.title2)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("智能一键清理")
+                                        .font(.headline)
+                                    Text("自动检测废片、相似照片、连拍和大视频")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(.tertiary)
+                            }
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(
+                                LinearGradient(colors: [.orange.opacity(0.15), .red.opacity(0.15)],
+                                               startPoint: .leading, endPoint: .trailing),
+                                in: RoundedRectangle(cornerRadius: 12)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .padding(.horizontal)
+
                         Button {
                             Task { await viewModel.loadStats(services: services) }
                         } label: {
@@ -80,6 +110,21 @@ struct DashboardView: View {
                 .padding(.vertical)
             }
             .navigationTitle("相册瘦身")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showPaywall = true
+                    } label: {
+                        if services.subscription.isPro {
+                            Label("Pro", systemImage: "crown.fill")
+                                .foregroundStyle(.yellow)
+                        } else {
+                            Label("升级 Pro", systemImage: "crown")
+                        }
+                    }
+                }
+            }
+            .sheet(isPresented: $showPaywall) { PaywallView() }
             .task { await viewModel.loadStats(services: services) }
         }
     }
