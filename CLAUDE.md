@@ -29,13 +29,16 @@ AlbumSlim/
 ├── App/                    # 入口 + 服务容器
 ├── Models/                 # 数据模型 (MediaItem, AnalysisResult 等)
 ├── Services/               # 业务服务层
-│   ├── PhotoLibraryService       # Photos 框架封装
+│   ├── PhotoLibraryService       # Photos 框架封装 + PHPhotoLibraryChangeObserver
 │   ├── AIAnalysisEngine          # Vision/CoreML 分析引擎
-│   ├── VideoCompressionService   # 视频压缩
-│   ├── ImageSimilarityService    # 相似照片 (VNFeaturePrint)
+│   ├── VideoCompressionService   # 视频压缩 + 后台队列
+│   ├── ImageSimilarityService    # 相似照片 (VNFeaturePrint + 缓存)
+│   ├── AnalysisCacheService      # SwiftData 分析结果缓存
+│   ├── AchievementService        # 清理成就系统
+│   ├── ReminderService           # 定期清理提醒
 │   ├── OCRService                # 截图 OCR
 │   ├── NotesExportService        # 导出到备忘录
-│   ├── StorageAnalyzer           # 存储空间分析
+│   ├── StorageAnalyzer           # 存储空间分析 (缓存+后台)
 │   └── CleanupCoordinator        # 清理协调器
 ├── ViewModels/             # 视图模型
 ├── Views/                  # SwiftUI 视图
@@ -44,8 +47,10 @@ AlbumSlim/
 │   ├── Video/              # 视频管理
 │   ├── Photo/              # 照片清理
 │   ├── Screenshot/         # 截图管理
-│   └── Common/             # 通用组件
-└── Utils/                  # 工具类
+│   ├── Settings/           # 设置 + 成就页
+│   └── Common/             # 通用组件 + 分享卡片
+├── Utils/                  # 工具类
+AlbumSlimWidget/            # WidgetKit 小组件 (独立 target)
 ```
 
 ## 编码规范
@@ -79,10 +84,15 @@ AlbumSlim/
 11. ~~智能一键清理~~ — smartScan 聚合 + QuickCleanView 三阶段 UI
 12. ~~StoreKit 2 订阅~~ — SubscriptionService + PaywallView + ProFeatureGate
 
-### 🔲 P2 - 增长优化
-14. Foundation Models 智能总结 (iOS 26+)
-15. Live Photo 优化
-16. Widget 小组件 + 定期清理提醒
+### ✅ P2 - 增长优化 (已完成)
+13. ~~性能优化~~ — StorageStats 缓存 + PHChange 增量 + 后台扫描 + CachedAnalysis 集成 + 特征向量缓存
+14. ~~Widget 小组件~~ — WidgetKit (small/medium) + App Groups + ReminderService + SettingsView
+15. ~~社交化~~ — 10 个清理成就 + 分享卡片 (ImageRenderer) + SKStoreReviewController
+16. ~~视频压缩队列~~ — CompressionTask 队列 + 后台处理 + 本地通知
+
+### 🔲 P3 - 高级功能
+17. Foundation Models 智能总结 (iOS 26+)
+18. Live Photo 优化
 17. 清理成就系统 + 分享卡片
 18. 微信/QQ 图片识别清理
 19. 证件照安全提醒

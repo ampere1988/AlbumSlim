@@ -34,12 +34,18 @@ final class VideoManagerViewModel {
         }
     }
 
+    private var lastLibraryVersion: Int = -1
+
     func loadVideos(services: AppServiceContainer) {
+        let currentVersion = services.photoLibrary.libraryVersion
+        guard lastLibraryVersion != currentVersion || videos.isEmpty else { return }
+
         isLoading = true
         defer { isLoading = false }
 
         let fetchResult = services.photoLibrary.fetchAllAssets(mediaType: .video)
         videos = services.photoLibrary.buildMediaItems(from: fetchResult)
+        lastLibraryVersion = currentVersion
     }
 
     func toggleSelection(_ id: String) {
@@ -76,9 +82,10 @@ final class VideoManagerViewModel {
     func compressSelected(services: AppServiceContainer) async throws {
         let items = videos.filter { selectedVideos.contains($0.id) }
         for item in items {
-            try await compressAndReplace(item: item, services: services)
+            services.videoCompression.enqueueCompression(asset: item.asset, quality: selectedQuality)
         }
         selectedVideos.removeAll()
+        await services.videoCompression.processQueue()
         loadVideos(services: services)
     }
 

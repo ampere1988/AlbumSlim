@@ -3,8 +3,20 @@ import Photos
 import UIKit
 
 @MainActor @Observable
-final class PhotoLibraryService {
+final class PhotoLibraryService: NSObject {
     private(set) var authorizationStatus: PHAuthorizationStatus = .notDetermined
+
+    /// 相册变更版本号，每次相册发生增删改时自增
+    private(set) var libraryVersion: Int = 0
+
+    override init() {
+        super.init()
+        PHPhotoLibrary.shared().register(self)
+    }
+
+    deinit {
+        PHPhotoLibrary.shared().unregisterChangeObserver(self)
+    }
 
     func requestAuthorization() async -> PHAuthorizationStatus {
         let status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
@@ -39,7 +51,7 @@ final class PhotoLibraryService {
 
     // MARK: - 文件大小
 
-    func fileSize(for asset: PHAsset) -> Int64 {
+    nonisolated func fileSize(for asset: PHAsset) -> Int64 {
         let resources = PHAssetResource.assetResources(for: asset)
         guard let resource = resources.first else { return 0 }
         let sizeValue = resource.value(forKey: "fileSize") as? Int64
@@ -84,5 +96,15 @@ final class PhotoLibraryService {
             ))
         }
         return items
+    }
+}
+
+// MARK: - PHPhotoLibraryChangeObserver
+
+extension PhotoLibraryService: PHPhotoLibraryChangeObserver {
+    nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
+        Task { @MainActor in
+            self.libraryVersion += 1
+        }
     }
 }

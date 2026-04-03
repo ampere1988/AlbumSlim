@@ -79,27 +79,30 @@
 
 ---
 
-## Phase 3: 增长优化
+## Phase 3: 增长优化 ✅ (已完成)
 
 > 目标: 提升留存、扩大用户获取
 
-### 3.1 性能优化
-- [ ] 大相册 (10000+ 张) 扫描速度优化
-  - 首次扫描结果缓存到 SwiftData (CachedAnalysis)
-  - 增量扫描: 只分析新增资源 (PHChange 监听)
+### 3.1 性能优化 ✅
+- [x] 大相册 (10000+ 张) 扫描速度优化
+  - StorageStats 缓存到 UserDefaults + App Groups
+  - PHPhotoLibraryChangeObserver 增量检测
+  - StorageAnalyzer 后台线程扫描 (Task.detached)
+  - CachedAnalysis SwiftData 集成 (AnalysisCacheService)
   - autoreleasepool 包裹批处理循环
-- [ ] 相似度计算优化: 特征向量序列化缓存
-- [ ] 视频压缩队列: 后台处理 + 本地通知完成
+- [x] 相似度计算优化: VNFeaturePrintObservation 序列化缓存 (NSKeyedArchiver)
+- [x] 视频压缩队列: CompressionTask 队列 + 后台处理 + 本地通知完成
 
-### 3.2 Widget + 提醒
-- [ ] WidgetKit 小组件: 存储空间状态环形图
-- [ ] UNUserNotificationCenter: 每周/月清理提醒
-- [ ] 提醒文案: "您的相册本周增长了 X，建议清理"
+### 3.2 Widget + 提醒 ✅
+- [x] WidgetKit 小组件: systemSmall/systemMedium 环形图 + 存储统计
+- [x] App Groups 数据共享 (group.com.huge.albumslim)
+- [x] ReminderService: 每周/每两周/每月清理提醒
+- [x] SettingsView: 提醒开关 + 频率选择 + 通知权限管理
 
-### 3.3 社交化
-- [ ] 清理成就系统 (累计 1GB/5GB/10GB 解锁)
-- [ ] 分享卡片生成 ("我用相册瘦身释放了 X 空间")
-- [ ] App Store 评价引导 (SKStoreReviewController)
+### 3.3 社交化 ✅
+- [x] 清理成就系统 (10 个成就: 100MB~10GB 空间里程碑 + 清理次数 + 删除数量)
+- [x] 分享卡片生成 (ImageRenderer + 渐变背景 + UIActivityViewController)
+- [x] App Store 评价引导 (SKStoreReviewController, 清理>=3次 + 90天间隔)
 
 ### 3.4 ASO + 营销
 - [ ] 关键词覆盖: 清理照片、手机瘦身、释放空间、相册管理
@@ -137,8 +140,8 @@
 
 | 项 | 优先级 | 说明 |
 |---|---|---|
-| SwiftData 缓存 | 高 | CachedAnalysis 模型已定义但未使用，需在分析流程中集成 |
-| 增量扫描 | 高 | 当前每次全量扫描，需监听 PHChange 做增量 |
+| ~~SwiftData 缓存~~ | ~~高~~ | ~~已完成: AnalysisCacheService 集成废片+特征向量缓存~~ |
+| ~~增量扫描~~ | ~~高~~ | ~~已完成: PHPhotoLibraryChangeObserver + libraryVersion 版本检测~~ |
 | 质量评分优化 | 中 | qualityScore 可用 VNCalculateImageAestheticsScoresRequest (iOS 18+) |
 | VNFeaturePrint 距离 | 中 | computeDistance 返回的是欧氏距离不是余弦距离，阈值需真机校准 |
 | 错误处理 | 中 | 部分 try? 需要改为 proper error handling + 用户提示 |

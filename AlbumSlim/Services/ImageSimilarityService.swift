@@ -5,13 +5,13 @@ import Photos
 @MainActor
 final class ImageSimilarityService {
 
-    func findSimilarGroups(from items: [MediaItem], using photoLibrary: PhotoLibraryService, onProgress: @escaping (Double) -> Void) async -> [CleanupGroup] {
+    func findSimilarGroups(from items: [MediaItem], using photoLibrary: PhotoLibraryService, cache: AnalysisCacheService, onProgress: @escaping (Double) -> Void) async -> [CleanupGroup] {
         let timeGroups = groupByTimeWindow(items)
         var allGroups: [CleanupGroup] = []
         let totalGroups = timeGroups.count
 
         for (index, group) in timeGroups.enumerated() {
-            let similar = await findSimilarInGroup(group, using: photoLibrary)
+            let similar = await findSimilarInGroup(group, using: photoLibrary, cache: cache)
             allGroups.append(contentsOf: similar)
             onProgress(Double(index + 1) / Double(max(totalGroups, 1)))
         }
@@ -43,7 +43,7 @@ final class ImageSimilarityService {
         return groups
     }
 
-    private func findSimilarInGroup(_ items: [MediaItem], using photoLibrary: PhotoLibraryService) async -> [CleanupGroup] {
+    private func findSimilarInGroup(_ items: [MediaItem], using photoLibrary: PhotoLibraryService, cache: AnalysisCacheService) async -> [CleanupGroup] {
         let engine = AIAnalysisEngine()
         let size = CGSize(width: 300, height: 300)
 
@@ -55,10 +55,27 @@ final class ImageSimilarityService {
             let batchEnd = min(batchStart + batchSize, items.count)
             let batch = items[batchStart..<batchEnd]
             for item in batch {
-                if let image = await photoLibrary.thumbnail(for: item.asset, size: size),
-                   let cgImage = image.cgImage,
-                   let fp = engine.featurePrint(for: cgImage) {
+                let assetID = item.asset.localIdentifier
+
+                // 尝试从缓存读取特征向量
+                if let cachedData = cache.featurePrintData(for: assetID),
+                   let fp = try? NSKeyedUnarchiver.unarchivedObject(ofClass: VNFeaturePrintObservation.self, from: cachedData) {
                     featurePrints.append((item: item, fp: fp))
+                    continue
+                }
+
+                if let image = await photoLibrary.thumbnail(for: item.asset, size: size) {
+                    let fp: VNFeaturePrintObservation? = autoreleasepool {
+                        guard let cgImage = image.cgImage else { return nil }
+                        return engine.featurePrint(for: cgImage)
+                    }
+                    if let fp {
+                        featurePrints.append((item: item, fp: fp))
+                        // 缓存特征向量
+                        if let data = try? NSKeyedArchiver.archivedData(withRootObject: fp, requiringSecureCoding: true) {
+                            cache.saveFeaturePrint(assetID: assetID, data: data)
+                        }
+                    }
                 }
             }
         }

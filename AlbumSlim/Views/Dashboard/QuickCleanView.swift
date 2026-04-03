@@ -1,9 +1,12 @@
 import SwiftUI
+import UIKit
 import Photos
 
 struct QuickCleanView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var viewModel = QuickCleanViewModel()
+    @State private var showShareSheet = false
+    @State private var shareImage: UIImage?
 
     var body: some View {
         Group {
@@ -152,9 +155,33 @@ struct QuickCleanView: View {
                     .foregroundStyle(.secondary)
             }
 
+            Button {
+                shareImage = ShareCardGenerator.generateShareImage(
+                    freedSpace: result.freedSpace,
+                    totalFreed: services.achievement.totalFreedSpace,
+                    cleanupCount: services.achievement.totalCleanupCount
+                )
+                showShareSheet = shareImage != nil
+            } label: {
+                Label("分享成果", systemImage: "square.and.arrow.up")
+                    .font(.headline)
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 12)
+                    .background(.orange, in: Capsule())
+                    .foregroundStyle(.white)
+            }
+
             Spacer()
         }
         .frame(maxWidth: .infinity)
+        .sheet(isPresented: $showShareSheet) {
+            if let image = shareImage {
+                ShareSheetView(image: image)
+            }
+        }
+        .onAppear {
+            ReviewPromptManager.requestReviewIfAppropriate()
+        }
     }
 
     // MARK: - Helpers
@@ -210,6 +237,19 @@ struct QuickCleanView: View {
         let total = groups.reduce(Int64(0)) { $0 + $1.savableSize }
         return total.formattedFileSize
     }
+}
+
+// MARK: - 分享 Sheet
+
+private struct ShareSheetView: UIViewControllerRepresentable {
+    let image: UIImage
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        let text = "我用「相册瘦身」释放了手机空间！"
+        return UIActivityViewController(activityItems: [text, image], applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
 
 // MARK: - 分组行视图

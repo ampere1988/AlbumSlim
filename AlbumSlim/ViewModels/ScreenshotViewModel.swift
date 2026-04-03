@@ -21,12 +21,18 @@ final class ScreenshotViewModel {
         }
     }
 
+    private var lastLibraryVersion: Int = -1
+
     func loadScreenshots(services: AppServiceContainer) {
+        let currentVersion = services.photoLibrary.libraryVersion
+        guard lastLibraryVersion != currentVersion || screenshots.isEmpty else { return }
+
         isLoading = true
         defer { isLoading = false }
 
         let fetchResult = services.photoLibrary.fetchScreenshots()
         screenshots = services.photoLibrary.buildMediaItems(from: fetchResult)
+        lastLibraryVersion = currentVersion
     }
 
     func analyzeScreenshot(_ item: MediaItem, services: AppServiceContainer) async {

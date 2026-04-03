@@ -36,6 +36,7 @@ final class PhotoCleanerViewModel {
         let assets = toDelete.map(\.asset)
         try await services.photoLibrary.deleteAssets(assets)
 
+        let _ = services.achievement.recordCleanup(freedSpace: freedSize, deletedCount: toDelete.count)
         let deletedIDs = selectedForDeletion
         similarGroups = similarGroups.compactMap { group in
             var g = group
@@ -60,6 +61,7 @@ final class PhotoCleanerViewModel {
         similarGroups = await services.imageSimilarity.findSimilarGroups(
             from: items,
             using: services.photoLibrary,
+            cache: services.analysisCache,
             onProgress: { [weak self] progress in
                 self?.scanProgress = progress
             }
@@ -78,18 +80,39 @@ final class PhotoCleanerViewModel {
         let allItems = services.photoLibrary.buildMediaItems(from: fetchResult)
         let engine = services.aiEngine
         let library = services.photoLibrary
+        let cache = services.analysisCache
         let size = CGSize(width: 300, height: 300)
 
         var waste: [MediaItem] = []
         let total = allItems.count
         let batchSize = AppConstants.Analysis.batchSize
 
+        // 获取已缓存的 asset IDs
+        let allAssetIDs = allItems.map { $0.asset.localIdentifier }
+        let cachedIDs = cache.cachedAssetIDs(from: allAssetIDs)
+
         for batchStart in stride(from: 0, to: total, by: batchSize) {
             let batchEnd = min(batchStart + batchSize, total)
             for index in batchStart..<batchEnd {
                 let item = allItems[index]
+                let assetID = item.asset.localIdentifier
+
+                // 检查缓存
+                if cachedIDs.contains(assetID) {
+                    if let cached = cache.cachedAnalysis(for: assetID), cached.isWaste {
+                        waste.append(item)
+                        if let reason = cached.wasteReason {
+                            wasteReasons[item.id] = reason
+                        }
+                    }
+                    continue
+                }
+
                 if let image = await library.thumbnail(for: item.asset, size: size) {
-                    let result = engine.detectWaste(image: image)
+                    let result = autoreleasepool {
+                        engine.detectWaste(image: image)
+                    }
+                    cache.saveWasteResult(assetID: assetID, isWaste: result.isWaste, reason: result.reason)
                     if result.isWaste {
                         waste.append(item)
                         if let reason = result.reason {

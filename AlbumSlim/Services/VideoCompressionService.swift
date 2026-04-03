@@ -1,6 +1,7 @@
 import Foundation
 import AVFoundation
 import Photos
+import UserNotifications
 
 enum CompressionQuality: String, CaseIterable {
     case high   = "高质量"
@@ -24,10 +25,49 @@ enum CompressionQuality: String, CaseIterable {
     }
 }
 
+struct CompressionTask: Identifiable {
+    let id = UUID()
+    let asset: PHAsset
+    let quality: CompressionQuality
+    var status: CompressionTaskStatus = .pending
+
+    enum CompressionTaskStatus {
+        case pending, compressing, completed, failed(Error)
+    }
+}
+
 @MainActor @Observable
 final class VideoCompressionService {
     private(set) var progress: Double = 0
     private(set) var isCompressing = false
+    private(set) var queue: [CompressionTask] = []
+    private(set) var isProcessingQueue = false
+
+    func enqueueCompression(asset: PHAsset, quality: CompressionQuality) {
+        queue.append(CompressionTask(asset: asset, quality: quality))
+    }
+
+    func processQueue() async {
+        guard !isProcessingQueue else { return }
+        isProcessingQueue = true
+        defer { isProcessingQueue = false }
+
+        while let index = queue.firstIndex(where: {
+            if case .pending = $0.status { return true }
+            return false
+        }) {
+            queue[index].status = .compressing
+            do {
+                let url = try await compressVideo(asset: queue[index].asset, quality: queue[index].quality)
+                try await replaceOriginal(asset: queue[index].asset, with: url)
+                queue[index].status = .completed
+            } catch {
+                queue[index].status = .failed(error)
+            }
+        }
+
+        await sendCompletionNotification()
+    }
 
     func compressVideo(asset: PHAsset, quality: CompressionQuality) async throws -> URL {
         isCompressing = true
@@ -105,6 +145,27 @@ final class VideoCompressionService {
     }
 
     // MARK: - Private
+
+    private func sendCompletionNotification() async {
+        let completed = queue.filter {
+            if case .completed = $0.status { return true }
+            return false
+        }.count
+        let failed = queue.filter {
+            if case .failed = $0.status { return true }
+            return false
+        }.count
+
+        let content = UNMutableNotificationContent()
+        content.title = "视频压缩完成"
+        content.body = failed > 0
+            ? "成功压缩 \(completed) 个视频，\(failed) 个失败"
+            : "成功压缩 \(completed) 个视频"
+        content.sound = .default
+
+        let request = UNNotificationRequest(identifier: "compression-done", content: content, trigger: nil)
+        try? await UNUserNotificationCenter.current().add(request)
+    }
 
     private func exportOriginalVideo(asset: PHAsset) async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in

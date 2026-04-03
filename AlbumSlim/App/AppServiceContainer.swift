@@ -12,6 +12,9 @@ final class AppServiceContainer {
     let ocrService: OCRService
     let cleanupCoordinator: CleanupCoordinator
     let subscription: SubscriptionService
+    let analysisCache: AnalysisCacheService
+    let achievement: AchievementService
+    let reminder: ReminderService
 
     init() {
         self.photoLibrary = PhotoLibraryService()
@@ -23,5 +26,8 @@ final class AppServiceContainer {
         self.ocrService = OCRService()
         self.cleanupCoordinator = CleanupCoordinator()
         self.subscription = SubscriptionService()
+        self.analysisCache = AnalysisCacheService()
+        self.achievement = AchievementService()
+        self.reminder = ReminderService()
     }
 }

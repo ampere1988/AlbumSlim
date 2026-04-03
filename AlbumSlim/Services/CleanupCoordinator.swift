@@ -72,6 +72,7 @@ final class CleanupCoordinator {
         var allGroups: [CleanupGroup] = []
         let photoLibrary = services.photoLibrary
         let engine = services.aiEngine
+        let cache = services.analysisCache
 
         // 1. 废片检测
         scanPhase = .waste
@@ -82,12 +83,29 @@ final class CleanupCoordinator {
         var wasteItems: [MediaItem] = []
         let batchSize = AppConstants.Analysis.batchSize
 
+        // 获取已缓存的 asset IDs
+        let allAssetIDs = photoItems.map { $0.asset.localIdentifier }
+        let cachedIDs = cache.cachedAssetIDs(from: allAssetIDs)
+
         for batchStart in stride(from: 0, to: photoItems.count, by: batchSize) {
             let batchEnd = min(batchStart + batchSize, photoItems.count)
             for index in batchStart..<batchEnd {
                 let item = photoItems[index]
+                let assetID = item.asset.localIdentifier
+
+                // 检查缓存
+                if cachedIDs.contains(assetID) {
+                    if let cached = cache.cachedAnalysis(for: assetID), cached.isWaste {
+                        wasteItems.append(item)
+                    }
+                    continue
+                }
+
                 if let image = await photoLibrary.thumbnail(for: item.asset, size: thumbSize) {
-                    let result = engine.detectWaste(image: image)
+                    let result = autoreleasepool {
+                        engine.detectWaste(image: image)
+                    }
+                    cache.saveWasteResult(assetID: assetID, isWaste: result.isWaste, reason: result.reason)
                     if result.isWaste {
                         wasteItems.append(item)
                     }
@@ -104,6 +122,7 @@ final class CleanupCoordinator {
         let similarGroups = await services.imageSimilarity.findSimilarGroups(
             from: photoItems,
             using: photoLibrary,
+            cache: cache,
             onProgress: { [weak self] p in
                 self?.scanProgress = 0.3 + p * 0.4
             }

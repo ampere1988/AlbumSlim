@@ -30,9 +30,15 @@ struct DashboardView: View {
                         VStack(spacing: 4) {
                             Text(viewModel.stats.totalSize.formattedFileSize)
                                 .font(.system(size: 48, weight: .bold, design: .rounded))
-                            Text("相册总占用")
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                            HStack(spacing: 6) {
+                                Text("相册总占用")
+                                if viewModel.isRefreshing {
+                                    ProgressView()
+                                        .controlSize(.mini)
+                                }
+                            }
+                            .font(.subheadline)
+                            .foregroundStyle(.secondary)
                         }
                         .padding(.top, 8)
 
@@ -98,7 +104,7 @@ struct DashboardView: View {
                         .padding(.horizontal)
 
                         Button {
-                            Task { await viewModel.loadStats(services: services) }
+                            Task { await viewModel.forceRescan(services: services) }
                         } label: {
                             Label("重新扫描", systemImage: "arrow.clockwise")
                                 .frame(maxWidth: .infinity)

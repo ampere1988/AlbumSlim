@@ -25,6 +25,11 @@ struct MainTabView: View {
                     Label("截图", systemImage: "scissors")
                 }
                 .tag(3)
+            SettingsView()
+                .tabItem {
+                    Label("设置", systemImage: "gearshape.fill")
+                }
+                .tag(4)
         }
         .onReceive(NotificationCenter.default.publisher(for: .switchTab)) { notification in
             if let index = notification.userInfo?["index"] as? Int {

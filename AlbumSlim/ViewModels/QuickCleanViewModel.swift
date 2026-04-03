@@ -60,6 +60,7 @@ final class QuickCleanViewModel {
                 freedSpace: freedSize,
                 duration: Date().timeIntervalSince(start)
             )
+            let _ = services.achievement.recordCleanup(freedSpace: freedSize, deletedCount: deletedCount)
             cleanupGroups.removeAll { !deselectedGroupIDs.contains($0.id) == false }
             cleanupGroups = services.cleanupCoordinator.pendingGroups
         } catch {
