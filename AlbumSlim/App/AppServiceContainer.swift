@@ -15,6 +15,7 @@ final class AppServiceContainer {
     let analysisCache: AnalysisCacheService
     let achievement: AchievementService
     let reminder: ReminderService
+    let backgroundTask: BackgroundTaskService
 
     init() {
         self.photoLibrary = PhotoLibraryService()
@@ -29,5 +30,6 @@ final class AppServiceContainer {
         self.analysisCache = AnalysisCacheService()
         self.achievement = AchievementService()
         self.reminder = ReminderService()
+        self.backgroundTask = BackgroundTaskService()
     }
 }
