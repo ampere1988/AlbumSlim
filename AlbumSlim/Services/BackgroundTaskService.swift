@@ -8,8 +8,7 @@ final class BackgroundTaskService {
 
     private(set) var lastBackgroundScanAt: Date? = UserDefaults.standard.object(forKey: "lastBackgroundScanAt") as? Date
 
-    /// 后台任务被要求停止时设为 true
-    private var shouldCancel = false
+    private var analyzeTask: Task<Void, Never>?
 
     /// 当前后台延长任务的标识
     private var backgroundTaskID: UIBackgroundTaskIdentifier = .invalid
@@ -31,18 +30,17 @@ final class BackgroundTaskService {
     // MARK: - scenePhase 事件
 
     func handleEnterBackground(services: AppServiceContainer) {
-        // 1. beginBackgroundTask 保护当前扫描
         backgroundTaskID = UIApplication.shared.beginBackgroundTask { [weak self] in
+            self?.analyzeTask?.cancel()
             self?.endBackgroundTask()
         }
-
-        // 2. 安排 BGProcessingTask
         scheduleProcessingTask()
     }
 
     func handleEnterForeground() {
+        analyzeTask?.cancel()
+        analyzeTask = nil
         endBackgroundTask()
-        shouldCancel = false
     }
 
     // MARK: - BGProcessingTask 执行
@@ -51,23 +49,21 @@ final class BackgroundTaskService {
         // 安排下一次
         scheduleProcessingTask()
 
-        shouldCancel = false
         task.expirationHandler = { [weak self] in
-            Task { @MainActor in
-                self?.shouldCancel = true
-            }
+            self?.analyzeTask?.cancel()
         }
 
-        let cancelPtr: UnsafeMutablePointer<Bool> = withUnsafeMutablePointer(to: &shouldCancel) { $0 }
-        await services.cleanupCoordinator.backgroundAnalyze(
-            services: services,
-            cancelFlag: cancelPtr
-        )
+        analyzeTask = Task {
+            await services.cleanupCoordinator.backgroundAnalyze(services: services)
+        }
+        await analyzeTask?.value
 
         lastBackgroundScanAt = .now
         UserDefaults.standard.set(lastBackgroundScanAt, forKey: "lastBackgroundScanAt")
 
-        task.setTaskCompleted(success: !shouldCancel)
+        let cancelled = analyzeTask?.isCancelled ?? false
+        analyzeTask = nil
+        task.setTaskCompleted(success: !cancelled)
     }
 
     // MARK: - Private

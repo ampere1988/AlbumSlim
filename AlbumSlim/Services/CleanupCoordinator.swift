@@ -78,8 +78,7 @@ final class CleanupCoordinator {
 
     /// 纯分析：废片检测 + 特征向量提取，写入 SwiftData 缓存，支持断点续传
     /// 后台安全：不持有 CleanupGroup / PHAsset 引用
-    /// - Parameter cancelFlag: 外部可设为 true 以请求停止
-    func backgroundAnalyze(services: AppServiceContainer, cancelFlag: UnsafeMutablePointer<Bool>? = nil) async {
+    func backgroundAnalyze(services: AppServiceContainer) async {
         let photoLibrary = services.photoLibrary
         let engine = services.aiEngine
         let cache = services.analysisCache
@@ -106,7 +105,7 @@ final class CleanupCoordinator {
             let photoTotal = photoFetch.count
 
             for batchStart in stride(from: 0, to: photoTotal, by: batchSize) {
-                if cancelFlag?.pointee == true { progress.save(); return }
+                if Task.isCancelled { progress.save(); return }
 
                 let batchEnd = min(batchStart + batchSize, photoTotal)
                 var batchIDs: [String] = []
@@ -122,7 +121,7 @@ final class CleanupCoordinator {
                 // 跳过已处理的
                 let cachedIDs = cache.cachedAssetIDs(from: batchIDs)
                 for i in batchStart..<batchEnd {
-                    if cancelFlag?.pointee == true { progress.save(); return }
+                    if Task.isCancelled { progress.save(); return }
 
                     let asset = photoFetch.object(at: i)
                     let assetID = asset.localIdentifier
@@ -154,12 +153,12 @@ final class CleanupCoordinator {
             let photoTotal = photoFetch.count
 
             for batchStart in stride(from: 0, to: photoTotal, by: batchSize) {
-                if cancelFlag?.pointee == true { progress.save(); return }
+                if Task.isCancelled { progress.save(); return }
 
                 let batchEnd = min(batchStart + batchSize, photoTotal)
 
                 for i in batchStart..<batchEnd {
-                    if cancelFlag?.pointee == true { progress.save(); return }
+                    if Task.isCancelled { progress.save(); return }
 
                     let asset = photoFetch.object(at: i)
                     let assetID = asset.localIdentifier
