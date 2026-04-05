@@ -8,7 +8,6 @@ struct ScanProgress: Codable {
     }
 
     var phase: Phase = .waste
-    var processedAssetIDs: Set<String> = []
     var libraryVersion: Int = -1
     var startedAt: Date = .now
     var lastUpdatedAt: Date = .now

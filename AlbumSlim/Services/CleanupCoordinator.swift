@@ -126,7 +126,7 @@ final class CleanupCoordinator {
 
                     let asset = photoFetch.object(at: i)
                     let assetID = asset.localIdentifier
-                    if cachedIDs.contains(assetID) || progress.processedAssetIDs.contains(assetID) {
+                    if cachedIDs.contains(assetID) {
                         continue
                     }
 
@@ -134,7 +134,6 @@ final class CleanupCoordinator {
                         let result = autoreleasepool { engine.detectWaste(image: image) }
                         cache.saveWasteResult(assetID: assetID, isWaste: result.isWaste, reason: result.reason)
                     }
-                    progress.processedAssetIDs.insert(assetID)
                 }
                 cache.batchSave()
                 scanProgress = Double(batchEnd) / Double(photoTotal) * 0.5
@@ -145,7 +144,6 @@ final class CleanupCoordinator {
 
             // 进入下一阶段
             progress.phase = .similar
-            progress.processedAssetIDs.removeAll()
             progress.save()
         }
 
@@ -166,11 +164,7 @@ final class CleanupCoordinator {
                     let asset = photoFetch.object(at: i)
                     let assetID = asset.localIdentifier
 
-                    if progress.processedAssetIDs.contains(assetID) { continue }
-                    if cache.featurePrintData(for: assetID) != nil {
-                        progress.processedAssetIDs.insert(assetID)
-                        continue
-                    }
+                    if cache.featurePrintData(for: assetID) != nil { continue }
 
                     if let image = await photoLibrary.thumbnail(for: asset, size: thumbSize) {
                         if let cgImage = image.cgImage {
@@ -182,7 +176,6 @@ final class CleanupCoordinator {
                             }
                         }
                     }
-                    progress.processedAssetIDs.insert(assetID)
                 }
                 cache.batchSave()
                 scanProgress = 0.5 + Double(batchEnd) / Double(photoTotal) * 0.5
@@ -204,13 +197,13 @@ final class CleanupCoordinator {
         var allGroups: [CleanupGroup] = []
         let photoLibrary = services.photoLibrary
         let cache = services.analysisCache
+        let batchSize = AppConstants.Analysis.batchSize
+        let photoFetch = photoLibrary.fetchAllAssets(mediaType: .image)
 
         // 1. 废片（从缓存读取）
         let wasteIDs = cache.allCachedWasteIDs()
         if !wasteIDs.isEmpty {
-            let photoFetch = photoLibrary.fetchAllAssets(mediaType: .image)
             var wasteItems: [MediaItem] = []
-            let batchSize = AppConstants.Analysis.batchSize
             for batchStart in stride(from: 0, to: photoFetch.count, by: batchSize) {
                 let batchEnd = min(batchStart + batchSize, photoFetch.count)
                 autoreleasepool {
@@ -234,7 +227,6 @@ final class CleanupCoordinator {
         }
 
         // 2. 相似照片（利用缓存的特征向量，计算极快）
-        let photoFetch = photoLibrary.fetchAllAssets(mediaType: .image)
         let allPhotoItems = await photoLibrary.buildMediaItems(from: photoFetch)
         let similarGroups = await services.imageSimilarity.findSimilarGroups(
             from: allPhotoItems,
@@ -265,7 +257,6 @@ final class CleanupCoordinator {
         let videoFetch = photoLibrary.fetchAllAssets(mediaType: .video)
         let largeVideoThreshold: Int64 = 100 * 1024 * 1024
         var largeVideos: [MediaItem] = []
-        let batchSize = AppConstants.Analysis.batchSize
         for batchStart in stride(from: 0, to: videoFetch.count, by: batchSize) {
             let batchEnd = min(batchStart + batchSize, videoFetch.count)
             autoreleasepool {
