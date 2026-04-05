@@ -1,5 +1,6 @@
 import Foundation
 import Photos
+import Vision
 
 @MainActor @Observable
 final class CleanupCoordinator {
@@ -21,29 +22,37 @@ final class CleanupCoordinator {
         totalSavableSize = 0
     }
 
-    /// 执行删除，返回实际释放的空间大小
+    /// 执行删除，分批进行避免卡死
     func executeCleanup(groups: [CleanupGroup]) async throws -> Int64 {
         var freedSize: Int64 = 0
 
+        // 收集所有要删除的 asset
+        var allAssetsToDelete: [(asset: PHAsset, size: Int64)] = []
         for group in groups {
-            let assetsToDelete: [PHAsset]
-            if let bestID = group.bestItemID {
-                assetsToDelete = group.items.filter { $0.id != bestID }.map(\.asset)
-            } else {
-                assetsToDelete = group.items.map(\.asset)
-            }
-
             let itemsInGroup = group.items
-            let sizeToFree = assetsToDelete.reduce(Int64(0)) { total, asset in
-                let matchingItem = itemsInGroup.first { $0.asset == asset }
-                return total + (matchingItem?.fileSize ?? 0)
+            if let bestID = group.bestItemID {
+                for item in itemsInGroup where item.id != bestID {
+                    allAssetsToDelete.append((asset: item.asset, size: item.fileSize))
+                }
+            } else {
+                for item in itemsInGroup {
+                    allAssetsToDelete.append((asset: item.asset, size: item.fileSize))
+                }
             }
+        }
+
+        // 分批删除，每批 50 个
+        let deleteBatchSize = 50
+        for batchStart in stride(from: 0, to: allAssetsToDelete.count, by: deleteBatchSize) {
+            let batchEnd = min(batchStart + deleteBatchSize, allAssetsToDelete.count)
+            let batch = allAssetsToDelete[batchStart..<batchEnd]
+            let batchAssets = batch.map(\.asset)
+            let batchSize = batch.reduce(Int64(0)) { $0 + $1.size }
 
             try await PHPhotoLibrary.shared().performChanges {
-                PHAssetChangeRequest.deleteAssets(assetsToDelete as NSFastEnumeration)
+                PHAssetChangeRequest.deleteAssets(batchAssets as NSFastEnumeration)
             }
-
-            freedSize += sizeToFree
+            freedSize += batchSize
         }
 
         // 清理已执行的分组
@@ -67,73 +76,177 @@ final class CleanupCoordinator {
     private(set) var scanPhase: ScanPhase = .done
     private(set) var scanProgress: Double = 0
 
-    func smartScan(services: AppServiceContainer) async -> [CleanupGroup] {
-        clearAll()
-        var allGroups: [CleanupGroup] = []
+    /// 纯分析：废片检测 + 特征向量提取，写入 SwiftData 缓存，支持断点续传
+    /// 后台安全：不持有 CleanupGroup / PHAsset 引用
+    /// - Parameter cancelFlag: 外部可设为 true 以请求停止
+    func backgroundAnalyze(services: AppServiceContainer, cancelFlag: UnsafeMutablePointer<Bool>? = nil) async {
         let photoLibrary = services.photoLibrary
         let engine = services.aiEngine
         let cache = services.analysisCache
-
-        // 1. 废片检测
-        scanPhase = .waste
-        scanProgress = 0
-        let photoFetch = photoLibrary.fetchAllAssets(mediaType: .image)
-        let photoItems = photoLibrary.buildMediaItems(from: photoFetch)
-        let thumbSize = CGSize(width: 300, height: 300)
-        var wasteItems: [MediaItem] = []
         let batchSize = AppConstants.Analysis.batchSize
+        let thumbSize = CGSize(width: 300, height: 300)
 
-        // 获取已缓存的 asset IDs
-        let allAssetIDs = photoItems.map { $0.asset.localIdentifier }
-        let cachedIDs = cache.cachedAssetIDs(from: allAssetIDs)
+        // 加载或创建进度
+        var progress = ScanProgress.load() ?? ScanProgress()
 
-        for batchStart in stride(from: 0, to: photoItems.count, by: batchSize) {
-            let batchEnd = min(batchStart + batchSize, photoItems.count)
-            for index in batchStart..<batchEnd {
-                let item = photoItems[index]
-                let assetID = item.asset.localIdentifier
+        // 相册版本变了，重置进度
+        if progress.libraryVersion != photoLibrary.libraryVersion {
+            progress = ScanProgress()
+            progress.libraryVersion = photoLibrary.libraryVersion
+        }
 
-                // 检查缓存
-                if cachedIDs.contains(assetID) {
-                    if let cached = cache.cachedAnalysis(for: assetID), cached.isWaste {
-                        wasteItems.append(item)
+        guard progress.phase != .done else { return }
+
+        // Phase 1: 废片检测
+        if progress.phase == .waste {
+            scanPhase = .waste
+            scanProgress = 0
+
+            let photoFetch = photoLibrary.fetchAllAssets(mediaType: .image)
+            let photoTotal = photoFetch.count
+
+            for batchStart in stride(from: 0, to: photoTotal, by: batchSize) {
+                if cancelFlag?.pointee == true { progress.save(); return }
+
+                let batchEnd = min(batchStart + batchSize, photoTotal)
+                var batchIDs: [String] = []
+
+                autoreleasepool {
+                    for i in batchStart..<batchEnd {
+                        let asset = photoFetch.object(at: i)
+                        let assetID = asset.localIdentifier
+                        batchIDs.append(assetID)
                     }
-                    continue
                 }
 
-                if let image = await photoLibrary.thumbnail(for: item.asset, size: thumbSize) {
-                    let result = autoreleasepool {
-                        engine.detectWaste(image: image)
+                // 跳过已处理的
+                let cachedIDs = cache.cachedAssetIDs(from: batchIDs)
+                for i in batchStart..<batchEnd {
+                    if cancelFlag?.pointee == true { progress.save(); return }
+
+                    let asset = photoFetch.object(at: i)
+                    let assetID = asset.localIdentifier
+                    if cachedIDs.contains(assetID) || progress.processedAssetIDs.contains(assetID) {
+                        continue
                     }
-                    cache.saveWasteResult(assetID: assetID, isWaste: result.isWaste, reason: result.reason)
-                    if result.isWaste {
-                        wasteItems.append(item)
+
+                    if let image = await photoLibrary.thumbnail(for: asset, size: thumbSize) {
+                        let result = autoreleasepool { engine.detectWaste(image: image) }
+                        cache.saveWasteResult(assetID: assetID, isWaste: result.isWaste, reason: result.reason)
+                    }
+                    progress.processedAssetIDs.insert(assetID)
+                }
+                cache.batchSave()
+                scanProgress = Double(batchEnd) / Double(photoTotal) * 0.5
+                progress.lastUpdatedAt = .now
+                progress.save()
+                await Task.yield()
+            }
+
+            // 进入下一阶段
+            progress.phase = .similar
+            progress.processedAssetIDs.removeAll()
+            progress.save()
+        }
+
+        // Phase 2: 特征向量提取
+        if progress.phase == .similar {
+            scanPhase = .similar
+            let photoFetch = photoLibrary.fetchAllAssets(mediaType: .image)
+            let photoTotal = photoFetch.count
+
+            for batchStart in stride(from: 0, to: photoTotal, by: batchSize) {
+                if cancelFlag?.pointee == true { progress.save(); return }
+
+                let batchEnd = min(batchStart + batchSize, photoTotal)
+
+                for i in batchStart..<batchEnd {
+                    if cancelFlag?.pointee == true { progress.save(); return }
+
+                    let asset = photoFetch.object(at: i)
+                    let assetID = asset.localIdentifier
+
+                    if progress.processedAssetIDs.contains(assetID) { continue }
+                    if cache.featurePrintData(for: assetID) != nil {
+                        progress.processedAssetIDs.insert(assetID)
+                        continue
+                    }
+
+                    if let image = await photoLibrary.thumbnail(for: asset, size: thumbSize) {
+                        if let cgImage = image.cgImage {
+                            let fp: VNFeaturePrintObservation? = autoreleasepool {
+                                engine.featurePrint(for: cgImage)
+                            }
+                            if let fp, let data = try? NSKeyedArchiver.archivedData(withRootObject: fp, requiringSecureCoding: true) {
+                                cache.saveFeaturePrint(assetID: assetID, data: data)
+                            }
+                        }
+                    }
+                    progress.processedAssetIDs.insert(assetID)
+                }
+                cache.batchSave()
+                scanProgress = 0.5 + Double(batchEnd) / Double(photoTotal) * 0.5
+                progress.lastUpdatedAt = .now
+                progress.save()
+                await Task.yield()
+            }
+
+            progress.phase = .done
+            progress.save()
+        }
+
+        scanPhase = .done
+        scanProgress = 1.0
+    }
+
+    /// 从缓存构建清理分组（前台使用，读取 backgroundAnalyze 的缓存结果）
+    func buildCleanupGroups(services: AppServiceContainer) async -> [CleanupGroup] {
+        var allGroups: [CleanupGroup] = []
+        let photoLibrary = services.photoLibrary
+        let cache = services.analysisCache
+
+        // 1. 废片（从缓存读取）
+        let wasteIDs = cache.allCachedWasteIDs()
+        if !wasteIDs.isEmpty {
+            let photoFetch = photoLibrary.fetchAllAssets(mediaType: .image)
+            var wasteItems: [MediaItem] = []
+            let batchSize = AppConstants.Analysis.batchSize
+            for batchStart in stride(from: 0, to: photoFetch.count, by: batchSize) {
+                let batchEnd = min(batchStart + batchSize, photoFetch.count)
+                autoreleasepool {
+                    for i in batchStart..<batchEnd {
+                        let asset = photoFetch.object(at: i)
+                        if wasteIDs.contains(asset.localIdentifier) {
+                            let size = photoLibrary.fileSize(for: asset)
+                            wasteItems.append(MediaItem(
+                                id: asset.localIdentifier,
+                                asset: asset,
+                                fileSize: size,
+                                creationDate: asset.creationDate
+                            ))
+                        }
                     }
                 }
             }
-            scanProgress = Double(batchEnd) / Double(photoItems.count) * 0.3
-        }
-        if !wasteItems.isEmpty {
-            allGroups.append(CleanupGroup(type: .waste, items: wasteItems, bestItemID: nil))
+            if !wasteItems.isEmpty {
+                allGroups.append(CleanupGroup(type: .waste, items: wasteItems, bestItemID: nil))
+            }
         }
 
-        // 2. 相似照片检测
-        scanPhase = .similar
+        // 2. 相似照片（利用缓存的特征向量，计算极快）
+        let photoFetch = photoLibrary.fetchAllAssets(mediaType: .image)
+        let allPhotoItems = await photoLibrary.buildMediaItems(from: photoFetch)
         let similarGroups = await services.imageSimilarity.findSimilarGroups(
-            from: photoItems,
+            from: allPhotoItems,
             using: photoLibrary,
             cache: cache,
-            onProgress: { [weak self] p in
-                self?.scanProgress = 0.3 + p * 0.4
-            }
+            onProgress: { _ in }
         )
         allGroups.append(contentsOf: similarGroups)
 
-        // 3. 连拍照片检测
-        scanPhase = .burst
-        scanProgress = 0.7
+        // 3. 连拍
         let burstFetch = photoLibrary.fetchBurstAssets()
-        let burstItems = photoLibrary.buildMediaItems(from: burstFetch)
+        let burstItems = await photoLibrary.buildMediaItems(from: burstFetch)
         var burstMap: [String: [MediaItem]] = [:]
         for item in burstItems {
             if let burstID = item.asset.burstIdentifier {
@@ -148,19 +261,44 @@ final class CleanupCoordinator {
             }
         allGroups.append(contentsOf: burstGroups)
 
-        // 4. 大视频检测 (>100MB)
-        scanPhase = .largeVideo
-        scanProgress = 0.85
+        // 4. 大视频 (>100MB)
         let videoFetch = photoLibrary.fetchAllAssets(mediaType: .video)
-        let videoItems = photoLibrary.buildMediaItems(from: videoFetch)
         let largeVideoThreshold: Int64 = 100 * 1024 * 1024
-        let largeVideos = videoItems.filter { $0.fileSize > largeVideoThreshold }
+        var largeVideos: [MediaItem] = []
+        let batchSize = AppConstants.Analysis.batchSize
+        for batchStart in stride(from: 0, to: videoFetch.count, by: batchSize) {
+            let batchEnd = min(batchStart + batchSize, videoFetch.count)
+            autoreleasepool {
+                for i in batchStart..<batchEnd {
+                    let asset = videoFetch.object(at: i)
+                    let size = photoLibrary.fileSize(for: asset)
+                    if size > largeVideoThreshold {
+                        largeVideos.append(MediaItem(
+                            id: asset.localIdentifier,
+                            asset: asset,
+                            fileSize: size,
+                            creationDate: asset.creationDate
+                        ))
+                    }
+                }
+            }
+        }
         if !largeVideos.isEmpty {
             allGroups.append(CleanupGroup(type: .largeVideo, items: largeVideos, bestItemID: nil))
         }
 
-        scanPhase = .done
-        scanProgress = 1.0
+        return allGroups
+    }
+
+    func smartScan(services: AppServiceContainer) async -> [CleanupGroup] {
+        clearAll()
+
+        // Phase 1: 分析（写缓存，支持断点续传）
+        await backgroundAnalyze(services: services)
+
+        // Phase 2: 组装结果（读缓存，构建 CleanupGroup）
+        let allGroups = await buildCleanupGroups(services: services)
+
         addGroups(allGroups)
         return allGroups
     }
