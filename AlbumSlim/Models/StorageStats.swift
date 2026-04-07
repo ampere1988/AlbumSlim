@@ -29,19 +29,15 @@ struct StorageStats: Codable {
 
     // MARK: - 缓存
 
-    static let appGroupID = "group.com.huge.albumslim"
     private static let cacheKey = "StorageStatsCache"
 
     func save() {
         guard let data = try? JSONEncoder().encode(self) else { return }
         UserDefaults.standard.set(data, forKey: Self.cacheKey)
-        UserDefaults(suiteName: Self.appGroupID)?.set(data, forKey: Self.cacheKey)
     }
 
     static func loadCached() -> StorageStats? {
-        let data = UserDefaults.standard.data(forKey: cacheKey)
-            ?? UserDefaults(suiteName: appGroupID)?.data(forKey: cacheKey)
-        guard let data else { return nil }
+        guard let data = UserDefaults.standard.data(forKey: cacheKey) else { return nil }
         return try? JSONDecoder().decode(StorageStats.self, from: data)
     }
 

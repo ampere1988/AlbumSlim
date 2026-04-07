@@ -2,9 +2,9 @@ import StoreKit
 
 @MainActor @Observable
 final class SubscriptionService {
-    static let monthlyID = "com.huge.albumslim.pro.monthly"
-    static let yearlyID = "com.huge.albumslim.pro.yearly"
-    static let lifetimeID = "com.huge.albumslim.pro.lifetime"
+    static let monthlyID = "com.hao.doushan.pro.monthly"
+    static let yearlyID = "com.hao.doushan.pro.yearly"
+    static let lifetimeID = "com.hao.doushan.pro.lifetime"
 
     private static let allProductIDs: Set<String> = [monthlyID, yearlyID, lifetimeID]
 

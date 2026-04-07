@@ -1,7 +1,7 @@
 import Foundation
 
 enum SharedConstants {
-    static let appGroupID = "group.com.huge.albumslim"
+    static let appGroupID = "group.com.hao.doushan"
     static let cacheKey = "StorageStatsCache"
 }
 

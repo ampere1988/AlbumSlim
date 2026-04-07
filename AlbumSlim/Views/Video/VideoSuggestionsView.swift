@@ -158,7 +158,7 @@ struct VideoSuggestionsView: View {
         }
         selectedIDs.removeAll()
         isEditing = false
-        viewModel.loadVideos(services: services)
+        await viewModel.loadVideos(services: services)
         await viewModel.analyzeSuggestions(services: services)
     }
 
@@ -169,7 +169,7 @@ struct VideoSuggestionsView: View {
         try? await services.photoLibrary.deleteAssets(assets)
         selectedIDs.removeAll()
         isEditing = false
-        viewModel.loadVideos(services: services)
+        await viewModel.loadVideos(services: services)
         await viewModel.analyzeSuggestions(services: services)
     }
 }

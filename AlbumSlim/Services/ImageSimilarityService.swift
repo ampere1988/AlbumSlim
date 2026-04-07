@@ -21,6 +21,7 @@ final class ImageSimilarityService {
 
     // MARK: - Private
 
+    /// 按时间窗口分组，超大组会拆分为子组避免 O(n²) 爆炸
     private func groupByTimeWindow(_ items: [MediaItem]) -> [[MediaItem]] {
         guard !items.isEmpty else { return [] }
 
@@ -40,7 +41,22 @@ final class ImageSimilarityService {
         }
         if currentGroup.count > 1 { groups.append(currentGroup) }
 
-        return groups
+        // 拆分超大组（>200），避免 O(n²) 相似度计算导致卡顿和 OOM
+        let maxGroupSize = 200
+        var result: [[MediaItem]] = []
+        for group in groups {
+            if group.count > maxGroupSize {
+                for chunkStart in stride(from: 0, to: group.count, by: maxGroupSize) {
+                    let chunkEnd = min(chunkStart + maxGroupSize, group.count)
+                    let chunk = Array(group[chunkStart..<chunkEnd])
+                    if chunk.count > 1 { result.append(chunk) }
+                }
+            } else {
+                result.append(group)
+            }
+        }
+
+        return result
     }
 
     private func findSimilarInGroup(_ items: [MediaItem], using photoLibrary: PhotoLibraryService, cache: AnalysisCacheService) async -> [CleanupGroup] {
@@ -49,7 +65,7 @@ final class ImageSimilarityService {
 
         var featurePrints: [(item: MediaItem, fp: VNFeaturePrintObservation)] = []
 
-        // 分批处理
+        // 分批处理，每批后 yield + 批量 save
         let batchSize = AppConstants.Analysis.batchSize
         for batchStart in stride(from: 0, to: items.count, by: batchSize) {
             let batchEnd = min(batchStart + batchSize, items.count)
@@ -78,6 +94,8 @@ final class ImageSimilarityService {
                     }
                 }
             }
+            cache.batchSave()
+            await Task.yield()
         }
 
         var visited = Set<String>()

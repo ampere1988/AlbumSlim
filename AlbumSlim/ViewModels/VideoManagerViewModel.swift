@@ -36,7 +36,7 @@ final class VideoManagerViewModel {
 
     private var lastLibraryVersion: Int = -1
 
-    func loadVideos(services: AppServiceContainer) {
+    func loadVideos(services: AppServiceContainer) async {
         let currentVersion = services.photoLibrary.libraryVersion
         guard lastLibraryVersion != currentVersion || videos.isEmpty else { return }
 
@@ -44,7 +44,7 @@ final class VideoManagerViewModel {
         defer { isLoading = false }
 
         let fetchResult = services.photoLibrary.fetchAllAssets(mediaType: .video)
-        videos = services.photoLibrary.buildMediaItems(from: fetchResult)
+        videos = await services.photoLibrary.buildMediaItems(from: fetchResult)
         lastLibraryVersion = currentVersion
     }
 
@@ -86,7 +86,15 @@ final class VideoManagerViewModel {
         }
         selectedVideos.removeAll()
         await services.videoCompression.processQueue()
-        loadVideos(services: services)
+        await loadVideos(services: services)
+    }
+
+    func deleteSelected(services: AppServiceContainer) async {
+        let assets = videos.filter { selectedVideos.contains($0.id) }.map(\.asset)
+        try? await services.photoLibrary.deleteAssets(assets)
+        selectedVideos.removeAll()
+        isEditing = false
+        await loadVideos(services: services)
     }
 
     func estimatedSize(for item: MediaItem, services: AppServiceContainer) -> Int64 {

@@ -5,6 +5,8 @@ import SwiftData
 final class AnalysisCacheService {
     private let modelContainer: ModelContainer
     private let modelContext: ModelContext
+    private var pendingChanges = 0
+    private let autoSaveThreshold = 50
 
     init() {
         let schema = Schema([CachedAnalysis.self])
@@ -20,10 +22,21 @@ final class AnalysisCacheService {
     }
 
     func cachedAssetIDs(from assetIDs: [String]) -> Set<String> {
-        let descriptor = FetchDescriptor<CachedAnalysis>()
-        let all = (try? modelContext.fetch(descriptor)) ?? []
-        let allIDs = Set(all.map(\.assetIdentifier))
-        return allIDs.intersection(assetIDs)
+        // 分批查询避免 predicate 过大，每批 500 个
+        var result = Set<String>()
+        let batchSize = 500
+        for batchStart in stride(from: 0, to: assetIDs.count, by: batchSize) {
+            let batchEnd = min(batchStart + batchSize, assetIDs.count)
+            let batch = Set(assetIDs[batchStart..<batchEnd])
+            let predicate = #Predicate<CachedAnalysis> { batch.contains($0.assetIdentifier) }
+            let descriptor = FetchDescriptor(predicate: predicate)
+            if let fetched = try? modelContext.fetch(descriptor) {
+                for item in fetched {
+                    result.insert(item.assetIdentifier)
+                }
+            }
+        }
+        return result
     }
 
     func saveWasteResult(assetID: String, isWaste: Bool, reason: WasteReason?) {
@@ -38,7 +51,8 @@ final class AnalysisCacheService {
             cached.analyzedAt = .now
             modelContext.insert(cached)
         }
-        try? modelContext.save()
+        pendingChanges += 1
+        autoSaveIfNeeded()
     }
 
     func saveFeaturePrint(assetID: String, data: Data) {
@@ -51,7 +65,8 @@ final class AnalysisCacheService {
             cached.analyzedAt = .now
             modelContext.insert(cached)
         }
-        try? modelContext.save()
+        pendingChanges += 1
+        autoSaveIfNeeded()
     }
 
     func featurePrintData(for assetID: String) -> Data? {
@@ -66,6 +81,14 @@ final class AnalysisCacheService {
     }
 
     func batchSave() {
+        guard pendingChanges > 0 else { return }
         try? modelContext.save()
+        pendingChanges = 0
+    }
+
+    private func autoSaveIfNeeded() {
+        if pendingChanges >= autoSaveThreshold {
+            batchSave()
+        }
     }
 }

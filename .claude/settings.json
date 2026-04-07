@@ -3,7 +3,8 @@
     "allow": [
       "Agent(*)",
       "ToolSearch(*)",
-      "AskUserQuestion(*)"
+      "AskUserQuestion(*)",
+      "TodoWrite(*)"
     ]
   }
 }

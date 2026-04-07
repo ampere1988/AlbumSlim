@@ -23,7 +23,7 @@ final class ScreenshotViewModel {
 
     private var lastLibraryVersion: Int = -1
 
-    func loadScreenshots(services: AppServiceContainer) {
+    func loadScreenshots(services: AppServiceContainer) async {
         let currentVersion = services.photoLibrary.libraryVersion
         guard lastLibraryVersion != currentVersion || screenshots.isEmpty else { return }
 
@@ -31,7 +31,7 @@ final class ScreenshotViewModel {
         defer { isLoading = false }
 
         let fetchResult = services.photoLibrary.fetchScreenshots()
-        screenshots = services.photoLibrary.buildMediaItems(from: fetchResult)
+        screenshots = await services.photoLibrary.buildMediaItems(from: fetchResult)
         lastLibraryVersion = currentVersion
     }
 
@@ -82,14 +82,17 @@ final class ScreenshotViewModel {
     }
 
     func deleteSelected(services: AppServiceContainer) async {
-        let assets = screenshots.filter { selectedItems.contains($0.id) }.map(\.asset)
+        let idsToDelete = selectedItems
+        let assets = screenshots.filter { idsToDelete.contains($0.id) }.map(\.asset)
         guard !assets.isEmpty else { return }
         do {
             try await services.photoLibrary.deleteAssets(assets)
-            screenshots.removeAll { selectedItems.contains($0.id) }
-            for id in selectedItems { ocrResults.removeValue(forKey: id) }
+            screenshots.removeAll { idsToDelete.contains($0.id) }
+            for id in idsToDelete { ocrResults.removeValue(forKey: id) }
             selectedItems.removeAll()
-        } catch {}
+        } catch {
+            print("批量删除截图失败: \(error)")
+        }
     }
 
     func deleteScreenshot(_ item: MediaItem, services: AppServiceContainer) async {
@@ -97,7 +100,9 @@ final class ScreenshotViewModel {
             try await services.photoLibrary.deleteAssets([item.asset])
             screenshots.removeAll { $0.id == item.id }
             ocrResults.removeValue(forKey: item.id)
-        } catch {}
+        } catch {
+            print("删除截图失败: \(error)")
+        }
     }
 
     func exportSelected(services: AppServiceContainer) {

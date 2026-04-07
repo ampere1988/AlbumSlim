@@ -56,7 +56,7 @@ final class PhotoCleanerViewModel {
         defer { isScanning = false }
 
         let fetchResult = services.photoLibrary.fetchAllAssets(mediaType: .image)
-        let items = services.photoLibrary.buildMediaItems(from: fetchResult)
+        let items = await services.photoLibrary.buildMediaItems(from: fetchResult)
 
         similarGroups = await services.imageSimilarity.findSimilarGroups(
             from: items,
@@ -77,27 +77,43 @@ final class PhotoCleanerViewModel {
         defer { isScanning = false }
 
         let fetchResult = services.photoLibrary.fetchAllAssets(mediaType: .image)
-        let allItems = services.photoLibrary.buildMediaItems(from: fetchResult)
+        let total = fetchResult.count
+        guard total > 0 else { return }
+
         let engine = services.aiEngine
         let library = services.photoLibrary
         let cache = services.analysisCache
-        let size = CGSize(width: 300, height: 300)
-
-        var waste: [MediaItem] = []
-        let total = allItems.count
+        let thumbSize = CGSize(width: 300, height: 300)
         let batchSize = AppConstants.Analysis.batchSize
 
-        // 获取已缓存的 asset IDs
-        let allAssetIDs = allItems.map { $0.asset.localIdentifier }
-        let cachedIDs = cache.cachedAssetIDs(from: allAssetIDs)
+        var waste: [MediaItem] = []
 
+        // 从 PHFetchResult 分批提取 asset，不一次性创建全部 MediaItem
         for batchStart in stride(from: 0, to: total, by: batchSize) {
             let batchEnd = min(batchStart + batchSize, total)
-            for index in batchStart..<batchEnd {
-                let item = allItems[index]
-                let assetID = item.asset.localIdentifier
 
-                // 检查缓存
+            // 当前批次：从 fetchResult 提取 asset，构建轻量 MediaItem
+            var batchItems: [MediaItem] = []
+            autoreleasepool {
+                for i in batchStart..<batchEnd {
+                    let asset = fetchResult.object(at: i)
+                    let size = library.fileSize(for: asset)
+                    batchItems.append(MediaItem(
+                        id: asset.localIdentifier,
+                        asset: asset,
+                        fileSize: size,
+                        creationDate: asset.creationDate
+                    ))
+                }
+            }
+
+            // 批量查询缓存
+            let batchIDs = batchItems.map(\.id)
+            let cachedIDs = cache.cachedAssetIDs(from: batchIDs)
+
+            for item in batchItems {
+                let assetID = item.id
+
                 if cachedIDs.contains(assetID) {
                     if let cached = cache.cachedAnalysis(for: assetID), cached.isWaste {
                         waste.append(item)
@@ -108,7 +124,7 @@ final class PhotoCleanerViewModel {
                     continue
                 }
 
-                if let image = await library.thumbnail(for: item.asset, size: size) {
+                if let image = await library.thumbnail(for: item.asset, size: thumbSize) {
                     let result = autoreleasepool {
                         engine.detectWaste(image: image)
                     }
@@ -121,7 +137,10 @@ final class PhotoCleanerViewModel {
                     }
                 }
             }
+
+            cache.batchSave()
             scanProgress = Double(batchEnd) / Double(total)
+            await Task.yield()
         }
 
         wasteItems = waste

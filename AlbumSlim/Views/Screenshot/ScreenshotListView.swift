@@ -89,7 +89,7 @@ struct ScreenshotListView: View {
                     }
                 }
             }
-            .onAppear { viewModel.loadScreenshots(services: services) }
+            .task { await viewModel.loadScreenshots(services: services) }
             .sheet(isPresented: $showPaywall) { PaywallView() }
         }
     }

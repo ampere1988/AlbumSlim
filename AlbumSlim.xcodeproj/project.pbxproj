@@ -11,6 +11,7 @@
 		0EEB4E217CE348DC5B8E6FE0 /* WastePhotosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEAFBC976F45C172EF02CA47 /* WastePhotosView.swift */; };
 		147BD6073E1E4C36B0447881 /* ScreenshotListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44A2E63276E56A4BF20C022F /* ScreenshotListView.swift */; };
 		1EE04521FED290D0C07FE6DB /* SpaceSavedBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F1447FDD9993E149FC4FDF3 /* SpaceSavedBanner.swift */; };
+		2173567B7E7488FF05586BC7 /* BackgroundTaskService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A801972BC9D199E85E0859B /* BackgroundTaskService.swift */; };
 		2AA0C1E732FA859ECA427DA0 /* SimilarPhotosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E9E06B04C8F8E285C8F5985 /* SimilarPhotosView.swift */; };
 		31D9B669AE9A1EDBE6608626 /* CleanupGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DEF85CBC76F96E545D1E97C /* CleanupGroup.swift */; };
 		3608F5A7335BC941F63F606A /* PhotoCleanerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40B5A45D3ACFA11C18388A01 /* PhotoCleanerViewModel.swift */; };
@@ -63,6 +64,7 @@
 
 /* Begin PBXFileReference section */
 		01B3DAB2CDA8AA28B4DB388D /* ReviewPromptManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewPromptManager.swift; sourceTree = "<group>"; };
+		04DE8BC8E1E1297F5C1AC339 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		0799EE468F7982E834481E07 /* AIAnalysisEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAnalysisEngine.swift; sourceTree = "<group>"; };
 		0A1E21DFB256416C24692E40 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
 		0C68C07709C3006187C872DA /* StorageAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageAnalyzer.swift; sourceTree = "<group>"; };
@@ -91,6 +93,7 @@
 		557D556B33F45A9B547B5F94 /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
 		611ADBFEAFCB00D031ED1F62 /* CleanupCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupCoordinator.swift; sourceTree = "<group>"; };
 		65D0EF955289F42624611D63 /* VideoListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoListView.swift; sourceTree = "<group>"; };
+		6A801972BC9D199E85E0859B /* BackgroundTaskService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskService.swift; sourceTree = "<group>"; };
 		763869D357F2A1DACB84C5B1 /* MediaGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaGridView.swift; sourceTree = "<group>"; };
 		7FDACB976E6244E859C31A0C /* AnalysisResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisResult.swift; sourceTree = "<group>"; };
 		8847460DC0921674C0B20D47 /* VideoSuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSuggestionsView.swift; sourceTree = "<group>"; };
@@ -133,6 +136,7 @@
 				4D5EF719DE201681FFE2A94C /* AchievementService.swift */,
 				0799EE468F7982E834481E07 /* AIAnalysisEngine.swift */,
 				3A4C5247F157094EEA132FFE /* AnalysisCacheService.swift */,
+				6A801972BC9D199E85E0859B /* BackgroundTaskService.swift */,
 				611ADBFEAFCB00D031ED1F62 /* CleanupCoordinator.swift */,
 				B3159A367BD548864D9B8A3E /* ImageSimilarityService.swift */,
 				1A8F1256F58BBF87D2E2191C /* NotesExportService.swift */,
@@ -274,6 +278,7 @@
 			isa = PBXGroup;
 			children = (
 				BE228671C56E56DAFABDDA9A /* AlbumSlim.entitlements */,
+				04DE8BC8E1E1297F5C1AC339 /* Info.plist */,
 				35C167737FE4478B845F56A1 /* App */,
 				DED92166469AC80057A224D4 /* Models */,
 				BC4DF4D1C46323FAC48058CE /* Resources */,
@@ -387,6 +392,7 @@
 				4C87053F591C6238F0C9BF53 /* AppConstants.swift in Sources */,
 				E1D096E812A66BB0E204D4F0 /* AppServiceContainer.swift in Sources */,
 				8BC25CC4AFAF157AFBE51FC4 /* AsyncSemaphore.swift in Sources */,
+				2173567B7E7488FF05586BC7 /* BackgroundTaskService.swift in Sources */,
 				944401F7ACDC3ECB99506BA0 /* BurstPhotosView.swift in Sources */,
 				4309BBAC59F7F63F23C70E30 /* CleanupCoordinator.swift in Sources */,
 				31D9B669AE9A1EDBE6608626 /* CleanupGroup.swift in Sources */,
@@ -443,6 +449,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AlbumSlim/Info.plist;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_CFBundleDisplayName = "相册瘦身";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";
@@ -529,6 +536,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = AlbumSlim/Info.plist;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
 				INFOPLIST_KEY_CFBundleDisplayName = "相册瘦身";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.utilities";

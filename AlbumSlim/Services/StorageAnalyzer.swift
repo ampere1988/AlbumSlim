@@ -80,33 +80,47 @@ final class StorageAnalyzer {
             return empty
         }
 
-        // 将重计算移到后台线程：遍历所有 asset 获取 fileSize
-        let result = await Task.detached(priority: .userInitiated) {
+        // 将重计算移到后台线程：分批遍历 asset 获取 fileSize，用 autoreleasepool 控制内存
+        let batchSize = 500
+        let reportEvery = max(total / 20, batchSize) // 最多报告 20 次进度
+
+        let result = await Task.detached(priority: .userInitiated) { [reportProgress] () -> StorageStats in
             var stats = StorageStats()
 
-            allAssets.enumerateObjects { asset, index, _ in
-                let size = photoLibrary.fileSize(for: asset)
+            for batchStart in stride(from: 0, to: total, by: batchSize) {
+                let batchEnd = min(batchStart + batchSize, total)
+                autoreleasepool {
+                    for i in batchStart..<batchEnd {
+                        let asset = allAssets.object(at: i)
+                        let size = photoLibrary.fileSize(for: asset)
 
-                switch asset.mediaType {
-                case .video:
-                    stats.totalVideoCount += 1
-                    stats.videoSize += size
-                case .image:
-                    if asset.mediaSubtypes.contains(.photoScreenshot) {
-                        stats.totalScreenshotCount += 1
-                        stats.screenshotSize += size
-                    } else {
-                        stats.totalPhotoCount += 1
-                        stats.photoSize += size
-                        if asset.burstIdentifier != nil {
-                            stats.totalBurstCount += 1
-                        }
-                        if asset.mediaSubtypes.contains(.photoLive) {
-                            stats.totalLivePhotoCount += 1
+                        switch asset.mediaType {
+                        case .video:
+                            stats.totalVideoCount += 1
+                            stats.videoSize += size
+                        case .image:
+                            if asset.mediaSubtypes.contains(.photoScreenshot) {
+                                stats.totalScreenshotCount += 1
+                                stats.screenshotSize += size
+                            } else {
+                                stats.totalPhotoCount += 1
+                                stats.photoSize += size
+                                if asset.burstIdentifier != nil {
+                                    stats.totalBurstCount += 1
+                                }
+                                if asset.mediaSubtypes.contains(.photoLive) {
+                                    stats.totalLivePhotoCount += 1
+                                }
+                            }
+                        default:
+                            break
                         }
                     }
-                default:
-                    break
+                }
+
+                // 定期让出 CPU，避免完全阻塞
+                if batchEnd % reportEvery == 0 || batchEnd == total {
+                    try? await Task.sleep(nanoseconds: 1_000_000) // 1ms
                 }
             }
 

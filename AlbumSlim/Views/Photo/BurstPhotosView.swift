@@ -73,7 +73,7 @@ struct BurstPhotosView: View {
         defer { isLoading = false }
 
         let fetchResult = services.photoLibrary.fetchBurstAssets()
-        let items = services.photoLibrary.buildMediaItems(from: fetchResult)
+        let items = await services.photoLibrary.buildMediaItems(from: fetchResult)
 
         var groups: [String: [MediaItem]] = [:]
         for item in items {

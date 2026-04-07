@@ -4,6 +4,7 @@ import Photos
 struct VideoListView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var viewModel = VideoManagerViewModel()
+    @State private var showDeleteConfirm = false
 
     var body: some View {
         NavigationStack {
@@ -82,7 +83,7 @@ struct VideoListView: View {
                     }
                 }
             }
-            .onAppear { viewModel.loadVideos(services: services) }
+            .task { await viewModel.loadVideos(services: services) }
         }
     }
 
@@ -96,10 +97,25 @@ struct VideoListView: View {
                     try? await viewModel.compressSelected(services: services)
                 }
             }
+            .buttonStyle(.bordered)
+            Button("删除", role: .destructive) {
+                showDeleteConfirm = true
+            }
             .buttonStyle(.borderedProminent)
         }
         .padding()
         .background(.ultraThinMaterial)
+        .confirmationDialog(
+            "确定删除 \(viewModel.selectedVideos.count) 个视频？",
+            isPresented: $showDeleteConfirm,
+            titleVisibility: .visible
+        ) {
+            Button("删除", role: .destructive) {
+                Task { await viewModel.deleteSelected(services: services) }
+            }
+        } message: {
+            Text("删除后可在\"最近删除\"中恢复")
+        }
     }
 }
 

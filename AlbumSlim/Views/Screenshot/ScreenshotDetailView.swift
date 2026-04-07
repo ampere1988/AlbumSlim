@@ -105,8 +105,9 @@ struct ScreenshotDetailView: View {
         .confirmationDialog("确定删除这张截图？", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button("删除", role: .destructive) {
                 Task {
-                    await onDelete()
                     dismiss()
+                    try? await Task.sleep(for: .milliseconds(300))
+                    await onDelete()
                 }
             }
         }
