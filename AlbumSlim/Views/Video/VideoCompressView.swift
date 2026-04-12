@@ -12,6 +12,7 @@ struct VideoCompressView: View {
     @State private var error: String?
     @State private var thumbnail: UIImage?
     @State private var showPaywall = false
+    @State private var showDeleteConfirm = false
 
     private var isCompleted: Bool { compressedSize != nil }
 
@@ -73,23 +74,15 @@ struct VideoCompressView: View {
                 }
 
                 Section {
-                    Button("压缩并替换原视频") {
-                        if ProFeatureGate.canCompress(isPro: services.subscription.isPro) {
-                            Task { await compressAndReplace() }
-                        } else {
-                            showPaywall = true
+                    Button(role: .destructive) {
+                        showDeleteConfirm = true
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Label("删除视频", systemImage: "trash")
+                            Spacer()
                         }
                     }
-                    .frame(maxWidth: .infinity)
-
-                    Button("压缩保存为新视频") {
-                        if ProFeatureGate.canCompress(isPro: services.subscription.isPro) {
-                            Task { await compressAndSaveNew() }
-                        } else {
-                            showPaywall = true
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
                 }
             }
 
@@ -121,6 +114,56 @@ struct VideoCompressView: View {
                         .bold()
                 }
             }
+        }
+        .safeAreaInset(edge: .bottom) {
+            if !isCompressing && !isCompleted {
+                VStack(spacing: 0) {
+                    Divider()
+                    HStack(spacing: 12) {
+                        Button {
+                            if ProFeatureGate.canCompress(isPro: services.subscription.isPro) {
+                                Task { await compressAndReplace() }
+                            } else {
+                                showPaywall = true
+                            }
+                        } label: {
+                            Text("压缩并替换原视频")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(.blue)
+
+                        Button {
+                            if ProFeatureGate.canCompress(isPro: services.subscription.isPro) {
+                                Task { await compressAndSaveNew() }
+                            } else {
+                                showPaywall = true
+                            }
+                        } label: {
+                            Text("压缩保存为新视频")
+                                .font(.subheadline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.borderedProminent)
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, 10)
+                }
+                .background(.ultraThinMaterial)
+            }
+        }
+        .confirmationDialog("确认删除", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
+            Button("删除视频", role: .destructive) {
+                Task {
+                    try? await services.photoLibrary.deleteAssets([item.asset])
+                    dismiss()
+                }
+            }
+        } message: {
+            Text("删除后视频将移至「最近删除」相簿")
         }
         .navigationTitle("视频压缩")
         .task {

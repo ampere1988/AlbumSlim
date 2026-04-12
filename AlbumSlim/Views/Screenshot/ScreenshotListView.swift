@@ -7,6 +7,8 @@ struct ScreenshotListView: View {
     @State private var exportToast: String?
     @State private var navigationPath = NavigationPath()
 
+    private let columns = [GridItem(.adaptive(minimum: 100), spacing: 3)]
+
     var body: some View {
         NavigationStack(path: $navigationPath) {
             Group {
@@ -15,33 +17,36 @@ struct ScreenshotListView: View {
                 } else if viewModel.screenshots.isEmpty {
                     ContentUnavailableView("没有截图", systemImage: "scissors")
                 } else {
-                    List {
-                        if viewModel.isAnalyzing {
-                            ProgressView(value: viewModel.analysisProgress) {
-                                Text("处理中...")
+                    ScrollView {
+                        VStack(spacing: 12) {
+                            if viewModel.isAnalyzing {
+                                ProgressView(value: viewModel.analysisProgress) {
+                                    Text("处理中...")
+                                }
+                                .padding(.horizontal)
                             }
-                        }
 
-                        filterPicker
+                            filterPicker
 
-                        ForEach(viewModel.filteredScreenshots) { screenshot in
-                            if viewModel.isEditing {
-                                ScreenshotRow(
-                                    item: screenshot,
-                                    ocrResult: viewModel.ocrResults[screenshot.id],
-                                    isExported: viewModel.exportedIDs.contains(screenshot.id),
-                                    isSelected: viewModel.selectedItems.contains(screenshot.id)
-                                )
-                                .onTapGesture { viewModel.toggleSelection(screenshot.id) }
-                            } else {
-                                NavigationLink(value: screenshot.id) {
-                                    ScreenshotRow(
+                            LazyVGrid(columns: columns, spacing: 3) {
+                                ForEach(viewModel.filteredScreenshots) { screenshot in
+                                    ScreenshotThumbnailCell(
                                         item: screenshot,
                                         ocrResult: viewModel.ocrResults[screenshot.id],
-                                        isExported: viewModel.exportedIDs.contains(screenshot.id)
-                                    )
+                                        isExported: viewModel.exportedIDs.contains(screenshot.id),
+                                        isEditing: viewModel.isEditing,
+                                        isSelected: viewModel.selectedItems.contains(screenshot.id),
+                                        services: services
+                                    ) {
+                                        if viewModel.isEditing {
+                                            viewModel.toggleSelection(screenshot.id)
+                                        } else {
+                                            navigationPath.append(screenshot.id)
+                                        }
+                                    }
                                 }
                             }
+                            .padding(.horizontal, 3)
                         }
                     }
                     .navigationDestination(for: String.self) { screenshotID in
@@ -51,13 +56,9 @@ struct ScreenshotListView: View {
                                 ocrResult: ocrBinding(for: screenshotID),
                                 isExported: exportedBinding(for: screenshotID),
                                 onDelete: {
-                                    // 1. 捕获 asset 引用
                                     let asset = screenshot.asset
-                                    // 2. 先从 UI 数据源移除
                                     viewModel.removeScreenshotFromUI(screenshotID)
-                                    // 3. pop 导航
                                     navigationPath.removeLast()
-                                    // 4. 后台删除 PHAsset
                                     Task {
                                         try? await services.photoLibrary.deleteAssets([asset])
                                     }
@@ -192,9 +193,8 @@ struct ScreenshotListView: View {
                     }
                 }
             }
-            .padding(.horizontal, 4)
+            .padding(.horizontal, 8)
         }
-        .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
     }
 
     private var batchActionBar: some View {
@@ -205,7 +205,6 @@ struct ScreenshotListView: View {
                     .font(.subheadline)
                 Spacer()
 
-                // 识别并存储：先 OCR 未识别的，再全部存为文件
                 Button("识别并存储") {
                     if ProFeatureGate.canOCR(isPro: services.subscription.isPro) {
                         Task {
@@ -259,51 +258,91 @@ private struct FilterChip: View {
     }
 }
 
-private struct ScreenshotRow: View {
+private struct ScreenshotThumbnailCell: View {
     let item: MediaItem
     let ocrResult: OCRResult?
-    var isExported: Bool = false
-    var isSelected: Bool = false
+    let isExported: Bool
+    let isEditing: Bool
+    let isSelected: Bool
+    let services: AppServiceContainer
+    let onTap: () -> Void
+    @State private var image: UIImage?
 
     var body: some View {
-        HStack(spacing: 12) {
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.blue)
-                    .frame(width: 24)
+        ZStack(alignment: .topLeading) {
+            // 缩略图 — 截图用接近手机屏幕的竖向比例
+            if let image {
+                Image(uiImage: image)
+                    .resizable()
+                    .aspectRatio(9.0 / 16.0, contentMode: .fill)
+                    .clipped()
+            } else {
+                Rectangle()
+                    .fill(.quaternary)
+                    .aspectRatio(9.0 / 16.0, contentMode: .fill)
+                    .overlay { ProgressView() }
             }
 
-            VStack(alignment: .leading, spacing: 4) {
-                HStack {
-                    Text(item.creationDate?.formatted(date: .abbreviated, time: .shortened) ?? "")
-                        .font(.subheadline)
-                    Spacer()
-                    if isExported {
+            // 选中蒙层
+            if isEditing && isSelected {
+                Rectangle().fill(.blue.opacity(0.3))
+            }
+
+            // 左上：选中勾
+            if isEditing {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title3)
+                    .foregroundStyle(isSelected ? .white : .white.opacity(0.8))
+                    .shadow(radius: 2)
+                    .padding(6)
+            }
+
+            // 右上：已导出标记
+            if isExported {
+                VStack {
+                    HStack {
+                        Spacer()
                         Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.green)
                             .font(.caption)
+                            .foregroundStyle(.green)
+                            .shadow(radius: 2)
+                            .padding(6)
                     }
+                }
+            }
+
+            // 底部：文件大小 + 分类标签
+            VStack {
+                Spacer()
+                HStack(spacing: 4) {
+                    Text(item.fileSizeText)
+                        .font(.system(size: 10))
+                        .padding(.horizontal, 4)
+                        .padding(.vertical, 2)
+                        .background(.ultraThinMaterial, in: Capsule())
+
                     if let result = ocrResult {
                         Text(result.category.rawValue)
-                            .font(.caption)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 4)
-                            .background(result.category.color.opacity(0.15), in: Capsule())
-                            .foregroundStyle(result.category.color)
+                            .font(.system(size: 9))
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(result.category.color.opacity(0.8), in: Capsule())
+                            .foregroundStyle(.white)
                     }
-                }
 
-                Text(item.fileSizeText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                if let result = ocrResult {
-                    Text(result.text.prefix(80) + (result.text.count > 80 ? "..." : ""))
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                    Spacer()
                 }
+                .padding(4)
             }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .contentShape(Rectangle())
+        .onTapGesture { onTap() }
+        .task {
+            image = await services.photoLibrary.thumbnail(
+                for: item.asset,
+                size: CGSize(width: 200, height: 360)
+            )
         }
     }
 }

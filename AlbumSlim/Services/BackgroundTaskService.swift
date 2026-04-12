@@ -77,7 +77,7 @@ final class BackgroundTaskService {
 
     private func scheduleProcessingTask() {
         let request = BGProcessingTaskRequest(identifier: Self.processingTaskID)
-        request.requiresExternalPower = false
+        request.requiresExternalPower = true
         request.requiresNetworkConnectivity = false
         // 至少等 15 分钟再调度（避免频繁触发）
         request.earliestBeginDate = Date(timeIntervalSinceNow: 15 * 60)
