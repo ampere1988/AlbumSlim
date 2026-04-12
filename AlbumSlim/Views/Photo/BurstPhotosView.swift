@@ -6,7 +6,7 @@ struct BurstPhotosView: View {
     @State private var burstGroups: [CleanupGroup] = []
     @State private var isLoading = false
     @State private var showDeleteConfirm = false
-    @State private var pendingGroupIndex: Int?
+    @State private var pendingGroupID: UUID?
 
     var body: some View {
         Group {
@@ -39,7 +39,7 @@ struct BurstPhotosView: View {
                             }
 
                             Button("只保留最佳") {
-                                pendingGroupIndex = index
+                                pendingGroupID = group.id
                                 showDeleteConfirm = true
                             }
                             .font(.footnote)
@@ -57,10 +57,11 @@ struct BurstPhotosView: View {
                     }
                 }
                 .confirmationDialog("确认删除", isPresented: $showDeleteConfirm) {
-                    if let idx = pendingGroupIndex {
-                        let count = burstGroups[idx].items.count - 1
+                    if let id = pendingGroupID,
+                       let group = burstGroups.first(where: { $0.id == id }) {
+                        let count = group.items.count - 1
                         Button("删除 \(count) 张，只保留最佳", role: .destructive) {
-                            Task { await keepOnlyBest(at: idx) }
+                            Task { await keepOnlyBest(id: id) }
                         }
                     }
                 }
@@ -90,12 +91,12 @@ struct BurstPhotosView: View {
             }
     }
 
-    private func keepOnlyBest(at index: Int) async {
-        let group = burstGroups[index]
+    private func keepOnlyBest(id: UUID) async {
+        guard let group = burstGroups.first(where: { $0.id == id }) else { return }
         let toDelete = group.items.filter { $0.id != group.bestItemID }
         guard !toDelete.isEmpty else { return }
         try? await services.photoLibrary.deleteAssets(toDelete.map(\.asset))
-        burstGroups.remove(at: index)
+        burstGroups.removeAll { $0.id == id }
     }
 }
 

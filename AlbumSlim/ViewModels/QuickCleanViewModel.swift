@@ -61,7 +61,7 @@ final class QuickCleanViewModel {
                 duration: Date().timeIntervalSince(start)
             )
             let _ = services.achievement.recordCleanup(freedSpace: freedSize, deletedCount: deletedCount)
-            cleanupGroups.removeAll { !deselectedGroupIDs.contains($0.id) == false }
+            cleanupGroups.removeAll { !deselectedGroupIDs.contains($0.id) }
             cleanupGroups = services.cleanupCoordinator.pendingGroups
         } catch {
             // 删除被用户取消或失败

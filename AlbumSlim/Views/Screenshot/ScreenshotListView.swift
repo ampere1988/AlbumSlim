@@ -4,9 +4,11 @@ struct ScreenshotListView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var viewModel = ScreenshotViewModel()
     @State private var showPaywall = false
+    @State private var exportToast: String?
+    @State private var navigationPath = NavigationPath()
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $navigationPath) {
             Group {
                 if viewModel.isLoading {
                     ProgressView("加载截图...")
@@ -16,7 +18,7 @@ struct ScreenshotListView: View {
                     List {
                         if viewModel.isAnalyzing {
                             ProgressView(value: viewModel.analysisProgress) {
-                                Text("OCR 识别中...")
+                                Text("处理中...")
                             }
                         }
 
@@ -27,6 +29,7 @@ struct ScreenshotListView: View {
                                 ScreenshotRow(
                                     item: screenshot,
                                     ocrResult: viewModel.ocrResults[screenshot.id],
+                                    isExported: viewModel.exportedIDs.contains(screenshot.id),
                                     isSelected: viewModel.selectedItems.contains(screenshot.id)
                                 )
                                 .onTapGesture { viewModel.toggleSelection(screenshot.id) }
@@ -34,7 +37,8 @@ struct ScreenshotListView: View {
                                 NavigationLink(value: screenshot.id) {
                                     ScreenshotRow(
                                         item: screenshot,
-                                        ocrResult: viewModel.ocrResults[screenshot.id]
+                                        ocrResult: viewModel.ocrResults[screenshot.id],
+                                        isExported: viewModel.exportedIDs.contains(screenshot.id)
                                     )
                                 }
                             }
@@ -44,11 +48,23 @@ struct ScreenshotListView: View {
                         if let screenshot = viewModel.screenshots.first(where: { $0.id == screenshotID }) {
                             ScreenshotDetailView(
                                 item: screenshot,
-                                ocrResult: binding(for: screenshotID),
+                                ocrResult: ocrBinding(for: screenshotID),
+                                isExported: exportedBinding(for: screenshotID),
                                 onDelete: {
-                                    await viewModel.deleteScreenshot(screenshot, services: services)
+                                    // 1. 捕获 asset 引用
+                                    let asset = screenshot.asset
+                                    // 2. 先从 UI 数据源移除
+                                    viewModel.removeScreenshotFromUI(screenshotID)
+                                    // 3. pop 导航
+                                    navigationPath.removeLast()
+                                    // 4. 后台删除 PHAsset
+                                    Task {
+                                        try? await services.photoLibrary.deleteAssets([asset])
+                                    }
                                 }
                             )
+                        } else {
+                            Color.clear
                         }
                     }
                     .safeAreaInset(edge: .bottom) {
@@ -63,9 +79,7 @@ struct ScreenshotListView: View {
                 ToolbarItem(placement: .topBarLeading) {
                     Button(viewModel.isEditing ? "完成" : "选择") {
                         viewModel.isEditing.toggle()
-                        if !viewModel.isEditing {
-                            viewModel.deselectAll()
-                        }
+                        if !viewModel.isEditing { viewModel.deselectAll() }
                     }
                 }
                 ToolbarItemGroup(placement: .topBarTrailing) {
@@ -78,6 +92,13 @@ struct ScreenshotListView: View {
                             }
                         }
                     } else {
+                        if viewModel.exportedCount > 0 {
+                            Button("删除已存储(\(viewModel.exportedCount))") {
+                                viewModel.showDeleteExportedConfirmation = true
+                            }
+                            .foregroundStyle(.red)
+                        }
+
                         Button("全部识别") {
                             if ProFeatureGate.canOCR(isPro: services.subscription.isPro) {
                                 Task { await viewModel.analyzeAllScreenshots(services: services) }
@@ -89,24 +110,72 @@ struct ScreenshotListView: View {
                     }
                 }
             }
+            .overlay(alignment: .bottom) {
+                if let toast = exportToast {
+                    Text(toast)
+                        .font(.subheadline)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(.regularMaterial, in: Capsule())
+                        .padding(.bottom, 100)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .onAppear {
+                            Task {
+                                try? await Task.sleep(for: .seconds(2))
+                                withAnimation { exportToast = nil }
+                            }
+                        }
+                }
+            }
+            .animation(.default, value: exportToast)
             .task { await viewModel.loadScreenshots(services: services) }
             .sheet(isPresented: $showPaywall) { PaywallView() }
+            .confirmationDialog(
+                "删除 \(viewModel.exportedCount) 张已存储截图？",
+                isPresented: $viewModel.showDeleteExportedConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("删除", role: .destructive) {
+                    Task { await viewModel.deleteExported(services: services) }
+                }
+            }
         }
     }
 
-    private func binding(for id: String) -> Binding<OCRResult?> {
+    private func ocrBinding(for id: String) -> Binding<OCRResult?> {
         Binding(
             get: { viewModel.ocrResults[id] },
             set: { viewModel.ocrResults[id] = $0 }
         )
     }
 
+    private func exportedBinding(for id: String) -> Binding<Bool> {
+        Binding(
+            get: { viewModel.exportedIDs.contains(id) },
+            set: { if $0 { viewModel.markExported(id) } else { viewModel.unmarkExported(id) } }
+        )
+    }
+
     private var filterPicker: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                FilterChip(title: "全部", isSelected: viewModel.filterCategory == nil) {
+                FilterChip(title: "全部", isSelected: viewModel.filterCategory == nil && !viewModel.filterExported) {
                     viewModel.filterCategory = nil
+                    viewModel.filterExported = false
                 }
+
+                let exportedCount = viewModel.exportedCount
+                if exportedCount > 0 {
+                    FilterChip(
+                        title: "已存储 (\(exportedCount))",
+                        isSelected: viewModel.filterExported,
+                        color: .green
+                    ) {
+                        viewModel.filterExported.toggle()
+                        if viewModel.filterExported { viewModel.filterCategory = nil }
+                    }
+                }
+
                 ForEach(ScreenshotCategory.allCases, id: \.self) { category in
                     let count = viewModel.screenshots.filter { item in
                         viewModel.ocrResults[item.id]?.category == category
@@ -114,10 +183,11 @@ struct ScreenshotListView: View {
                     if count > 0 {
                         FilterChip(
                             title: "\(category.rawValue) (\(count))",
-                            isSelected: viewModel.filterCategory == category,
+                            isSelected: viewModel.filterCategory == category && !viewModel.filterExported,
                             color: category.color
                         ) {
-                            viewModel.filterCategory = category
+                            viewModel.filterExported = false
+                            viewModel.filterCategory = viewModel.filterCategory == category ? nil : category
                         }
                     }
                 }
@@ -134,11 +204,20 @@ struct ScreenshotListView: View {
                 Text("已选 \(viewModel.selectedItems.count) 个")
                     .font(.subheadline)
                 Spacer()
-                Button("导出") {
-                    viewModel.exportSelected(services: services)
+
+                // 识别并存储：先 OCR 未识别的，再全部存为文件
+                Button("识别并存储") {
+                    if ProFeatureGate.canOCR(isPro: services.subscription.isPro) {
+                        Task {
+                            let count = await viewModel.analyzeAndExportSelected(services: services)
+                            withAnimation { exportToast = "已存储 \(count) 条文字到文件" }
+                        }
+                    } else {
+                        showPaywall = true
+                    }
                 }
                 .buttonStyle(.bordered)
-                .disabled(viewModel.selectedItems.isEmpty)
+                .disabled(viewModel.isAnalyzing || viewModel.selectedItems.isEmpty)
 
                 Button("删除", role: .destructive) {
                     viewModel.showDeleteConfirmation = true
@@ -183,6 +262,7 @@ private struct FilterChip: View {
 private struct ScreenshotRow: View {
     let item: MediaItem
     let ocrResult: OCRResult?
+    var isExported: Bool = false
     var isSelected: Bool = false
 
     var body: some View {
@@ -198,6 +278,11 @@ private struct ScreenshotRow: View {
                     Text(item.creationDate?.formatted(date: .abbreviated, time: .shortened) ?? "")
                         .font(.subheadline)
                     Spacer()
+                    if isExported {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.caption)
+                    }
                     if let result = ocrResult {
                         Text(result.category.rawValue)
                             .font(.caption)

@@ -5,11 +5,14 @@ struct ScreenshotDetailView: View {
     @Environment(AppServiceContainer.self) private var services
     let item: MediaItem
     @Binding var ocrResult: OCRResult?
-    let onDelete: () async -> Void
+    @Binding var isExported: Bool
+    let onDelete: () -> Void
 
     @State private var image: UIImage?
     @State private var showDeleteConfirmation = false
-    @Environment(\.dismiss) private var dismiss
+    @State private var saveState: SaveState = .idle
+
+    enum SaveState { case idle, saving, saved, failed }
 
     var body: some View {
         ScrollView {
@@ -31,37 +34,98 @@ struct ScreenshotDetailView: View {
 
                 // 分类标签
                 if let result = ocrResult {
-                    Text(result.category.rawValue)
-                        .font(.subheadline.bold())
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 6)
-                        .background(result.category.color.opacity(0.15), in: Capsule())
-                        .foregroundStyle(result.category.color)
+                    HStack {
+                        Text(result.category.rawValue)
+                            .font(.subheadline.bold())
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 6)
+                            .background(result.category.color.opacity(0.15), in: Capsule())
+                            .foregroundStyle(result.category.color)
+
+                        if isExported {
+                            Label("已存储", systemImage: "checkmark.circle.fill")
+                                .font(.subheadline)
+                                .foregroundStyle(.green)
+                        }
+                    }
                 }
 
                 // OCR 文本
                 if let result = ocrResult {
-                    VStack(alignment: .leading, spacing: 8) {
+                    VStack(alignment: .leading, spacing: 12) {
                         Text("识别文字")
                             .font(.headline)
                         Text(result.text)
                             .font(.body)
                             .textSelection(.enabled)
                             .frame(maxWidth: .infinity, alignment: .leading)
+
+                        Divider()
+
+                        HStack(spacing: 12) {
+                            // 存储到 Files
+                            Button {
+                                guard saveState != .saving else { return }
+                                saveState = .saving
+                                let notesService = NotesExportService()
+                                let (title, content) = notesService.formatScreenshotNote(
+                                    ocrResult: result, date: item.creationDate
+                                )
+                                if (try? notesService.saveNote(title: title, content: content)) != nil {
+                                    isExported = true
+                                    saveState = .saved
+                                } else {
+                                    saveState = .failed
+                                }
+                            } label: {
+                                Group {
+                                    switch saveState {
+                                    case .idle:
+                                        Label(isExported ? "重新存储" : "存储到文件", systemImage: "folder.badge.plus")
+                                    case .saving:
+                                        Label("存储中...", systemImage: "arrow.down.circle")
+                                    case .saved:
+                                        Label("已存储", systemImage: "checkmark.circle.fill")
+                                    case .failed:
+                                        Label("存储失败", systemImage: "xmark.circle")
+                                    }
+                                }
+                                .frame(maxWidth: .infinity)
+                            }
+                            .buttonStyle(.bordered)
+                            .tint(saveState == .saved ? .green : saveState == .failed ? .red : .accentColor)
+                            .disabled(saveState == .saving)
+
+                            // 分享（可选择备忘录）
+                            ShareLink(
+                                item: NotesExportService().shareText(for: result, date: item.creationDate),
+                                subject: Text("截图内容")
+                            ) {
+                                Label("分享", systemImage: "square.and.arrow.up")
+                            }
+                            .buttonStyle(.bordered)
+                        }
                     }
                     .padding()
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
                     .padding(.horizontal)
                 } else {
-                    Button("开始识别") {
-                        Task {
-                            let size = CGSize(width: 1024, height: 1024)
-                            guard let img = await services.photoLibrary.thumbnail(for: item.asset, size: size),
-                                  let result = await services.ocrService.recognizeText(from: img) else { return }
-                            ocrResult = result
+                    HStack(spacing: 12) {
+                        Button("开始识别") {
+                            Task {
+                                let size = CGSize(width: 1024, height: 1024)
+                                guard let img = await services.photoLibrary.thumbnail(for: item.asset, size: size),
+                                      let result = await services.ocrService.recognizeText(from: img) else { return }
+                                ocrResult = result
+                            }
                         }
+                        .buttonStyle(.bordered)
+
+                        Button("直接删除", role: .destructive) {
+                            showDeleteConfirmation = true
+                        }
+                        .buttonStyle(.bordered)
                     }
-                    .buttonStyle(.bordered)
                 }
             }
             .padding(.vertical)
@@ -80,34 +144,20 @@ struct ScreenshotDetailView: View {
                     }
 
                     Spacer()
-
-                    Button {
-                        guard let result = ocrResult else { return }
-                        let notesService = NotesExportService()
-                        let (title, content) = notesService.formatScreenshotNote(
-                            ocrResult: result, date: item.creationDate
-                        )
-                        notesService.exportToNotes(title: title, content: content)
-                    } label: {
-                        Label("导出备忘录", systemImage: "square.and.arrow.up")
-                    }
-
-                    Spacer()
                 }
 
                 Button(role: .destructive) {
                     showDeleteConfirmation = true
                 } label: {
-                    Label("删除", systemImage: "trash")
+                    Label("删除截图", systemImage: "trash")
                 }
             }
         }
         .confirmationDialog("确定删除这张截图？", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
             Button("删除", role: .destructive) {
                 Task {
-                    dismiss()
                     try? await Task.sleep(for: .milliseconds(300))
-                    await onDelete()
+                    onDelete()
                 }
             }
         }

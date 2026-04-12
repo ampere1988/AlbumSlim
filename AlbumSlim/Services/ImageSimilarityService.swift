@@ -2,10 +2,9 @@ import Foundation
 import Vision
 import Photos
 
-@MainActor
-final class ImageSimilarityService {
+final class ImageSimilarityService: Sendable {
 
-    func findSimilarGroups(from items: [MediaItem], using photoLibrary: PhotoLibraryService, cache: AnalysisCacheService, onProgress: @escaping (Double) -> Void) async -> [CleanupGroup] {
+    func findSimilarGroups(from items: [MediaItem], using photoLibrary: PhotoLibraryService, cache: AnalysisCacheService, onProgress: @escaping @MainActor (Double) -> Void) async -> [CleanupGroup] {
         let timeGroups = groupByTimeWindow(items)
         var allGroups: [CleanupGroup] = []
         let totalGroups = timeGroups.count
@@ -13,7 +12,7 @@ final class ImageSimilarityService {
         for (index, group) in timeGroups.enumerated() {
             let similar = await findSimilarInGroup(group, using: photoLibrary, cache: cache)
             allGroups.append(contentsOf: similar)
-            onProgress(Double(index + 1) / Double(max(totalGroups, 1)))
+            await onProgress(Double(index + 1) / Double(max(totalGroups, 1)))
         }
 
         return allGroups
@@ -74,7 +73,8 @@ final class ImageSimilarityService {
                 let assetID = item.asset.localIdentifier
 
                 // 尝试从缓存读取特征向量
-                if let cachedData = cache.featurePrintData(for: assetID),
+                let cachedData = await MainActor.run { cache.featurePrintData(for: assetID) }
+                if let cachedData,
                    let fp = try? NSKeyedUnarchiver.unarchivedObject(ofClass: VNFeaturePrintObservation.self, from: cachedData) {
                     featurePrints.append((item: item, fp: fp))
                     continue
@@ -89,12 +89,12 @@ final class ImageSimilarityService {
                         featurePrints.append((item: item, fp: fp))
                         // 缓存特征向量
                         if let data = try? NSKeyedArchiver.archivedData(withRootObject: fp, requiringSecureCoding: true) {
-                            cache.saveFeaturePrint(assetID: assetID, data: data)
+                            await MainActor.run { cache.saveFeaturePrint(assetID: assetID, data: data) }
                         }
                     }
                 }
             }
-            cache.batchSave()
+            await MainActor.run { cache.batchSave() }
             await Task.yield()
         }
 

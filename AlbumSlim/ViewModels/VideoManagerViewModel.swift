@@ -40,8 +40,9 @@ final class VideoManagerViewModel {
         let currentVersion = services.photoLibrary.libraryVersion
         guard lastLibraryVersion != currentVersion || videos.isEmpty else { return }
 
-        isLoading = true
-        defer { isLoading = false }
+        let isFirstLoad = videos.isEmpty
+        if isFirstLoad { isLoading = true }
+        defer { if isFirstLoad { isLoading = false } }
 
         let fetchResult = services.photoLibrary.fetchAllAssets(mediaType: .video)
         videos = await services.photoLibrary.buildMediaItems(from: fetchResult)
@@ -86,6 +87,11 @@ final class VideoManagerViewModel {
         }
         selectedVideos.removeAll()
         await services.videoCompression.processQueue()
+        await loadVideos(services: services)
+    }
+
+    func deleteVideo(_ item: MediaItem, services: AppServiceContainer) async {
+        try? await services.photoLibrary.deleteAssets([item.asset])
         await loadVideos(services: services)
     }
 

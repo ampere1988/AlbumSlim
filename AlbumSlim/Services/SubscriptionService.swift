@@ -13,7 +13,7 @@ final class SubscriptionService {
     var purchaseError: String?
     var isLoading = false
 
-    private var transactionListener: Task<Void, Never>?
+    nonisolated(unsafe) private var transactionListener: Task<Void, Never>?
 
     init() {
         transactionListener = listenForTransactions()
@@ -21,7 +21,7 @@ final class SubscriptionService {
     }
 
     nonisolated deinit {
-        // transactionListener will be cancelled when Task is deallocated
+        transactionListener?.cancel()
     }
 
     func loadProducts() async {

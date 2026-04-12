@@ -3,8 +3,7 @@ import Vision
 import UIKit
 import CoreImage
 
-@MainActor
-final class AIAnalysisEngine {
+final class AIAnalysisEngine: @unchecked Sendable {
 
     // MARK: - 废片检测
 

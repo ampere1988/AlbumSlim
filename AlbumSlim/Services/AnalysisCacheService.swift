@@ -11,7 +11,11 @@ final class AnalysisCacheService {
     init() {
         let schema = Schema([CachedAnalysis.self])
         let config = ModelConfiguration(isStoredInMemoryOnly: false)
-        self.modelContainer = try! ModelContainer(for: schema, configurations: [config])
+        do {
+            self.modelContainer = try ModelContainer(for: schema, configurations: [config])
+        } catch {
+            fatalError("无法初始化 ModelContainer: \(error)")
+        }
         self.modelContext = ModelContext(modelContainer)
     }
 
@@ -82,7 +86,11 @@ final class AnalysisCacheService {
 
     func batchSave() {
         guard pendingChanges > 0 else { return }
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            print("[AnalysisCacheService] 保存失败: \(error)")
+        }
         pendingChanges = 0
     }
 

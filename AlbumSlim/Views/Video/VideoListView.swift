@@ -33,12 +33,19 @@ struct VideoListView: View {
                                 NavigationLink(value: video.id) {
                                     VideoRow(item: video, services: services)
                                 }
+                                .swipeActions(edge: .trailing) {
+                                    Button("删除", role: .destructive) {
+                                        Task { await viewModel.deleteVideo(video, services: services) }
+                                    }
+                                }
                             }
                         }
                     }
                     .navigationDestination(for: String.self) { videoID in
                         if let video = viewModel.videos.first(where: { $0.id == videoID }) {
                             VideoCompressView(item: video)
+                        } else {
+                            Color.clear
                         }
                     }
                     .safeAreaInset(edge: .bottom) {

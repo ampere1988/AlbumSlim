@@ -67,23 +67,26 @@ final class PhotoLibraryService: NSObject {
         await thumbnailSemaphore.wait()
         defer { thumbnailSemaphore.signal() }
 
-        return await withCheckedContinuation { continuation in
+        // 在后台线程同步请求，避免 withCheckedContinuation + PHImageManager 回调多次导致 EXC_BREAKPOINT
+        return await Task.detached(priority: .userInitiated) {
             let options = PHImageRequestOptions()
             options.deliveryMode = .highQualityFormat
             options.isNetworkAccessAllowed = false
-            options.isSynchronous = false
+            options.isSynchronous = true
             options.resizeMode = .fast
+            var result: UIImage?
             PHImageManager.default().requestImage(
                 for: asset, targetSize: size, contentMode: .aspectFill, options: options
             ) { image, _ in
-                continuation.resume(returning: image)
+                result = image
             }
-        }
+            return result
+        }.value
     }
 
     // MARK: - 删除（分批，每批最多 50 个，避免系统弹窗超大列表卡死）
 
-    func deleteAssets(_ assets: [PHAsset]) async throws {
+    nonisolated func deleteAssets(_ assets: [PHAsset]) async throws {
         let batchSize = 50
         for batchStart in stride(from: 0, to: assets.count, by: batchSize) {
             let batchEnd = min(batchStart + batchSize, assets.count)

@@ -4,7 +4,9 @@
       "Agent(*)",
       "ToolSearch(*)",
       "AskUserQuestion(*)",
-      "TodoWrite(*)"
+      "TodoWrite(*)",
+      "Glob(*)",
+      "Grep(*)"
     ]
   }
 }

@@ -8,6 +8,7 @@ final class BackgroundTaskService {
 
     private(set) var lastBackgroundScanAt: Date? = UserDefaults.standard.object(forKey: "lastBackgroundScanAt") as? Date
 
+    private weak var services: AppServiceContainer?
     private var analyzeTask: Task<Void, Never>?
 
     /// 当前后台延长任务的标识
@@ -16,13 +17,14 @@ final class BackgroundTaskService {
     // MARK: - 注册（必须在 App 启动时、didFinishLaunching 返回前调用）
 
     func registerBackgroundTasks(services: AppServiceContainer) {
+        self.services = services
         BGTaskScheduler.shared.register(
             forTaskWithIdentifier: Self.processingTaskID,
             using: nil
         ) { [weak self] task in
             guard let self, let task = task as? BGProcessingTask else { return }
             Task { @MainActor in
-                await self.handleProcessingTask(task, services: services)
+                await self.handleProcessingTask(task)
             }
         }
     }
@@ -45,7 +47,12 @@ final class BackgroundTaskService {
 
     // MARK: - BGProcessingTask 执行
 
-    private func handleProcessingTask(_ task: BGProcessingTask, services: AppServiceContainer) async {
+    private func handleProcessingTask(_ task: BGProcessingTask) async {
+        guard let services else {
+            task.setTaskCompleted(success: false)
+            return
+        }
+
         // 安排下一次
         scheduleProcessingTask()
 
