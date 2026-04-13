@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppConstants {
-    static let appName = "相册瘦身"
+    static let appName = "闪图"
 
     enum Similarity {
         static let highThreshold: Float = 0.85

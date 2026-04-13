@@ -20,7 +20,7 @@ struct ShareCardContent: View {
                     .font(.system(size: 50))
                     .foregroundStyle(.white.opacity(0.9))
 
-                Text("相册瘦身")
+                Text("闪图")
                     .font(.title.bold())
                     .foregroundStyle(.white)
 

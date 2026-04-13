@@ -17,7 +17,7 @@ struct OnboardingView: View {
                 .foregroundStyle(.blue.gradient)
 
             VStack(spacing: 12) {
-                Text("相册瘦身")
+                Text("闪图")
                     .font(.largeTitle.bold())
                 Text("智能分析相册，释放存储空间")
                     .font(.title3)

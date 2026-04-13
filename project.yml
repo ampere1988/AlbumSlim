@@ -28,10 +28,10 @@ targets:
         CODE_SIGN_STYLE: Automatic
         GENERATE_INFOPLIST_FILE: true
         INFOPLIST_GENERATION_MODE: GeneratedFile
-        INFOPLIST_KEY_CFBundleDisplayName: "相册瘦身"
+        INFOPLIST_KEY_CFBundleDisplayName: "闪图"
         INFOPLIST_KEY_LSApplicationCategoryType: "public.app-category.utilities"
-        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "相册瘦身需要访问您的照片库来分析和管理照片视频，所有处理均在本地完成。"
-        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "相册瘦身需要保存压缩后的视频到您的照片库。"
+        INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "闪图需要访问您的照片库来分析和管理照片视频，所有处理均在本地完成。"
+        INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription: "闪图需要保存压缩后的视频到您的照片库。"
         INFOPLIST_KEY_UILaunchScreen_Generation: true
         INFOPLIST_KEY_UISupportedInterfaceOrientations: "UIInterfaceOrientationPortrait"
         INFOPLIST_KEY_UISupportedInterfaceOrientations~ipad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"

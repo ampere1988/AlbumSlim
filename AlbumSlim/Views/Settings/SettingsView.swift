@@ -57,7 +57,7 @@ struct SettingsView: View {
                 }
                 Button("取消", role: .cancel) {}
             } message: {
-                Text("请在系统设置中允许相册瘦身发送通知，以便接收清理提醒")
+                Text("请在系统设置中允许闪图发送通知，以便接收清理提醒")
             }
         }
     }

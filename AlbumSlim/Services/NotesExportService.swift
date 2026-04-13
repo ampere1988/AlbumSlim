@@ -13,7 +13,7 @@ final class NotesExportService {
         try FileManager.default.createDirectory(at: notesFolder, withIntermediateDirectories: true)
         let filename = sanitize(title) + ".txt"
         let url = notesFolder.appendingPathComponent(filename)
-        let text = "\(title)\n\n\(content)\n\n— 由相册瘦身导出"
+        let text = "\(title)\n\n\(content)\n\n— 由闪图导出"
         try text.write(to: url, atomically: true, encoding: .utf8)
         return url
     }
@@ -33,7 +33,7 @@ final class NotesExportService {
 
     func shareText(for ocrResult: OCRResult, date: Date?) -> String {
         let (title, content) = formatScreenshotNote(ocrResult: ocrResult, date: date)
-        return "\(title)\n\n\(content)\n\n— 由相册瘦身导出"
+        return "\(title)\n\n\(content)\n\n— 由闪图导出"
     }
 
     private func sanitize(_ name: String) -> String {

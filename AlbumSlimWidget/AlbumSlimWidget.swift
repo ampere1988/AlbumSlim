@@ -126,7 +126,7 @@ struct MediumWidgetView: View {
                 Image(systemName: "photo.on.rectangle.angled")
                     .font(.title)
                     .foregroundStyle(.secondary)
-                Text("打开相册瘦身扫描后\n即可在此查看统计")
+                Text("打开闪图扫描后\n即可在此查看统计")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -181,7 +181,7 @@ struct AlbumSlimWidget: Widget {
         StaticConfiguration(kind: kind, provider: StorageTimelineProvider()) { entry in
             AlbumSlimWidgetEntryView(entry: entry)
         }
-        .configurationDisplayName("相册瘦身")
+        .configurationDisplayName("闪图")
         .description("查看相册存储空间使用情况")
         .supportedFamilies([.systemSmall, .systemMedium])
     }

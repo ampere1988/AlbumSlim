@@ -103,7 +103,7 @@ struct DashboardView: View {
                 }
                 .padding(.vertical)
             }
-            .navigationTitle("相册瘦身")
+            .navigationTitle("闪图")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
