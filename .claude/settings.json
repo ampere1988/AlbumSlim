@@ -6,7 +6,8 @@
       "AskUserQuestion(*)",
       "TodoWrite(*)",
       "Glob(*)",
-      "Grep(*)"
+      "Grep(*)",
+      "WebSearch(*)"
     ]
   }
 }

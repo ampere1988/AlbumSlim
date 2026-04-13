@@ -116,6 +116,11 @@ struct WastePhotosView: View {
             }
         }
         .sheet(isPresented: $showPaywall) { PaywallView() }
+        .task {
+            if viewModel.wasteItems.isEmpty && !viewModel.isScanning {
+                await viewModel.scanWastePhotos(services: services)
+            }
+        }
     }
 
     @ViewBuilder

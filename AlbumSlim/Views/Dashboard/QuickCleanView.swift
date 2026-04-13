@@ -1,26 +1,20 @@
 import SwiftUI
-import UIKit
-import Photos
 
 struct QuickCleanView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var viewModel = QuickCleanViewModel()
-    @State private var showShareSheet = false
-    @State private var shareImage: UIImage?
 
     var body: some View {
         Group {
-            if let result = viewModel.cleanupResult {
-                cleanupDoneView(result)
-            } else if viewModel.isScanning {
+            if viewModel.isScanning {
                 scanningView
             } else if viewModel.cleanupGroups.isEmpty {
                 emptyStateView
             } else {
-                cleanupPreview
+                resultSummary
             }
         }
-        .navigationTitle("智能清理")
+        .navigationTitle("智能扫描")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if viewModel.cleanupGroups.isEmpty && !viewModel.isScanning {
@@ -65,123 +59,102 @@ struct QuickCleanView: View {
         }
     }
 
-    // MARK: - 清理方案预览
+    // MARK: - 扫描结果总览
 
-    private var cleanupPreview: some View {
-        List {
-            Section {
+    private var resultSummary: some View {
+        ScrollView {
+            VStack(spacing: 16) {
+                // 头部
                 VStack(spacing: 8) {
-                    Text("可释放")
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 48))
+                        .foregroundStyle(.green)
+                    Text("扫描完成")
+                        .font(.title2.bold())
+                    Text("点击分类前往对应页面查看详情")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                    Text(viewModel.totalSavableSize.formattedFileSize)
-                        .font(.system(size: 44, weight: .bold, design: .rounded))
-                        .foregroundStyle(.orange)
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 12)
-            }
+                .padding(.top, 20)
+                .padding(.bottom, 8)
 
-            ForEach(sortedTypes, id: \.0) { type, groups in
-                Section {
-                    DisclosureGroup {
-                        ForEach(groups) { group in
-                            GroupRowView(group: group, services: services,
-                                         isSelected: !viewModel.deselectedGroupIDs.contains(group.id)) {
-                                viewModel.toggleGroup(group)
-                            }
-                        }
-                    } label: {
-                        HStack {
-                            Image(systemName: iconForType(type))
-                                .foregroundStyle(colorForType(type))
-                                .frame(width: 28)
-                            Text(titleForType(type))
-                                .font(.headline)
-                            Spacer()
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text(countText(groups))
-                                    .font(.subheadline)
-                                Text(sizeText(groups))
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                            }
-                        }
-                    }
+                // 分类卡片
+                ForEach(sortedTypes, id: \.0) { type, groups in
+                    categoryCard(type: type, groups: groups)
                 }
-            }
 
-            Section {
-                Button(action: {
-                    Task { await viewModel.executeCleanup(services: services) }
-                }) {
-                    HStack {
-                        if viewModel.isCleaningUp {
-                            ProgressView()
-                                .padding(.trailing, 4)
-                        }
-                        Text(viewModel.isCleaningUp ? "清理中..." : "一键清理")
-                            .font(.headline)
-                            .frame(maxWidth: .infinity)
-                    }
-                    .padding(.vertical, 8)
+                // 重新扫描
+                Button {
+                    Task { await viewModel.startScan(services: services) }
+                } label: {
+                    Label("重新扫描", systemImage: "arrow.clockwise")
+                        .frame(maxWidth: .infinity)
                 }
-                .disabled(viewModel.isCleaningUp || viewModel.totalSavableSize == 0)
-                .listRowBackground(
-                    LinearGradient(colors: [.red, .orange], startPoint: .leading, endPoint: .trailing)
-                        .opacity(viewModel.isCleaningUp ? 0.5 : 1)
-                )
-                .foregroundStyle(.white)
+                .buttonStyle(.bordered)
+                .padding(.top, 8)
             }
+            .padding()
         }
     }
 
-    // MARK: - 清理完成
+    // MARK: - 分类卡片
 
-    private func cleanupDoneView(_ result: QuickCleanViewModel.CleanupResult) -> some View {
-        VStack(spacing: 24) {
-            Spacer()
+    @ViewBuilder
+    private func categoryCard(type: CleanupGroup.GroupType, groups: [CleanupGroup]) -> some View {
+        let label = cardLabel(type: type, groups: groups)
 
-            Image(systemName: "checkmark.circle.fill")
-                .font(.system(size: 80))
-                .foregroundStyle(.green)
-                .symbolEffect(.bounce, value: result.freedSpace)
+        switch type {
+        case .waste:
+            NavigationLink {
+                WastePhotosView()
+                    .navigationTitle("废片检测")
+            } label: { label }
+            .buttonStyle(.plain)
+        case .similar:
+            NavigationLink {
+                SimilarPhotosView()
+                    .navigationTitle("相似照片")
+            } label: { label }
+            .buttonStyle(.plain)
+        case .burst:
+            NavigationLink {
+                BurstPhotosView()
+                    .navigationTitle("连拍清理")
+            } label: { label }
+            .buttonStyle(.plain)
+        case .largeVideo:
+            Button { switchToVideoTab() } label: { label }
+            .buttonStyle(.plain)
+        case .screenshot:
+            EmptyView()
+        }
+    }
 
-            VStack(spacing: 8) {
-                Text("已释放 \(result.freedSpace.formattedFileSize) 空间")
-                    .font(.title2.bold())
-                Text("已清理 \(result.deletedCount) 个项目")
+    private func cardLabel(type: CleanupGroup.GroupType, groups: [CleanupGroup]) -> some View {
+        HStack(spacing: 14) {
+            Image(systemName: iconForType(type))
+                .font(.title2)
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(colorForType(type).gradient, in: RoundedRectangle(cornerRadius: 10))
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(titleForType(type))
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+                Text("\(countText(type, groups)) · \(sizeText(groups))")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
 
-            Button {
-                shareImage = ShareCardGenerator.generateShareImage(
-                    freedSpace: result.freedSpace,
-                    totalFreed: services.achievement.totalFreedSpace,
-                    cleanupCount: services.achievement.totalCleanupCount
-                )
-                showShareSheet = shareImage != nil
-            } label: {
-                Label("分享成果", systemImage: "square.and.arrow.up")
-                    .font(.headline)
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 12)
-                    .background(.orange, in: Capsule())
-                    .foregroundStyle(.white)
-            }
-
             Spacer()
+
+            Image(systemName: type == .largeVideo ? "arrow.right.square" : "chevron.right")
+                .font(.subheadline)
+                .foregroundStyle(.tertiary)
         }
-        .frame(maxWidth: .infinity)
-        .sheet(isPresented: $showShareSheet) {
-            if let image = shareImage {
-                ShareSheetView(image: image)
-            }
-        }
-        .onAppear {
-            ReviewPromptManager.requestReviewIfAppropriate()
-        }
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
     // MARK: - Helpers
@@ -192,6 +165,10 @@ struct QuickCleanView: View {
             guard let groups = viewModel.groupsByType[type], !groups.isEmpty else { return nil }
             return (type, groups)
         }
+    }
+
+    private func switchToVideoTab() {
+        NotificationCenter.default.post(name: .switchTab, object: nil, userInfo: ["index": 1])
     }
 
     private func iconForType(_ type: CleanupGroup.GroupType) -> String {
@@ -224,8 +201,7 @@ struct QuickCleanView: View {
         }
     }
 
-    private func countText(_ groups: [CleanupGroup]) -> String {
-        let type = groups.first?.type
+    private func countText(_ type: CleanupGroup.GroupType, _ groups: [CleanupGroup]) -> String {
         if type == .similar || type == .burst {
             return "\(groups.count) 组"
         }
@@ -236,44 +212,5 @@ struct QuickCleanView: View {
     private func sizeText(_ groups: [CleanupGroup]) -> String {
         let total = groups.reduce(Int64(0)) { $0 + $1.savableSize }
         return total.formattedFileSize
-    }
-}
-
-// MARK: - 分享 Sheet
-
-private struct ShareSheetView: UIViewControllerRepresentable {
-    let image: UIImage
-
-    func makeUIViewController(context: Context) -> UIActivityViewController {
-        let text = "我用「相册瘦身」释放了手机空间！"
-        return UIActivityViewController(activityItems: [text, image], applicationActivities: nil)
-    }
-
-    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
-}
-
-// MARK: - 分组行视图
-
-private struct GroupRowView: View {
-    let group: CleanupGroup
-    let services: AppServiceContainer
-    let isSelected: Bool
-    let onToggle: () -> Void
-
-    var body: some View {
-        HStack {
-            Toggle(isOn: Binding(get: { isSelected }, set: { _ in onToggle() })) {
-                VStack(alignment: .leading, spacing: 4) {
-                    if group.type == .similar || group.type == .burst {
-                        Text("\(group.items.count) 张 · 可省 \(group.savableSize.formattedFileSize)")
-                            .font(.subheadline)
-                    } else {
-                        Text(group.items.first?.fileSizeText ?? "")
-                            .font(.subheadline)
-                    }
-                }
-            }
-            .toggleStyle(.switch)
-        }
     }
 }

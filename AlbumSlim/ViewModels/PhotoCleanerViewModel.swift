@@ -51,6 +51,15 @@ final class PhotoCleanerViewModel {
     }
 
     func scanSimilarPhotos(services: AppServiceContainer) async {
+        let coordinator = services.cleanupCoordinator
+        if coordinator.isScanFresh {
+            let cached = coordinator.groups(ofType: .similar)
+            if !cached.isEmpty {
+                similarGroups = cached
+                return
+            }
+        }
+
         isScanning = true
         scanProgress = 0
         defer { isScanning = false }
@@ -67,11 +76,22 @@ final class PhotoCleanerViewModel {
             }
         )
 
-        services.cleanupCoordinator.addGroups(similarGroups)
+        coordinator.addGroups(similarGroups)
         scanProgress = 1.0
     }
 
     func scanWastePhotos(services: AppServiceContainer) async {
+        let coordinator = services.cleanupCoordinator
+        if coordinator.isScanFresh {
+            let cached = coordinator.groups(ofType: .waste)
+            let cachedItems = cached.flatMap(\.items)
+            if !cachedItems.isEmpty {
+                wasteItems = cachedItems
+                wasteReasons = coordinator.wasteReasons
+                return
+            }
+        }
+
         isScanning = true
         scanProgress = 0
         defer { isScanning = false }

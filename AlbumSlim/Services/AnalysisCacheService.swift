@@ -84,6 +84,19 @@ final class AnalysisCacheService {
         return Set(results.map(\.assetIdentifier))
     }
 
+    func allWasteReasons() -> [String: WasteReason] {
+        let predicate = #Predicate<CachedAnalysis> { $0.isWaste == true }
+        let descriptor = FetchDescriptor(predicate: predicate)
+        let results = (try? modelContext.fetch(descriptor)) ?? []
+        var reasons: [String: WasteReason] = [:]
+        for item in results {
+            if let reason = item.wasteReason {
+                reasons[item.assetIdentifier] = reason
+            }
+        }
+        return reasons
+    }
+
     func batchSave() {
         guard pendingChanges > 0 else { return }
         do {

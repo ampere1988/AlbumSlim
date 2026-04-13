@@ -6,6 +6,19 @@ import Vision
 final class CleanupCoordinator {
     private(set) var pendingGroups: [CleanupGroup] = []
     private(set) var totalSavableSize: Int64 = 0
+    private(set) var lastScanDate: Date?
+    private(set) var wasteReasons: [String: WasteReason] = [:]
+
+    private static let scanFreshnessDuration: TimeInterval = 300
+
+    var isScanFresh: Bool {
+        guard let lastScanDate else { return false }
+        return Date().timeIntervalSince(lastScanDate) < Self.scanFreshnessDuration
+    }
+
+    func groups(ofType type: CleanupGroup.GroupType) -> [CleanupGroup] {
+        pendingGroups.filter { $0.type == type }
+    }
 
     func addGroups(_ groups: [CleanupGroup]) {
         pendingGroups.append(contentsOf: groups)
@@ -70,6 +83,7 @@ final class CleanupCoordinator {
         case similar = "查找相似照片..."
         case burst = "分析连拍照片..."
         case largeVideo = "查找大视频..."
+        case building = "正在整理结果..."
         case done = "扫描完成"
     }
 
@@ -200,7 +214,8 @@ final class CleanupCoordinator {
         let photoFetch = photoLibrary.fetchAllAssets(mediaType: .image)
 
         // 1. 废片（从缓存读取）
-        let wasteIDs = cache.allCachedWasteIDs()
+        wasteReasons = cache.allWasteReasons()
+        let wasteIDs = Set(wasteReasons.keys).union(cache.allCachedWasteIDs())
         if !wasteIDs.isEmpty {
             var wasteItems: [MediaItem] = []
             for batchStart in stride(from: 0, to: photoFetch.count, by: batchSize) {
@@ -225,15 +240,19 @@ final class CleanupCoordinator {
             }
         }
 
-        // 2. 相似照片（利用缓存的特征向量，计算极快）
+        scanProgress = 0.2
+
+        // 2. 相似照片（利用缓存的特征向量）
         let allPhotoItems = await photoLibrary.buildMediaItems(from: photoFetch)
         let similarGroups = await services.imageSimilarity.findSimilarGroups(
             from: allPhotoItems,
             using: photoLibrary,
             cache: cache,
-            onProgress: { _ in }
+            onProgress: { [weak self] p in self?.scanProgress = 0.2 + p * 0.5 }
         )
         allGroups.append(contentsOf: similarGroups)
+
+        scanProgress = 0.7
 
         // 3. 连拍
         let burstFetch = photoLibrary.fetchBurstAssets()
@@ -251,6 +270,8 @@ final class CleanupCoordinator {
                 return CleanupGroup(type: .burst, items: items, bestItemID: best?.id)
             }
         allGroups.append(contentsOf: burstGroups)
+
+        scanProgress = 0.9
 
         // 4. 大视频 (>100MB)
         let videoFetch = photoLibrary.fetchAllAssets(mediaType: .video)
@@ -287,9 +308,14 @@ final class CleanupCoordinator {
         await backgroundAnalyze(services: services)
 
         // Phase 2: 组装结果（读缓存，构建 CleanupGroup）
+        scanPhase = .building
+        scanProgress = 0
         let allGroups = await buildCleanupGroups(services: services)
 
+        scanPhase = .done
+        scanProgress = 1.0
         addGroups(allGroups)
+        lastScanDate = .now
         return allGroups
     }
 

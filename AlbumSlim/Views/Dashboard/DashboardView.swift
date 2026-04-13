@@ -62,18 +62,6 @@ struct DashboardView: View {
                         }
                         .padding(.horizontal)
 
-                        if viewModel.stats.estimatedSavable > 0 {
-                            HStack {
-                                Image(systemName: "sparkles")
-                                Text("预计可释放 \(viewModel.stats.estimatedSavable.formattedFileSize)")
-                                    .font(.headline)
-                            }
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
-                            .padding(.horizontal)
-                        }
-
                         NavigationLink {
                             QuickCleanView()
                         } label: {
@@ -81,9 +69,9 @@ struct DashboardView: View {
                                 Image(systemName: "wand.and.stars")
                                     .font(.title2)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("智能一键清理")
+                                    Text("智能扫描")
                                         .font(.headline)
-                                    Text("自动检测废片、相似照片、连拍和大视频")
+                                    Text("检测废片、相似照片、连拍和大视频")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
                                 }

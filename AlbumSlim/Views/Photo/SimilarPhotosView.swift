@@ -84,6 +84,11 @@ struct SimilarPhotosView: View {
             }
         }
         .sheet(isPresented: $showPaywall) { PaywallView() }
+        .task {
+            if viewModel.similarGroups.isEmpty && !viewModel.isScanning {
+                await viewModel.scanSimilarPhotos(services: services)
+            }
+        }
     }
 
     private var lockedGroupOverlay: some View {

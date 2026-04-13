@@ -8,7 +8,8 @@ final class SubscriptionService {
 
     private static let allProductIDs: Set<String> = [monthlyID, yearlyID, lifetimeID]
 
-    var isPro: Bool = false
+    // TODO: 测试完成后改回 false
+    var isPro: Bool = true
     var products: [Product] = []
     var purchaseError: String?
     var isLoading = false

@@ -67,9 +67,23 @@ struct BurstPhotosView: View {
                 }
             }
         }
+        .task {
+            if burstGroups.isEmpty && !isLoading {
+                await loadBursts()
+            }
+        }
     }
 
     private func loadBursts() async {
+        let coordinator = services.cleanupCoordinator
+        if coordinator.isScanFresh {
+            let cached = coordinator.groups(ofType: .burst)
+            if !cached.isEmpty {
+                burstGroups = cached
+                return
+            }
+        }
+
         isLoading = true
         defer { isLoading = false }
 

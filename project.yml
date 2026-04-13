@@ -48,3 +48,29 @@ targets:
         UIFileSharingEnabled: true
         LSSupportsOpeningDocumentsInPlace: true
     dependencies: []
+
+  AlbumSlimTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: AlbumSlimTests
+        excludes:
+          - "**/.DS_Store"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.hao.doushan.tests
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: true
+        SWIFT_STRICT_CONCURRENCY: targeted
+    dependencies:
+      - target: AlbumSlim
+
+schemes:
+  AlbumSlim:
+    build:
+      targets:
+        AlbumSlim: all
+        AlbumSlimTests: [test]
+    test:
+      targets:
+        - AlbumSlimTests
