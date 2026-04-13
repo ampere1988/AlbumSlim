@@ -32,6 +32,7 @@
 		7085EFA2D9B462C8C36222BD /* ScreenshotDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4288FF7BBA1B7B7100EE8E4A /* ScreenshotDetailView.swift */; };
 		766627A223FA0E96014040DA /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A1E21DFB256416C24692E40 /* MainTabView.swift */; };
 		7A305B0E693186A4A475A3F9 /* StorageAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C68C07709C3006187C872DA /* StorageAnalyzer.swift */; };
+		81B6BD530C0CAEE41B7C8C09 /* AppIcon.icon in Resources */ = {isa = PBXBuildFile; fileRef = A1A96CDD5E03571E6AF15800 /* AppIcon.icon */; };
 		8542C412311A958DF71A74CC /* ShareCardGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7CB5272F042217583FD9D2 /* ShareCardGenerator.swift */; };
 		89A400351EC88097E87D1E24 /* ImageSimilarityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3159A367BD548864D9B8A3E /* ImageSimilarityService.swift */; };
 		8BC25CC4AFAF157AFBE51FC4 /* AsyncSemaphore.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBC5D320592C9766E00115AB /* AsyncSemaphore.swift */; };
@@ -118,6 +119,7 @@
 		9E9E06B04C8F8E285C8F5985 /* SimilarPhotosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimilarPhotosView.swift; sourceTree = "<group>"; };
 		9F1447FDD9993E149FC4FDF3 /* SpaceSavedBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpaceSavedBanner.swift; sourceTree = "<group>"; };
 		A188D7B80D61FA1E8F8C3532 /* PermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionManager.swift; sourceTree = "<group>"; };
+		A1A96CDD5E03571E6AF15800 /* AppIcon.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = AppIcon.icon; sourceTree = "<group>"; };
 		A325B8ABE796D258963E6968 /* PhotoLibraryService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoLibraryService.swift; sourceTree = "<group>"; };
 		AC06BC66186D55E657980BD0 /* FileSize+Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "FileSize+Extensions.swift"; sourceTree = "<group>"; };
 		AE5BF2FA03060550EA0A5DE9 /* PaywallView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaywallView.swift; sourceTree = "<group>"; };
@@ -299,6 +301,7 @@
 			isa = PBXGroup;
 			children = (
 				BE228671C56E56DAFABDDA9A /* AlbumSlim.entitlements */,
+				A1A96CDD5E03571E6AF15800 /* AppIcon.icon */,
 				04DE8BC8E1E1297F5C1AC339 /* Info.plist */,
 				35C167737FE4478B845F56A1 /* App */,
 				DED92166469AC80057A224D4 /* Models */,
@@ -427,6 +430,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				81B6BD530C0CAEE41B7C8C09 /* AppIcon.icon in Resources */,
 				5D79876DACD3A748F25E4D88 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
