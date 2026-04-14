@@ -6,7 +6,7 @@ enum ProFeatureGate {
     }
 
     static func canViewSimilarGroup(groupIndex: Int, isPro: Bool) -> Bool {
-        isPro || groupIndex < 3
+        true // TODO: 恢复 Pro 限制: isPro || groupIndex < 3
     }
 
     static func canCompress(isPro: Bool) -> Bool { isPro }

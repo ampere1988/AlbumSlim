@@ -18,5 +18,6 @@ struct CleanupGroup: Identifiable {
         case waste        // 废片
         case screenshot   // 截图
         case largeVideo   // 大视频
+        case largePhoto   // 超大照片
     }
 }

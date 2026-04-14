@@ -1,5 +1,6 @@
 import SwiftUI
 import Photos
+import AVKit
 
 struct VideoCompressView: View {
     @Environment(AppServiceContainer.self) private var services
@@ -11,6 +12,7 @@ struct VideoCompressView: View {
     @State private var compressedSize: Int64?
     @State private var error: String?
     @State private var thumbnail: UIImage?
+    @State private var player: AVPlayer?
     @State private var showPaywall = false
     @State private var showDeleteConfirm = false
 
@@ -18,26 +20,31 @@ struct VideoCompressView: View {
 
     var body: some View {
         List {
-            // 视频缩略图预览
+            // 视频播放预览
             Section {
-                HStack {
-                    Spacer()
-                    Group {
-                        if let thumbnail {
-                            Image(uiImage: thumbnail)
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                        } else {
-                            Image(systemName: "video.fill")
-                                .font(.system(size: 40))
-                                .foregroundStyle(.secondary)
-                        }
+                Group {
+                    if let player {
+                        VideoPlayer(player: player)
+                            .aspectRatio(item.asset.pixelWidth > 0 ? CGFloat(item.asset.pixelWidth) / CGFloat(item.asset.pixelHeight) : 16/9, contentMode: .fit)
+                    } else if let thumbnail {
+                        Image(uiImage: thumbnail)
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .overlay {
+                                Image(systemName: "play.circle.fill")
+                                    .font(.system(size: 44))
+                                    .foregroundStyle(.white.opacity(0.8))
+                            }
+                    } else {
+                        ProgressView()
+                            .frame(height: 200)
+                            .frame(maxWidth: .infinity)
                     }
-                    .frame(maxHeight: 200)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                    Spacer()
                 }
+                .frame(maxHeight: 300)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
                 .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
             }
 
             Section("视频信息") {
@@ -170,6 +177,22 @@ struct VideoCompressView: View {
             thumbnail = await services.photoLibrary.thumbnail(
                 for: item.asset, size: CGSize(width: 600, height: 400)
             )
+            // 加载视频播放器
+            let options = PHVideoRequestOptions()
+            options.isNetworkAccessAllowed = true
+            options.deliveryMode = .highQualityFormat
+            let playerItem = await withCheckedContinuation { continuation in
+                PHImageManager.default().requestPlayerItem(forVideo: item.asset, options: options) { item, _ in
+                    continuation.resume(returning: item)
+                }
+            }
+            if let playerItem {
+                player = AVPlayer(playerItem: playerItem)
+            }
+        }
+        .onDisappear {
+            player?.pause()
+            player = nil
         }
         .sheet(isPresented: $showPaywall) { PaywallView() }
         .alert("压缩失败", isPresented: .init(get: { error != nil }, set: { if !$0 { error = nil } })) {

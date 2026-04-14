@@ -6,14 +6,17 @@ import Vision
 final class CleanupCoordinator {
     private(set) var pendingGroups: [CleanupGroup] = []
     private(set) var totalSavableSize: Int64 = 0
-    private(set) var lastScanDate: Date?
     private(set) var wasteReasons: [String: WasteReason] = [:]
 
-    private static let scanFreshnessDuration: TimeInterval = 300
+    /// 按分类记录上次扫描时的相册版本号，相册未变则缓存有效
+    private var scannedVersions: [CleanupGroup.GroupType: Int] = [:]
 
-    var isScanFresh: Bool {
-        guard let lastScanDate else { return false }
-        return Date().timeIntervalSince(lastScanDate) < Self.scanFreshnessDuration
+    func isCategoryFresh(_ type: CleanupGroup.GroupType, libraryVersion: Int) -> Bool {
+        scannedVersions[type] == libraryVersion
+    }
+
+    func markCategoryScanned(_ type: CleanupGroup.GroupType, libraryVersion: Int) {
+        scannedVersions[type] = libraryVersion
     }
 
     func groups(ofType type: CleanupGroup.GroupType) -> [CleanupGroup] {
@@ -271,9 +274,24 @@ final class CleanupCoordinator {
             }
         allGroups.append(contentsOf: burstGroups)
 
+        scanProgress = 0.85
+
+        // 4. 超大照片 (>10MB)
+        let largePhotoThreshold: Int64 = 10 * 1024 * 1024
+        var largePhotos: [MediaItem] = []
+        for item in allPhotoItems {
+            if item.fileSize >= largePhotoThreshold {
+                largePhotos.append(item)
+            }
+        }
+        if !largePhotos.isEmpty {
+            let sorted = largePhotos.sorted { $0.fileSize > $1.fileSize }
+            allGroups.append(CleanupGroup(type: .largePhoto, items: sorted, bestItemID: nil))
+        }
+
         scanProgress = 0.9
 
-        // 4. 大视频 (>100MB)
+        // 5. 大视频 (>100MB)
         let videoFetch = photoLibrary.fetchAllAssets(mediaType: .video)
         let largeVideoThreshold: Int64 = 100 * 1024 * 1024
         var largeVideos: [MediaItem] = []
@@ -315,7 +333,13 @@ final class CleanupCoordinator {
         scanPhase = .done
         scanProgress = 1.0
         addGroups(allGroups)
-        lastScanDate = .now
+
+        // 标记所有分类已扫描到当前相册版本
+        let version = services.photoLibrary.libraryVersion
+        for type: CleanupGroup.GroupType in [.waste, .similar, .burst, .largePhoto, .largeVideo] {
+            markCategoryScanned(type, libraryVersion: version)
+        }
+
         return allGroups
     }
 

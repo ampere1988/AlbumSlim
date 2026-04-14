@@ -12,6 +12,9 @@ final class PhotoLibraryService: NSObject {
     /// 缩略图并发限制，防止同时发起过多图片请求导致内存暴涨
     private let thumbnailSemaphore = AsyncSemaphore(limit: 6)
 
+    /// 防抖：批量删除时多次 photoLibraryDidChange 合并为一次 libraryVersion 自增
+    private var versionBumpTask: Task<Void, Never>?
+
     override init() {
         super.init()
         PHPhotoLibrary.shared().register(self)
@@ -143,7 +146,14 @@ final class PhotoLibraryService: NSObject {
 extension PhotoLibraryService: PHPhotoLibraryChangeObserver {
     nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
         Task { @MainActor in
-            self.libraryVersion += 1
+            // 防抖：批量删除产生多次回调时，合并为一次 version 自增，
+            // 避免中间状态触发视图重载导致 UICollectionView diff 不一致
+            self.versionBumpTask?.cancel()
+            self.versionBumpTask = Task { @MainActor in
+                try? await Task.sleep(for: .milliseconds(300))
+                guard !Task.isCancelled else { return }
+                self.libraryVersion += 1
+            }
         }
     }
 }

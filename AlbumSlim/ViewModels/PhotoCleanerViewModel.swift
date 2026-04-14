@@ -17,6 +17,12 @@ final class PhotoCleanerViewModel {
         }
     }
 
+    func keepItem(_ itemID: String) {
+        wasteItems.removeAll { $0.id == itemID }
+        selectedForDeletion.remove(itemID)
+        wasteReasons.removeValue(forKey: itemID)
+    }
+
     func selectAllExceptBest(in group: CleanupGroup) {
         for item in group.items {
             if item.id != group.bestItemID {
@@ -27,15 +33,16 @@ final class PhotoCleanerViewModel {
         }
     }
 
-    func deleteSelected(services: AppServiceContainer) async throws -> Int64 {
+    @discardableResult
+    func deleteSelected(services: AppServiceContainer) -> Int64 {
         let allItems = similarGroups.flatMap(\.items) + wasteItems
         let toDelete = allItems.filter { selectedForDeletion.contains($0.id) }
         guard !toDelete.isEmpty else { return 0 }
 
         let freedSize = toDelete.reduce(Int64(0)) { $0 + $1.fileSize }
         let assets = toDelete.map(\.asset)
-        try await services.photoLibrary.deleteAssets(assets)
 
+        // 乐观更新：先同步移除 UI
         let _ = services.achievement.recordCleanup(freedSpace: freedSize, deletedCount: toDelete.count)
         let deletedIDs = selectedForDeletion
         similarGroups = similarGroups.compactMap { group in
@@ -47,12 +54,17 @@ final class PhotoCleanerViewModel {
         for id in deletedIDs { wasteReasons.removeValue(forKey: id) }
         selectedForDeletion.removeAll()
 
+        Task {
+            try? await services.photoLibrary.deleteAssets(assets)
+        }
+
         return freedSize
     }
 
     func scanSimilarPhotos(services: AppServiceContainer) async {
         let coordinator = services.cleanupCoordinator
-        if coordinator.isScanFresh {
+        let version = services.photoLibrary.libraryVersion
+        if coordinator.isCategoryFresh(.similar, libraryVersion: version) {
             let cached = coordinator.groups(ofType: .similar)
             if !cached.isEmpty {
                 similarGroups = cached
@@ -77,12 +89,14 @@ final class PhotoCleanerViewModel {
         )
 
         coordinator.addGroups(similarGroups)
+        coordinator.markCategoryScanned(.similar, libraryVersion: version)
         scanProgress = 1.0
     }
 
     func scanWastePhotos(services: AppServiceContainer) async {
         let coordinator = services.cleanupCoordinator
-        if coordinator.isScanFresh {
+        let version = services.photoLibrary.libraryVersion
+        if coordinator.isCategoryFresh(.waste, libraryVersion: version) {
             let cached = coordinator.groups(ofType: .waste)
             let cachedItems = cached.flatMap(\.items)
             if !cachedItems.isEmpty {
@@ -167,6 +181,7 @@ final class PhotoCleanerViewModel {
         scanProgress = 1.0
 
         let wasteGroup = CleanupGroup(type: .waste, items: waste, bestItemID: nil)
-        services.cleanupCoordinator.addGroups([wasteGroup])
+        coordinator.addGroups([wasteGroup])
+        coordinator.markCategoryScanned(.waste, libraryVersion: version)
     }
 }

@@ -1,5 +1,6 @@
 import Foundation
 import Photos
+import SwiftUI
 
 enum SortOrder: String, CaseIterable {
     case size = "按大小"
@@ -10,27 +11,27 @@ enum SortOrder: String, CaseIterable {
 @MainActor @Observable
 final class VideoManagerViewModel {
     var videos: [MediaItem] = []
+    private(set) var sortedVideos: [MediaItem] = []
     var isLoading = false
     var compressionProgress: Double = 0
     var selectedQuality: CompressionQuality = .high
     var selectedVideos: Set<String> = []
-    var sortOrder: SortOrder = .size
+    var sortOrder: SortOrder = .size {
+        didSet { refreshSortedVideos() }
+    }
     var isEditing = false
     var suggestions: [VideoAnalysisService.VideoSuggestion] = []
     var isAnalyzingSuggestions = false
 
     var totalVideoSize: Int64 {
-        videos.reduce(0) { $0 + $1.fileSize }
+        sortedVideos.reduce(0) { $0 + $1.fileSize }
     }
 
-    var sortedVideos: [MediaItem] {
-        switch sortOrder {
-        case .size:
-            videos.sorted { $0.fileSize > $1.fileSize }
-        case .duration:
-            videos.sorted { $0.duration > $1.duration }
-        case .date:
-            videos.sorted { ($0.creationDate ?? .distantPast) > ($1.creationDate ?? .distantPast) }
+    private func refreshSortedVideos() {
+        sortedVideos = switch sortOrder {
+        case .size: videos.sorted { $0.fileSize > $1.fileSize }
+        case .duration: videos.sorted { $0.duration > $1.duration }
+        case .date: videos.sorted { ($0.creationDate ?? .distantPast) > ($1.creationDate ?? .distantPast) }
         }
     }
 
@@ -47,6 +48,7 @@ final class VideoManagerViewModel {
         let fetchResult = services.photoLibrary.fetchAllAssets(mediaType: .video)
         videos = await services.photoLibrary.buildMediaItems(from: fetchResult)
         lastLibraryVersion = currentVersion
+        refreshSortedVideos()
     }
 
     func toggleSelection(_ id: String) {
@@ -87,20 +89,49 @@ final class VideoManagerViewModel {
         }
         selectedVideos.removeAll()
         await services.videoCompression.processQueue()
+        lastLibraryVersion = -1
         await loadVideos(services: services)
     }
 
-    func deleteVideo(_ item: MediaItem, services: AppServiceContainer) async {
-        try? await services.photoLibrary.deleteAssets([item.asset])
-        await loadVideos(services: services)
+    /// 乐观删除：先同步移除 UI，再异步删除 Photos 资产。
+    /// 必须从 swipeActions 按钮里直接调用（不要包 Task），
+    /// 保证 UI 更新与 UIKit swipe 动画在同一事务中完成。
+    func deleteVideo(_ item: MediaItem, services: AppServiceContainer) {
+        let asset = item.asset
+        videos.removeAll { $0.id == item.id }
+        refreshSortedVideos()
+
+        Task {
+            do {
+                try await services.photoLibrary.deleteAssets([asset])
+                lastLibraryVersion = services.photoLibrary.libraryVersion
+            } catch {
+                // 用户取消系统确认对话框 → 回滚，重新从 Photos 加载
+                lastLibraryVersion = -1
+                await loadVideos(services: services)
+            }
+        }
     }
 
-    func deleteSelected(services: AppServiceContainer) async {
-        let assets = videos.filter { selectedVideos.contains($0.id) }.map(\.asset)
-        try? await services.photoLibrary.deleteAssets(assets)
+    func deleteSelected(services: AppServiceContainer) {
+        let idsToDelete = selectedVideos
+        let assets = videos.filter { idsToDelete.contains($0.id) }.map(\.asset)
+        guard !assets.isEmpty else { return }
+
+        videos.removeAll { idsToDelete.contains($0.id) }
+        refreshSortedVideos()
         selectedVideos.removeAll()
         isEditing = false
-        await loadVideos(services: services)
+
+        Task {
+            do {
+                try await services.photoLibrary.deleteAssets(assets)
+                lastLibraryVersion = services.photoLibrary.libraryVersion
+            } catch {
+                lastLibraryVersion = -1
+                await loadVideos(services: services)
+            }
+        }
     }
 
     func estimatedSize(for item: MediaItem, services: AppServiceContainer) -> Int64 {

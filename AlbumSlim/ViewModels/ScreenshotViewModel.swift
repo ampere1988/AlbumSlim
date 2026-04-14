@@ -1,6 +1,11 @@
 import Foundation
 import Photos
 
+enum ScreenshotSortOrder: String, CaseIterable {
+    case date = "按日期"
+    case size = "按大小"
+}
+
 @MainActor @Observable
 final class ScreenshotViewModel {
     var screenshots: [MediaItem] = []
@@ -12,18 +17,33 @@ final class ScreenshotViewModel {
     var isAnalyzing = false
     var analysisProgress: Double = 0
     var selectedItems: Set<String> = []
-    var filterCategory: ScreenshotCategory?
-    var filterExported: Bool = false
+    var filterCategory: ScreenshotCategory? {
+        didSet { refreshFilteredScreenshots() }
+    }
+    var filterExported: Bool = false {
+        didSet { refreshFilteredScreenshots() }
+    }
     var isEditing = false
     var showDeleteConfirmation = false
     var showDeleteExportedConfirmation = false
+    var sortOrder: ScreenshotSortOrder = .date {
+        didSet { refreshFilteredScreenshots() }
+    }
 
-    var filteredScreenshots: [MediaItem] {
-        screenshots.filter { item in
+    private(set) var filteredScreenshots: [MediaItem] = []
+
+    private func refreshFilteredScreenshots() {
+        let filtered = screenshots.filter { item in
             if filterExported { return exportedIDs.contains(item.id) }
             guard let filter = filterCategory else { return true }
             guard let result = ocrResults[item.id] else { return filter == .other }
             return result.category == filter
+        }
+        filteredScreenshots = switch sortOrder {
+        case .date:
+            filtered.sorted { ($0.creationDate ?? .distantPast) > ($1.creationDate ?? .distantPast) }
+        case .size:
+            filtered.sorted { $0.fileSize > $1.fileSize }
         }
     }
 
@@ -42,6 +62,7 @@ final class ScreenshotViewModel {
         let fetchResult = services.photoLibrary.fetchScreenshots()
         screenshots = await services.photoLibrary.buildMediaItems(from: fetchResult)
         lastLibraryVersion = currentVersion
+        refreshFilteredScreenshots()
     }
 
     func analyzeScreenshot(_ item: MediaItem, services: AppServiceContainer) async {
@@ -49,6 +70,7 @@ final class ScreenshotViewModel {
         guard let image = await services.photoLibrary.thumbnail(for: item.asset, size: size),
               let result = await services.ocrService.recognizeText(from: image) else { return }
         ocrResults[item.id] = result
+        refreshFilteredScreenshots()
     }
 
     func analyzeAllScreenshots(services: AppServiceContainer) async {
@@ -93,11 +115,13 @@ final class ScreenshotViewModel {
     func markExported(_ id: String) {
         exportedIDs.insert(id)
         persistExportedIDs()
+        refreshFilteredScreenshots()
     }
 
     func unmarkExported(_ id: String) {
         exportedIDs.remove(id)
         persistExportedIDs()
+        refreshFilteredScreenshots()
     }
 
     private func persistExportedIDs() {
@@ -120,41 +144,55 @@ final class ScreenshotViewModel {
         selectedItems.removeAll()
     }
 
-    func deleteSelected(services: AppServiceContainer) async {
+    func deleteSelected(services: AppServiceContainer) {
         let idsToDelete = selectedItems
         let assets = screenshots.filter { idsToDelete.contains($0.id) }.map(\.asset)
         guard !assets.isEmpty else { return }
-        do {
-            try await services.photoLibrary.deleteAssets(assets)
-            screenshots.removeAll { idsToDelete.contains($0.id) }
-            for id in idsToDelete {
-                ocrResults.removeValue(forKey: id)
-                exportedIDs.remove(id)
+
+        // 乐观更新：先同步移除 UI，保证与 UICollectionView batch update 同步
+        screenshots.removeAll { idsToDelete.contains($0.id) }
+        for id in idsToDelete {
+            ocrResults.removeValue(forKey: id)
+            exportedIDs.remove(id)
+        }
+        persistExportedIDs()
+        selectedItems.removeAll()
+        refreshFilteredScreenshots()
+
+        Task {
+            do {
+                try await services.photoLibrary.deleteAssets(assets)
+                lastLibraryVersion = services.photoLibrary.libraryVersion
+            } catch {
+                // 用户取消 → 重新加载
+                lastLibraryVersion = -1
+                await loadScreenshots(services: services)
             }
-            persistExportedIDs()
-            selectedItems.removeAll()
-            lastLibraryVersion = services.photoLibrary.libraryVersion
-        } catch {
-            print("批量删除截图失败: \(error)")
         }
     }
 
-    func deleteExported(services: AppServiceContainer) async {
+    func deleteExported(services: AppServiceContainer) {
         let idsToDelete = exportedIDs.filter { id in screenshots.contains { $0.id == id } }
         let assets = screenshots.filter { idsToDelete.contains($0.id) }.map(\.asset)
         guard !assets.isEmpty else { return }
-        do {
-            try await services.photoLibrary.deleteAssets(assets)
-            screenshots.removeAll { idsToDelete.contains($0.id) }
-            for id in idsToDelete {
-                ocrResults.removeValue(forKey: id)
-                exportedIDs.remove(id)
+
+        screenshots.removeAll { idsToDelete.contains($0.id) }
+        for id in idsToDelete {
+            ocrResults.removeValue(forKey: id)
+            exportedIDs.remove(id)
+        }
+        persistExportedIDs()
+        selectedItems = selectedItems.subtracting(idsToDelete)
+        refreshFilteredScreenshots()
+
+        Task {
+            do {
+                try await services.photoLibrary.deleteAssets(assets)
+                lastLibraryVersion = services.photoLibrary.libraryVersion
+            } catch {
+                lastLibraryVersion = -1
+                await loadScreenshots(services: services)
             }
-            persistExportedIDs()
-            selectedItems = selectedItems.subtracting(idsToDelete)
-            lastLibraryVersion = services.photoLibrary.libraryVersion
-        } catch {
-            print("删除已存储截图失败: \(error)")
         }
     }
 
@@ -164,6 +202,7 @@ final class ScreenshotViewModel {
         ocrResults.removeValue(forKey: id)
         exportedIDs.remove(id)
         persistExportedIDs()
+        refreshFilteredScreenshots()
     }
 
     func deleteScreenshot(_ item: MediaItem, services: AppServiceContainer) async {
@@ -174,6 +213,7 @@ final class ScreenshotViewModel {
             exportedIDs.remove(item.id)
             persistExportedIDs()
             lastLibraryVersion = services.photoLibrary.libraryVersion
+            refreshFilteredScreenshots()
         } catch {
             print("删除截图失败: \(error)")
         }

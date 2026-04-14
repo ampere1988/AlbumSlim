@@ -61,7 +61,7 @@ struct VideoSuggestionsView: View {
         }
         .confirmationDialog("确认删除", isPresented: $showDeleteConfirm) {
             Button("删除选中视频", role: .destructive) {
-                Task { await deleteSelected() }
+                deleteSelected()
             }
             Button("取消", role: .cancel) {}
         } message: {
@@ -162,15 +162,19 @@ struct VideoSuggestionsView: View {
         await viewModel.analyzeSuggestions(services: services)
     }
 
-    private func deleteSelected() async {
+    private func deleteSelected() {
         let assets = viewModel.suggestions
             .filter { selectedIDs.contains($0.id) }
             .map(\.item.asset)
-        try? await services.photoLibrary.deleteAssets(assets)
+        viewModel.suggestions.removeAll { selectedIDs.contains($0.id) }
         selectedIDs.removeAll()
         isEditing = false
-        await viewModel.loadVideos(services: services)
-        await viewModel.analyzeSuggestions(services: services)
+
+        Task {
+            try? await services.photoLibrary.deleteAssets(assets)
+            await viewModel.loadVideos(services: services)
+            await viewModel.analyzeSuggestions(services: services)
+        }
     }
 }
 

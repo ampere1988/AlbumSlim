@@ -93,6 +93,22 @@ struct ScreenshotListView: View {
                             }
                         }
                     } else {
+                        Menu {
+                            ForEach(ScreenshotSortOrder.allCases, id: \.self) { order in
+                                Button {
+                                    viewModel.sortOrder = order
+                                } label: {
+                                    if viewModel.sortOrder == order {
+                                        Label(order.rawValue, systemImage: "checkmark")
+                                    } else {
+                                        Text(order.rawValue)
+                                    }
+                                }
+                            }
+                        } label: {
+                            Label("排序", systemImage: "arrow.up.arrow.down")
+                        }
+
                         if viewModel.exportedCount > 0 {
                             Button("删除已存储(\(viewModel.exportedCount))") {
                                 viewModel.showDeleteExportedConfirmation = true
@@ -137,7 +153,7 @@ struct ScreenshotListView: View {
                 titleVisibility: .visible
             ) {
                 Button("删除", role: .destructive) {
-                    Task { await viewModel.deleteExported(services: services) }
+                    viewModel.deleteExported(services: services)
                 }
             }
         }
@@ -233,7 +249,7 @@ struct ScreenshotListView: View {
             titleVisibility: .visible
         ) {
             Button("删除", role: .destructive) {
-                Task { await viewModel.deleteSelected(services: services) }
+                viewModel.deleteSelected(services: services)
             }
         }
     }

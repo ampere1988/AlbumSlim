@@ -122,6 +122,12 @@ struct QuickCleanView: View {
                     .navigationTitle("连拍清理")
             } label: { label }
             .buttonStyle(.plain)
+        case .largePhoto:
+            NavigationLink {
+                LargePhotosView()
+                    .navigationTitle("超大照片")
+            } label: { label }
+            .buttonStyle(.plain)
         case .largeVideo:
             Button { switchToVideoTab() } label: { label }
             .buttonStyle(.plain)
@@ -150,6 +156,7 @@ struct QuickCleanView: View {
             Spacer()
 
             Image(systemName: type == .largeVideo ? "arrow.right.square" : "chevron.right")
+
                 .font(.subheadline)
                 .foregroundStyle(.tertiary)
         }
@@ -160,7 +167,7 @@ struct QuickCleanView: View {
     // MARK: - Helpers
 
     private var sortedTypes: [(CleanupGroup.GroupType, [CleanupGroup])] {
-        let order: [CleanupGroup.GroupType] = [.waste, .similar, .burst, .largeVideo]
+        let order: [CleanupGroup.GroupType] = [.waste, .similar, .burst, .largePhoto, .largeVideo]
         return order.compactMap { type in
             guard let groups = viewModel.groupsByType[type], !groups.isEmpty else { return nil }
             return (type, groups)
@@ -177,6 +184,7 @@ struct QuickCleanView: View {
         case .similar: "square.on.square"
         case .burst: "square.stack.3d.up.fill"
         case .screenshot: "scissors"
+        case .largePhoto: "photo.badge.exclamationmark"
         case .largeVideo: "video.fill"
         }
     }
@@ -187,6 +195,7 @@ struct QuickCleanView: View {
         case .similar: .green
         case .burst: .purple
         case .screenshot: .orange
+        case .largePhoto: .indigo
         case .largeVideo: .blue
         }
     }
@@ -197,6 +206,7 @@ struct QuickCleanView: View {
         case .similar: "相似照片"
         case .burst: "连拍多余"
         case .screenshot: "截图"
+        case .largePhoto: "超大照片"
         case .largeVideo: "大视频"
         }
     }

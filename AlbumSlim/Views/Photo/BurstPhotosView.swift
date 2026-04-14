@@ -61,7 +61,7 @@ struct BurstPhotosView: View {
                        let group = burstGroups.first(where: { $0.id == id }) {
                         let count = group.items.count - 1
                         Button("删除 \(count) 张，只保留最佳", role: .destructive) {
-                            Task { await keepOnlyBest(id: id) }
+                            keepOnlyBest(id: id)
                         }
                     }
                 }
@@ -76,7 +76,8 @@ struct BurstPhotosView: View {
 
     private func loadBursts() async {
         let coordinator = services.cleanupCoordinator
-        if coordinator.isScanFresh {
+        let version = services.photoLibrary.libraryVersion
+        if coordinator.isCategoryFresh(.burst, libraryVersion: version) {
             let cached = coordinator.groups(ofType: .burst)
             if !cached.isEmpty {
                 burstGroups = cached
@@ -103,14 +104,20 @@ struct BurstPhotosView: View {
                 let best = items.max(by: { $0.fileSize < $1.fileSize })
                 return CleanupGroup(type: .burst, items: items, bestItemID: best?.id)
             }
+
+        coordinator.markCategoryScanned(.burst, libraryVersion: version)
     }
 
-    private func keepOnlyBest(id: UUID) async {
+    private func keepOnlyBest(id: UUID) {
         guard let group = burstGroups.first(where: { $0.id == id }) else { return }
         let toDelete = group.items.filter { $0.id != group.bestItemID }
         guard !toDelete.isEmpty else { return }
-        try? await services.photoLibrary.deleteAssets(toDelete.map(\.asset))
+        let assets = toDelete.map(\.asset)
         burstGroups.removeAll { $0.id == id }
+
+        Task {
+            try? await services.photoLibrary.deleteAssets(assets)
+        }
     }
 }
 

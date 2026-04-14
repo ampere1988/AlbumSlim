@@ -11,13 +11,13 @@ struct VideoListView: View {
             Group {
                 if viewModel.isLoading {
                     ProgressView("加载视频...")
-                } else if viewModel.videos.isEmpty {
+                } else if viewModel.sortedVideos.isEmpty {
                     ContentUnavailableView("没有视频", systemImage: "video.slash")
                 } else {
                     List {
                         Section {
                             HStack {
-                                Text("共 \(viewModel.videos.count) 个视频")
+                                Text("共 \(viewModel.sortedVideos.count) 个视频")
                                 Spacer()
                                 Text("占用 \(viewModel.totalVideoSize.formattedFileSize)")
                                     .foregroundStyle(.secondary)
@@ -35,14 +35,14 @@ struct VideoListView: View {
                                 }
                                 .swipeActions(edge: .trailing) {
                                     Button("删除", role: .destructive) {
-                                        Task { await viewModel.deleteVideo(video, services: services) }
+                                        viewModel.deleteVideo(video, services: services)
                                     }
                                 }
                             }
                         }
                     }
                     .navigationDestination(for: String.self) { videoID in
-                        if let video = viewModel.videos.first(where: { $0.id == videoID }) {
+                        if let video = viewModel.sortedVideos.first(where: { $0.id == videoID }) {
                             VideoCompressView(item: video)
                         } else {
                             Color.clear
@@ -118,7 +118,7 @@ struct VideoListView: View {
             titleVisibility: .visible
         ) {
             Button("删除", role: .destructive) {
-                Task { await viewModel.deleteSelected(services: services) }
+                viewModel.deleteSelected(services: services)
             }
         } message: {
             Text("删除后可在\"最近删除\"中恢复")

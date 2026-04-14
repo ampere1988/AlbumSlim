@@ -78,9 +78,7 @@ struct WastePhotosView: View {
                                 Spacer()
 
                                 Button("保留") {
-                                    viewModel.wasteItems.removeAll { $0.id == item.id }
-                                    viewModel.selectedForDeletion.remove(item.id)
-                                    viewModel.wasteReasons.removeValue(forKey: item.id)
+                                    viewModel.keepItem(item.id)
                                 }
                                 .font(.caption)
                                 .buttonStyle(.bordered)
@@ -108,7 +106,7 @@ struct WastePhotosView: View {
                         .background(.bar)
                         .confirmationDialog("确认删除", isPresented: $showDeleteConfirm) {
                             Button("删除 \(viewModel.selectedForDeletion.count) 张废片", role: .destructive) {
-                                Task { try? await viewModel.deleteSelected(services: services) }
+                                viewModel.deleteSelected(services: services)
                             }
                         }
                     }

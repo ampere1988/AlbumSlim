@@ -49,16 +49,21 @@ struct PhotoCleanerTabView: View {
                     Text("相似照片").tag(0)
                     Text("废片").tag(1)
                     Text("连拍").tag(2)
+                    Text("超大照片").tag(3)
                 }
                 .pickerStyle(.segmented)
                 .padding()
 
-                switch selectedTab {
-                case 0: SimilarPhotosView()
-                case 1: WastePhotosView()
-                case 2: BurstPhotosView()
-                default: EmptyView()
+                Group {
+                    switch selectedTab {
+                    case 0: SimilarPhotosView()
+                    case 1: WastePhotosView()
+                    case 2: BurstPhotosView()
+                    case 3: LargePhotosView()
+                    default: EmptyView()
+                    }
                 }
+                .frame(maxHeight: .infinity)
             }
             .navigationTitle("照片清理")
         }

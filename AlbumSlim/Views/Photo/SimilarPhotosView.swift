@@ -122,7 +122,7 @@ struct SimilarPhotosView: View {
         .background(.bar)
         .confirmationDialog("确认删除", isPresented: $showDeleteConfirm) {
             Button("删除 \(viewModel.selectedForDeletion.count) 张照片", role: .destructive) {
-                Task { try? await viewModel.deleteSelected(services: services) }
+                viewModel.deleteSelected(services: services)
             }
         }
     }
