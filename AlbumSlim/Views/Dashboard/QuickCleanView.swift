@@ -18,7 +18,7 @@ struct QuickCleanView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task {
             if viewModel.cleanupGroups.isEmpty && !viewModel.isScanning {
-                await viewModel.startScan(services: services)
+                await viewModel.loadOrScan(services: services)
             }
         }
     }
@@ -66,10 +66,10 @@ struct QuickCleanView: View {
             VStack(spacing: 16) {
                 // 头部
                 VStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
+                    Image(systemName: viewModel.hasCompletedScan ? "checkmark.circle.fill" : "clock.arrow.circlepath")
                         .font(.system(size: 48))
-                        .foregroundStyle(.green)
-                    Text("扫描完成")
+                        .foregroundStyle(viewModel.hasCompletedScan ? .green : .secondary)
+                    Text(viewModel.hasCompletedScan ? "扫描完成" : "上次扫描结果")
                         .font(.title2.bold())
                     Text("点击分类前往对应页面查看详情")
                         .font(.subheadline)
@@ -85,7 +85,7 @@ struct QuickCleanView: View {
 
                 // 重新扫描
                 Button {
-                    Task { await viewModel.startScan(services: services) }
+                    Task { await viewModel.forceRescan(services: services) }
                 } label: {
                     Label("重新扫描", systemImage: "arrow.clockwise")
                         .frame(maxWidth: .infinity)

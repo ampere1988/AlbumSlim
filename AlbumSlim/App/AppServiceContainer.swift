@@ -26,6 +26,8 @@ final class AppServiceContainer {
         self.imageSimilarity = ImageSimilarityService()
         self.ocrService = OCRService()
         self.cleanupCoordinator = CleanupCoordinator()
+        self.cleanupCoordinator.restoreScannedVersions()
+        self.cleanupCoordinator.restoreGroups(using: self.photoLibrary)
         self.subscription = SubscriptionService()
         self.analysisCache = AnalysisCacheService()
         self.achievement = AchievementService()

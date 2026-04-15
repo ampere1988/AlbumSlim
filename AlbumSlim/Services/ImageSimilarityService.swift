@@ -7,12 +7,23 @@ final class ImageSimilarityService: Sendable {
     func findSimilarGroups(from items: [MediaItem], using photoLibrary: PhotoLibraryService, cache: AnalysisCacheService, onProgress: @escaping @MainActor (Double) -> Void) async -> [CleanupGroup] {
         let timeGroups = groupByTimeWindow(items)
         var allGroups: [CleanupGroup] = []
-        let totalGroups = timeGroups.count
 
-        for (index, group) in timeGroups.enumerated() {
-            let similar = await findSimilarInGroup(group, using: photoLibrary, cache: cache)
+        // 按总照片数加权计算进度，而非按组数平均
+        let totalItems = timeGroups.reduce(0) { $0 + $1.count }
+        guard totalItems > 0 else { return [] }
+        var processedItems = 0
+
+        // 复用同一个 engine 实例，避免循环内每组重复创建
+        let engine = AIAnalysisEngine()
+
+        for group in timeGroups {
+            let base = processedItems
+            let similar = await findSimilarInGroup(group, engine: engine, using: photoLibrary, cache: cache) { itemsDone in
+                onProgress(Double(base + itemsDone) / Double(totalItems))
+            }
             allGroups.append(contentsOf: similar)
-            await onProgress(Double(index + 1) / Double(max(totalGroups, 1)))
+            processedItems += group.count
+            await onProgress(Double(processedItems) / Double(totalItems))
         }
 
         return allGroups
@@ -58,11 +69,11 @@ final class ImageSimilarityService: Sendable {
         return result
     }
 
-    private func findSimilarInGroup(_ items: [MediaItem], using photoLibrary: PhotoLibraryService, cache: AnalysisCacheService) async -> [CleanupGroup] {
-        let engine = AIAnalysisEngine()
+    private func findSimilarInGroup(_ items: [MediaItem], engine: AIAnalysisEngine, using photoLibrary: PhotoLibraryService, cache: AnalysisCacheService, onItemProgress: (@MainActor @Sendable (Int) -> Void)? = nil) async -> [CleanupGroup] {
         let size = CGSize(width: 300, height: 300)
 
         var featurePrints: [(item: MediaItem, fp: VNFeaturePrintObservation)] = []
+        var itemsDone = 0
 
         // 分批处理，每批后 yield + 批量 save
         let batchSize = AppConstants.Analysis.batchSize
@@ -77,6 +88,8 @@ final class ImageSimilarityService: Sendable {
                 if let cachedData,
                    let fp = try? NSKeyedUnarchiver.unarchivedObject(ofClass: VNFeaturePrintObservation.self, from: cachedData) {
                     featurePrints.append((item: item, fp: fp))
+                    itemsDone += 1
+                    if let onItemProgress { await onItemProgress(itemsDone) }
                     continue
                 }
 
@@ -93,6 +106,8 @@ final class ImageSimilarityService: Sendable {
                         }
                     }
                 }
+                itemsDone += 1
+                if let onItemProgress { await onItemProgress(itemsDone) }
             }
             await MainActor.run { cache.batchSave() }
             await Task.yield()

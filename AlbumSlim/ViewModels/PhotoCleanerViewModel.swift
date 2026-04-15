@@ -8,6 +8,7 @@ final class PhotoCleanerViewModel {
     var scanProgress: Double = 0
     var selectedForDeletion: Set<String> = []
     var wasteReasons: [String: WasteReason] = [:]
+    var errorMessage: String?
 
     func toggleSelection(_ itemID: String) {
         if selectedForDeletion.contains(itemID) {
@@ -34,17 +35,24 @@ final class PhotoCleanerViewModel {
     }
 
     @discardableResult
-    func deleteSelected(services: AppServiceContainer) -> Int64 {
+    func deleteSelected(services: AppServiceContainer) async -> Int64 {
         let allItems = similarGroups.flatMap(\.items) + wasteItems
         let toDelete = allItems.filter { selectedForDeletion.contains($0.id) }
         guard !toDelete.isEmpty else { return 0 }
 
         let freedSize = toDelete.reduce(Int64(0)) { $0 + $1.fileSize }
         let assets = toDelete.map(\.asset)
-
-        // 乐观更新：先同步移除 UI
-        let _ = services.achievement.recordCleanup(freedSpace: freedSize, deletedCount: toDelete.count)
         let deletedIDs = selectedForDeletion
+
+        do {
+            try await services.photoLibrary.deleteAssets(assets)
+        } catch {
+            errorMessage = "删除失败：\(error.localizedDescription)"
+            return 0
+        }
+
+        // 删除成功后再更新 UI
+        let _ = services.achievement.recordCleanup(freedSpace: freedSize, deletedCount: toDelete.count)
         similarGroups = similarGroups.compactMap { group in
             var g = group
             g.items.removeAll { deletedIDs.contains($0.id) }
@@ -53,10 +61,6 @@ final class PhotoCleanerViewModel {
         wasteItems.removeAll { deletedIDs.contains($0.id) }
         for id in deletedIDs { wasteReasons.removeValue(forKey: id) }
         selectedForDeletion.removeAll()
-
-        Task {
-            try? await services.photoLibrary.deleteAssets(assets)
-        }
 
         return freedSize
     }
@@ -76,15 +80,19 @@ final class PhotoCleanerViewModel {
         scanProgress = 0
         defer { isScanning = false }
 
+        // 阶段 1：构建 MediaItem（0% ~ 10%）
         let fetchResult = services.photoLibrary.fetchAllAssets(mediaType: .image)
-        let items = await services.photoLibrary.buildMediaItems(from: fetchResult)
+        let items = await services.photoLibrary.buildMediaItems(from: fetchResult) { [weak self] p in
+            self?.scanProgress = p * 0.1
+        }
 
+        // 阶段 2：相似度分析（10% ~ 100%）
         similarGroups = await services.imageSimilarity.findSimilarGroups(
             from: items,
             using: services.photoLibrary,
             cache: services.analysisCache,
             onProgress: { [weak self] progress in
-                self?.scanProgress = progress
+                self?.scanProgress = 0.1 + progress * 0.9
             }
         )
 

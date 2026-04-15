@@ -102,7 +102,7 @@ final class AnalysisCacheService {
         do {
             try modelContext.save()
         } catch {
-            print("[AnalysisCacheService] 保存失败: \(error)")
+            // 静默处理：下次 batchSave 会重试
         }
         pendingChanges = 0
     }

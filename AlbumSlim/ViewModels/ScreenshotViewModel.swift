@@ -215,7 +215,7 @@ final class ScreenshotViewModel {
             lastLibraryVersion = services.photoLibrary.libraryVersion
             refreshFilteredScreenshots()
         } catch {
-            print("删除截图失败: \(error)")
+            // 删除失败时静默处理
         }
     }
 

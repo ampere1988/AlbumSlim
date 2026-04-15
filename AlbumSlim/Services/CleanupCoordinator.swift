@@ -8,15 +8,47 @@ final class CleanupCoordinator {
     private(set) var totalSavableSize: Int64 = 0
     private(set) var wasteReasons: [String: WasteReason] = [:]
 
-    /// 按分类记录上次扫描时的相册版本号，相册未变则缓存有效
-    private var scannedVersions: [CleanupGroup.GroupType: Int] = [:]
+    /// 按分类记录上次扫描时的相册版本号，相册未变则缓存有效（持久化到 UserDefaults）
+    private var scannedVersions: [CleanupGroup.GroupType: Int] = [:] {
+        didSet { persistScannedVersions() }
+    }
+
+    private static let scannedVersionsKey = "CleanupCoordinator.scannedVersions"
 
     func isCategoryFresh(_ type: CleanupGroup.GroupType, libraryVersion: Int) -> Bool {
         scannedVersions[type] == libraryVersion
     }
 
+    /// 所有分类是否都与当前相册版本一致
+    func isAllCategoriesFresh(libraryVersion: Int) -> Bool {
+        let allTypes: [CleanupGroup.GroupType] = [.waste, .similar, .burst, .largePhoto, .largeVideo]
+        return allTypes.allSatisfy { isCategoryFresh($0, libraryVersion: libraryVersion) }
+    }
+
+    /// 返回相册版本变更后需要重扫的分类列表
+    func staleCategoryTypes(libraryVersion: Int) -> [CleanupGroup.GroupType] {
+        let allTypes: [CleanupGroup.GroupType] = [.waste, .similar, .burst, .largePhoto, .largeVideo]
+        return allTypes.filter { !isCategoryFresh($0, libraryVersion: libraryVersion) }
+    }
+
     func markCategoryScanned(_ type: CleanupGroup.GroupType, libraryVersion: Int) {
         scannedVersions[type] = libraryVersion
+    }
+
+    func restoreScannedVersions() {
+        guard let dict = UserDefaults.standard.dictionary(forKey: Self.scannedVersionsKey) as? [String: Int] else { return }
+        var restored: [CleanupGroup.GroupType: Int] = [:]
+        for (key, value) in dict {
+            if let type = CleanupGroup.GroupType(rawValue: key) {
+                restored[type] = value
+            }
+        }
+        scannedVersions = restored
+    }
+
+    private func persistScannedVersions() {
+        let dict = Dictionary(uniqueKeysWithValues: scannedVersions.map { ($0.key.rawValue, $0.value) })
+        UserDefaults.standard.set(dict, forKey: Self.scannedVersionsKey)
     }
 
     func groups(ofType type: CleanupGroup.GroupType) -> [CleanupGroup] {
@@ -24,18 +56,90 @@ final class CleanupCoordinator {
     }
 
     func addGroups(_ groups: [CleanupGroup]) {
+        // 按类型去重：先移除同类型旧组，再追加新组
+        let incomingTypes = Set(groups.map(\.type))
+        pendingGroups.removeAll { incomingTypes.contains($0.type) }
         pendingGroups.append(contentsOf: groups)
         recalculateSavable()
+        persistGroupSkeletons()
     }
 
     func removeGroup(_ group: CleanupGroup) {
         pendingGroups.removeAll { $0.id == group.id }
         recalculateSavable()
+        persistGroupSkeletons()
     }
 
     func clearAll() {
         pendingGroups.removeAll()
         totalSavableSize = 0
+        scannedVersions.removeAll()
+        persistGroupSkeletons()
+    }
+
+    // MARK: - 分组骨架持久化
+
+    /// 轻量骨架：只存 asset ID 和分组类型，不含 PHAsset
+    private struct GroupSkeleton: Codable {
+        let type: String
+        let assetIDs: [String]
+        let bestItemID: String?
+    }
+
+    private static let groupSkeletonsKey = "CleanupCoordinator.groupSkeletons"
+
+    private func persistGroupSkeletons() {
+        let skeletons = pendingGroups.map { group in
+            GroupSkeleton(
+                type: group.type.rawValue,
+                assetIDs: group.items.map(\.id),
+                bestItemID: group.bestItemID
+            )
+        }
+        guard let data = try? JSONEncoder().encode(skeletons) else { return }
+        UserDefaults.standard.set(data, forKey: Self.groupSkeletonsKey)
+    }
+
+    /// 从持久化骨架恢复分组，通过 PHAsset.localIdentifier 重建完整对象
+    func restoreGroups(using photoLibrary: PhotoLibraryService) {
+        guard let data = UserDefaults.standard.data(forKey: Self.groupSkeletonsKey),
+              let skeletons = try? JSONDecoder().decode([GroupSkeleton].self, from: data),
+              !skeletons.isEmpty else { return }
+
+        // 收集所有需要的 asset ID，批量 fetch
+        let allIDs = skeletons.flatMap(\.assetIDs)
+        guard !allIDs.isEmpty else { return }
+
+        let fetchResult = PHAsset.fetchAssets(withLocalIdentifiers: allIDs, options: nil)
+        var assetMap: [String: PHAsset] = [:]
+        fetchResult.enumerateObjects { asset, _, _ in
+            assetMap[asset.localIdentifier] = asset
+        }
+
+        var restored: [CleanupGroup] = []
+        for skeleton in skeletons {
+            guard let type = CleanupGroup.GroupType(rawValue: skeleton.type) else { continue }
+            var items: [MediaItem] = []
+            for assetID in skeleton.assetIDs {
+                guard let asset = assetMap[assetID] else { continue }
+                let size = photoLibrary.fileSize(for: asset)
+                items.append(MediaItem(
+                    id: assetID,
+                    asset: asset,
+                    fileSize: size,
+                    creationDate: asset.creationDate
+                ))
+            }
+            // 跳过因删除导致不足 2 项的相似/连拍组
+            if (type == .similar || type == .burst) && items.count < 2 { continue }
+            if items.isEmpty { continue }
+            restored.append(CleanupGroup(type: type, items: items, bestItemID: skeleton.bestItemID))
+        }
+
+        if !restored.isEmpty {
+            pendingGroups = restored
+            recalculateSavable()
+        }
     }
 
     /// 执行删除，分批进行避免卡死
@@ -75,6 +179,7 @@ final class CleanupCoordinator {
         let executedIDs = Set(groups.map(\.id))
         pendingGroups.removeAll { executedIDs.contains($0.id) }
         recalculateSavable()
+        persistGroupSkeletons()
 
         return freedSize
     }
@@ -147,7 +252,9 @@ final class CleanupCoordinator {
                     }
 
                     if let image = await photoLibrary.thumbnail(for: asset, size: thumbSize) {
-                        let result = autoreleasepool { engine.detectWaste(image: image) }
+                        let result = await Task.detached {
+                            autoreleasepool { engine.detectWaste(image: image) }
+                        }.value
                         cache.saveWasteResult(assetID: assetID, isWaste: result.isWaste, reason: result.reason)
                     }
                 }
@@ -184,11 +291,14 @@ final class CleanupCoordinator {
 
                     if let image = await photoLibrary.thumbnail(for: asset, size: thumbSize) {
                         if let cgImage = image.cgImage {
-                            let fp: VNFeaturePrintObservation? = autoreleasepool {
-                                engine.featurePrint(for: cgImage)
-                            }
-                            if let fp, let data = try? NSKeyedArchiver.archivedData(withRootObject: fp, requiringSecureCoding: true) {
-                                cache.saveFeaturePrint(assetID: assetID, data: data)
+                            let fpData: Data? = await Task.detached {
+                                autoreleasepool {
+                                    guard let fp = engine.featurePrint(for: cgImage) else { return nil as Data? }
+                                    return try? NSKeyedArchiver.archivedData(withRootObject: fp, requiringSecureCoding: true)
+                                }
+                            }.value
+                            if let fpData {
+                                cache.saveFeaturePrint(assetID: assetID, data: fpData)
                             }
                         }
                     }
@@ -208,120 +318,144 @@ final class CleanupCoordinator {
         scanProgress = 1.0
     }
 
-    /// 从缓存构建清理分组（前台使用，读取 backgroundAnalyze 的缓存结果）
-    func buildCleanupGroups(services: AppServiceContainer) async -> [CleanupGroup] {
-        var allGroups: [CleanupGroup] = []
-        let photoLibrary = services.photoLibrary
+    // MARK: - 按分类构建清理分组
+
+    /// 废片（从 SwiftData 缓存读取）
+    private func buildWasteGroups(services: AppServiceContainer) async -> [CleanupGroup] {
         let cache = services.analysisCache
+        let photoLibrary = services.photoLibrary
         let batchSize = AppConstants.Analysis.batchSize
         let photoFetch = photoLibrary.fetchAllAssets(mediaType: .image)
 
-        // 1. 废片（从缓存读取）
         wasteReasons = cache.allWasteReasons()
         let wasteIDs = Set(wasteReasons.keys).union(cache.allCachedWasteIDs())
-        if !wasteIDs.isEmpty {
-            var wasteItems: [MediaItem] = []
-            for batchStart in stride(from: 0, to: photoFetch.count, by: batchSize) {
-                let batchEnd = min(batchStart + batchSize, photoFetch.count)
-                autoreleasepool {
-                    for i in batchStart..<batchEnd {
-                        let asset = photoFetch.object(at: i)
-                        if wasteIDs.contains(asset.localIdentifier) {
-                            let size = photoLibrary.fileSize(for: asset)
-                            wasteItems.append(MediaItem(
-                                id: asset.localIdentifier,
-                                asset: asset,
-                                fileSize: size,
-                                creationDate: asset.creationDate
-                            ))
-                        }
+        guard !wasteIDs.isEmpty else { return [] }
+
+        var wasteItems: [MediaItem] = []
+        for batchStart in stride(from: 0, to: photoFetch.count, by: batchSize) {
+            let batchEnd = min(batchStart + batchSize, photoFetch.count)
+            autoreleasepool {
+                for i in batchStart..<batchEnd {
+                    let asset = photoFetch.object(at: i)
+                    if wasteIDs.contains(asset.localIdentifier) {
+                        let size = photoLibrary.fileSize(for: asset)
+                        wasteItems.append(MediaItem(
+                            id: asset.localIdentifier, asset: asset,
+                            fileSize: size, creationDate: asset.creationDate
+                        ))
                     }
                 }
             }
-            if !wasteItems.isEmpty {
-                allGroups.append(CleanupGroup(type: .waste, items: wasteItems, bestItemID: nil))
-            }
         }
+        guard !wasteItems.isEmpty else { return [] }
+        return [CleanupGroup(type: .waste, items: wasteItems, bestItemID: nil)]
+    }
 
-        scanProgress = 0.2
-
-        // 2. 相似照片（利用缓存的特征向量）
-        let allPhotoItems = await photoLibrary.buildMediaItems(from: photoFetch)
-        let similarGroups = await services.imageSimilarity.findSimilarGroups(
-            from: allPhotoItems,
-            using: photoLibrary,
-            cache: cache,
+    /// 相似照片（利用缓存的特征向量）
+    private func buildSimilarGroups(services: AppServiceContainer, photoItems: [MediaItem]? = nil) async -> [CleanupGroup] {
+        let photoLibrary = services.photoLibrary
+        let items: [MediaItem]
+        if let photoItems {
+            items = photoItems
+        } else {
+            let photoFetch = photoLibrary.fetchAllAssets(mediaType: .image)
+            items = await photoLibrary.buildMediaItems(from: photoFetch)
+        }
+        return await services.imageSimilarity.findSimilarGroups(
+            from: items, using: photoLibrary,
+            cache: services.analysisCache,
             onProgress: { [weak self] p in self?.scanProgress = 0.2 + p * 0.5 }
         )
-        allGroups.append(contentsOf: similarGroups)
+    }
 
-        scanProgress = 0.7
-
-        // 3. 连拍
-        let burstFetch = photoLibrary.fetchBurstAssets()
-        let burstItems = await photoLibrary.buildMediaItems(from: burstFetch)
+    /// 连拍
+    private func buildBurstGroups(services: AppServiceContainer) async -> [CleanupGroup] {
+        let burstFetch = services.photoLibrary.fetchBurstAssets()
+        let burstItems = await services.photoLibrary.buildMediaItems(from: burstFetch)
         var burstMap: [String: [MediaItem]] = [:]
         for item in burstItems {
             if let burstID = item.asset.burstIdentifier {
                 burstMap[burstID, default: []].append(item)
             }
         }
-        let burstGroups = burstMap.values
+        return burstMap.values
             .filter { $0.count > 1 }
             .map { items in
                 let best = items.max(by: { $0.fileSize < $1.fileSize })
                 return CleanupGroup(type: .burst, items: items, bestItemID: best?.id)
             }
-        allGroups.append(contentsOf: burstGroups)
+    }
 
-        scanProgress = 0.85
-
-        // 4. 超大照片 (>10MB)
-        let largePhotoThreshold: Int64 = 10 * 1024 * 1024
-        var largePhotos: [MediaItem] = []
-        for item in allPhotoItems {
-            if item.fileSize >= largePhotoThreshold {
-                largePhotos.append(item)
-            }
+    /// 超大照片 (>10MB)
+    private func buildLargePhotoGroups(services: AppServiceContainer, photoItems: [MediaItem]? = nil) async -> [CleanupGroup] {
+        let items: [MediaItem]
+        if let photoItems {
+            items = photoItems
+        } else {
+            let photoFetch = services.photoLibrary.fetchAllAssets(mediaType: .image)
+            items = await services.photoLibrary.buildMediaItems(from: photoFetch)
         }
-        if !largePhotos.isEmpty {
-            let sorted = largePhotos.sorted { $0.fileSize > $1.fileSize }
-            allGroups.append(CleanupGroup(type: .largePhoto, items: sorted, bestItemID: nil))
-        }
+        let threshold: Int64 = 10 * 1024 * 1024
+        let largePhotos = items.filter { $0.fileSize >= threshold }
+            .sorted { $0.fileSize > $1.fileSize }
+        guard !largePhotos.isEmpty else { return [] }
+        return [CleanupGroup(type: .largePhoto, items: largePhotos, bestItemID: nil)]
+    }
 
-        scanProgress = 0.9
-
-        // 5. 大视频 (>100MB)
-        let videoFetch = photoLibrary.fetchAllAssets(mediaType: .video)
-        let largeVideoThreshold: Int64 = 100 * 1024 * 1024
+    /// 大视频 (>100MB)
+    private func buildLargeVideoGroups(services: AppServiceContainer) async -> [CleanupGroup] {
+        let videoFetch = services.photoLibrary.fetchAllAssets(mediaType: .video)
+        let batchSize = AppConstants.Analysis.batchSize
+        let threshold: Int64 = 100 * 1024 * 1024
         var largeVideos: [MediaItem] = []
         for batchStart in stride(from: 0, to: videoFetch.count, by: batchSize) {
             let batchEnd = min(batchStart + batchSize, videoFetch.count)
             autoreleasepool {
                 for i in batchStart..<batchEnd {
                     let asset = videoFetch.object(at: i)
-                    let size = photoLibrary.fileSize(for: asset)
-                    if size > largeVideoThreshold {
+                    let size = services.photoLibrary.fileSize(for: asset)
+                    if size > threshold {
                         largeVideos.append(MediaItem(
-                            id: asset.localIdentifier,
-                            asset: asset,
-                            fileSize: size,
-                            creationDate: asset.creationDate
+                            id: asset.localIdentifier, asset: asset,
+                            fileSize: size, creationDate: asset.creationDate
                         ))
                     }
                 }
             }
         }
-        if !largeVideos.isEmpty {
-            allGroups.append(CleanupGroup(type: .largeVideo, items: largeVideos, bestItemID: nil))
-        }
+        guard !largeVideos.isEmpty else { return [] }
+        return [CleanupGroup(type: .largeVideo, items: largeVideos, bestItemID: nil)]
+    }
+
+    /// 从缓存构建所有分类的清理分组（聚合调用）
+    func buildCleanupGroups(services: AppServiceContainer) async -> [CleanupGroup] {
+        var allGroups: [CleanupGroup] = []
+
+        // 构建 allPhotoItems 复用，避免 similar 和 largePhoto 重复 fetch
+        let photoFetch = services.photoLibrary.fetchAllAssets(mediaType: .image)
+        let allPhotoItems = await services.photoLibrary.buildMediaItems(from: photoFetch)
+
+        allGroups.append(contentsOf: await buildWasteGroups(services: services))
+        scanProgress = 0.2
+
+        allGroups.append(contentsOf: await buildSimilarGroups(services: services, photoItems: allPhotoItems))
+        scanProgress = 0.7
+
+        allGroups.append(contentsOf: await buildBurstGroups(services: services))
+        scanProgress = 0.85
+
+        allGroups.append(contentsOf: await buildLargePhotoGroups(services: services, photoItems: allPhotoItems))
+        scanProgress = 0.9
+
+        allGroups.append(contentsOf: await buildLargeVideoGroups(services: services))
 
         return allGroups
     }
 
-    func smartScan(services: AppServiceContainer) async -> [CleanupGroup] {
-        clearAll()
+    // MARK: - 扫描入口
 
+    /// 全量扫描（不再调用 clearAll，通过 addGroups 按类型去重替换）
+    func smartScan(services: AppServiceContainer) async -> [CleanupGroup] {
         // Phase 1: 分析（写缓存，支持断点续传）
         await backgroundAnalyze(services: services)
 
@@ -340,7 +474,74 @@ final class CleanupCoordinator {
             markCategoryScanned(type, libraryVersion: version)
         }
 
-        return allGroups
+        return pendingGroups
+    }
+
+    /// 增量扫描：只重扫相册版本变更后"脏"的分类，保留有效缓存
+    func incrementalScan(services: AppServiceContainer) async -> [CleanupGroup] {
+        let version = services.photoLibrary.libraryVersion
+        let staleTypes = staleCategoryTypes(libraryVersion: version)
+        guard !staleTypes.isEmpty else { return pendingGroups }
+
+        // 废片/相似需要先执行后台分析
+        let needsAnalyze = staleTypes.contains(.waste) || staleTypes.contains(.similar)
+        if needsAnalyze {
+            await backgroundAnalyze(services: services)
+        }
+
+        scanPhase = .building
+        scanProgress = 0
+
+        // 复用 photoItems（similar 和 largePhoto 都需要）
+        var sharedPhotoItems: [MediaItem]?
+        if staleTypes.contains(.similar) || staleTypes.contains(.largePhoto) {
+            let photoFetch = services.photoLibrary.fetchAllAssets(mediaType: .image)
+            sharedPhotoItems = await services.photoLibrary.buildMediaItems(from: photoFetch)
+        }
+
+        var newGroups: [CleanupGroup] = []
+        var scannedTypes: [CleanupGroup.GroupType] = []
+
+        if staleTypes.contains(.waste) {
+            newGroups.append(contentsOf: await buildWasteGroups(services: services))
+            scannedTypes.append(.waste)
+        }
+        if staleTypes.contains(.similar) {
+            newGroups.append(contentsOf: await buildSimilarGroups(services: services, photoItems: sharedPhotoItems))
+            scannedTypes.append(.similar)
+        }
+        if staleTypes.contains(.burst) {
+            newGroups.append(contentsOf: await buildBurstGroups(services: services))
+            scannedTypes.append(.burst)
+        }
+        if staleTypes.contains(.largePhoto) {
+            newGroups.append(contentsOf: await buildLargePhotoGroups(services: services, photoItems: sharedPhotoItems))
+            scannedTypes.append(.largePhoto)
+        }
+        if staleTypes.contains(.largeVideo) {
+            newGroups.append(contentsOf: await buildLargeVideoGroups(services: services))
+            scannedTypes.append(.largeVideo)
+        }
+
+        // 对扫描后无结果的脏分类，移除旧组
+        for type in staleTypes {
+            if !newGroups.contains(where: { $0.type == type }) {
+                pendingGroups.removeAll { $0.type == type }
+            }
+        }
+
+        if !newGroups.isEmpty {
+            addGroups(newGroups)
+        }
+
+        for type in scannedTypes {
+            markCategoryScanned(type, libraryVersion: version)
+        }
+
+        scanPhase = .done
+        scanProgress = 1.0
+        persistGroupSkeletons()
+        return pendingGroups
     }
 
     private func recalculateSavable() {

@@ -6,18 +6,50 @@ import UIKit
 final class PhotoLibraryService: NSObject {
     private(set) var authorizationStatus: PHAuthorizationStatus = .notDetermined
 
-    /// 相册变更版本号，每次相册发生增删改时自增
+    /// 相册指纹：基于照片/视频总数 + 最新修改时间计算，跨重启稳定
     private(set) var libraryVersion: Int = 0
 
     /// 缩略图并发限制，防止同时发起过多图片请求导致内存暴涨
     private let thumbnailSemaphore = AsyncSemaphore(limit: 6)
 
-    /// 防抖：批量删除时多次 photoLibraryDidChange 合并为一次 libraryVersion 自增
+    /// 防抖：批量删除时多次 photoLibraryDidChange 合并为一次指纹刷新
     private var versionBumpTask: Task<Void, Never>?
+
+    private static let libraryVersionKey = "PhotoLibraryVersion"
 
     override init() {
         super.init()
+        // 恢复上次保存的指纹，避免首次 computeLibraryFingerprint 前为 0
+        libraryVersion = UserDefaults.standard.integer(forKey: Self.libraryVersionKey)
         PHPhotoLibrary.shared().register(self)
+    }
+
+    /// 计算相册指纹并更新 libraryVersion（授权后首次调用 + 相册变更时调用）
+    func refreshLibraryVersion() {
+        let newVersion = computeLibraryFingerprint()
+        if newVersion != libraryVersion {
+            libraryVersion = newVersion
+            UserDefaults.standard.set(newVersion, forKey: Self.libraryVersionKey)
+        }
+    }
+
+    /// 基于相册内容计算稳定指纹
+    private func computeLibraryFingerprint() -> Int {
+        let allFetch = PHAsset.fetchAssets(with: nil)
+        let count = allFetch.count
+        guard count > 0 else { return 0 }
+
+        // 取最新一张的修改日期作为时间戳因子
+        let options = PHFetchOptions()
+        options.sortDescriptors = [NSSortDescriptor(key: "modificationDate", ascending: false)]
+        options.fetchLimit = 1
+        let latestFetch = PHAsset.fetchAssets(with: options)
+        let latestTimestamp = latestFetch.firstObject?.modificationDate?.timeIntervalSince1970 ?? 0
+
+        var hasher = Hasher()
+        hasher.combine(count)
+        hasher.combine(Int(latestTimestamp))
+        return hasher.finalize()
     }
 
     deinit {
@@ -27,6 +59,9 @@ final class PhotoLibraryService: NSObject {
     func requestAuthorization() async -> PHAuthorizationStatus {
         let status = await PHPhotoLibrary.requestAuthorization(for: .readWrite)
         authorizationStatus = status
+        if status == .authorized || status == .limited {
+            refreshLibraryVersion()
+        }
         return status
     }
 
@@ -59,9 +94,10 @@ final class PhotoLibraryService: NSObject {
 
     nonisolated func fileSize(for asset: PHAsset) -> Int64 {
         let resources = PHAssetResource.assetResources(for: asset)
-        guard let resource = resources.first else { return 0 }
-        let sizeValue = resource.value(forKey: "fileSize") as? Int64
-        return sizeValue ?? 0
+        guard !resources.isEmpty else { return 0 }
+        return resources.reduce(Int64(0)) { total, resource in
+            total + (resource.value(forKey: "fileSize") as? Int64 ?? 0)
+        }
     }
 
     // MARK: - 缩略图
@@ -102,7 +138,7 @@ final class PhotoLibraryService: NSObject {
 
     // MARK: - 构建 MediaItem（异步，后台线程执行 fileSize 获取）
 
-    func buildMediaItems(from fetchResult: PHFetchResult<PHAsset>) async -> [MediaItem] {
+    func buildMediaItems(from fetchResult: PHFetchResult<PHAsset>, onProgress: (@MainActor (Double) -> Void)? = nil) async -> [MediaItem] {
         let count = fetchResult.count
         guard count > 0 else { return [] }
 
@@ -133,6 +169,9 @@ final class PhotoLibraryService: NSObject {
                         ))
                     }
                 }
+                if let onProgress {
+                    await onProgress(Double(batchEnd) / Double(count))
+                }
                 // 每批让出 CPU，避免长时间占用
                 try? await Task.sleep(nanoseconds: 1_000_000) // 1ms
             }
@@ -146,13 +185,13 @@ final class PhotoLibraryService: NSObject {
 extension PhotoLibraryService: PHPhotoLibraryChangeObserver {
     nonisolated func photoLibraryDidChange(_ changeInstance: PHChange) {
         Task { @MainActor in
-            // 防抖：批量删除产生多次回调时，合并为一次 version 自增，
+            // 防抖：批量删除产生多次回调时，合并为一次指纹刷新，
             // 避免中间状态触发视图重载导致 UICollectionView diff 不一致
             self.versionBumpTask?.cancel()
             self.versionBumpTask = Task { @MainActor in
                 try? await Task.sleep(for: .milliseconds(300))
                 guard !Task.isCancelled else { return }
-                self.libraryVersion += 1
+                self.refreshLibraryVersion()
             }
         }
     }
