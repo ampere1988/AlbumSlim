@@ -34,6 +34,16 @@ final class PhotoCleanerViewModel {
         }
     }
 
+    func autoSelectAllExceptBest(isPro: Bool) {
+        selectedForDeletion.removeAll()
+        for (index, group) in similarGroups.enumerated() {
+            let unlocked = ProFeatureGate.canViewSimilarGroup(groupIndex: index, isPro: isPro)
+            if unlocked {
+                selectAllExceptBest(in: group)
+            }
+        }
+    }
+
     @discardableResult
     func deleteSelected(services: AppServiceContainer) async -> Int64 {
         let allItems = similarGroups.flatMap(\.items) + wasteItems

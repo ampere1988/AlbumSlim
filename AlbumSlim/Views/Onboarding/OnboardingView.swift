@@ -3,12 +3,19 @@ import Photos
 
 struct OnboardingView: View {
     @Binding var hasCompletedOnboarding: Bool
+    @AppStorage("hasAgreedToPrivacy") private var hasAgreedToPrivacy = false
     @State private var authStatus: PHAuthorizationStatus = PermissionManager.photoLibraryStatus
     @State private var isRequesting = false
-    @AppStorage("hasShownPrivacyNotice") private var hasShownPrivacyNotice = false
-    @State private var showPrivacySheet = false
 
     var body: some View {
+        if !hasAgreedToPrivacy {
+            PrivacyAgreementView(hasAgreedToPrivacy: $hasAgreedToPrivacy)
+        } else {
+            permissionView
+        }
+    }
+
+    private var permissionView: some View {
         VStack(spacing: 32) {
             Spacer()
 
@@ -78,18 +85,6 @@ struct OnboardingView: View {
                 hasCompletedOnboarding = true
             }
         }
-        .onAppear {
-            if !hasShownPrivacyNotice {
-                showPrivacySheet = true
-            }
-        }
-        .sheet(isPresented: $showPrivacySheet) {
-            PrivacyNoticeView {
-                hasShownPrivacyNotice = true
-                showPrivacySheet = false
-            }
-            .interactiveDismissDisabled()
-        }
     }
 
     private func featureRow(icon: String, text: String) -> some View {
@@ -104,8 +99,11 @@ struct OnboardingView: View {
     }
 }
 
-struct PrivacyNoticeView: View {
-    var onAccept: () -> Void
+struct PrivacyAgreementView: View {
+    @Binding var hasAgreedToPrivacy: Bool
+    @Environment(\.openURL) private var openURL
+
+    private let privacyPolicyURL = URL(string: "https://chunbingtang.com/privacy.html")!
 
     var body: some View {
         VStack(spacing: 28) {
@@ -149,18 +147,26 @@ struct PrivacyNoticeView: View {
 
             Spacer()
 
-            Button {
-                onAccept()
-            } label: {
-                Text("我知道了")
-                    .frame(maxWidth: .infinity)
+            VStack(spacing: 12) {
+                Button {
+                    hasAgreedToPrivacy = true
+                } label: {
+                    Text("同意并继续")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .tint(.green)
+
+                Button {
+                    openURL(privacyPolicyURL)
+                } label: {
+                    Text("查看隐私政策")
+                        .font(.subheadline)
+                }
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .tint(.green)
         }
         .padding(24)
-        .presentationDetents([.large])
     }
 
     private func privacyItem(icon: String, title: String, detail: String) -> some View {

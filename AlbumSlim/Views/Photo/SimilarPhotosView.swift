@@ -87,6 +87,7 @@ struct SimilarPhotosView: View {
         .task {
             if viewModel.similarGroups.isEmpty && !viewModel.isScanning {
                 await viewModel.scanSimilarPhotos(services: services)
+                viewModel.autoSelectAllExceptBest(isPro: services.subscription.isPro)
             }
         }
     }

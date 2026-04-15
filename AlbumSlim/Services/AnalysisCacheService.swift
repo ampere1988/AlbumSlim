@@ -97,6 +97,17 @@ final class AnalysisCacheService {
         return reasons
     }
 
+    func clearAllCache() {
+        let descriptor = FetchDescriptor<CachedAnalysis>()
+        if let all = try? modelContext.fetch(descriptor) {
+            for item in all {
+                modelContext.delete(item)
+            }
+            try? modelContext.save()
+        }
+        pendingChanges = 0
+    }
+
     func batchSave() {
         guard pendingChanges > 0 else { return }
         do {

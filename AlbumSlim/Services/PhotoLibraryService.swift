@@ -33,7 +33,7 @@ final class PhotoLibraryService: NSObject {
         }
     }
 
-    /// 基于相册内容计算稳定指纹
+    /// 基于相册内容计算稳定指纹（跨进程确定性，不使用 Hasher）
     private func computeLibraryFingerprint() -> Int {
         let allFetch = PHAsset.fetchAssets(with: nil)
         let count = allFetch.count
@@ -44,12 +44,10 @@ final class PhotoLibraryService: NSObject {
         options.sortDescriptors = [NSSortDescriptor(key: "modificationDate", ascending: false)]
         options.fetchLimit = 1
         let latestFetch = PHAsset.fetchAssets(with: options)
-        let latestTimestamp = latestFetch.firstObject?.modificationDate?.timeIntervalSince1970 ?? 0
+        let latestTimestamp = Int(latestFetch.firstObject?.modificationDate?.timeIntervalSince1970 ?? 0)
 
-        var hasher = Hasher()
-        hasher.combine(count)
-        hasher.combine(Int(latestTimestamp))
-        return hasher.finalize()
+        // 使用确定性算法替代 Hasher（Hasher 每次进程启动种子不同）
+        return count &* 31 &+ latestTimestamp
     }
 
     deinit {
