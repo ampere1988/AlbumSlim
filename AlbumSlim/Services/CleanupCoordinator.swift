@@ -79,11 +79,13 @@ final class CleanupCoordinator {
 
     // MARK: - 分组骨架持久化
 
-    /// 轻量骨架：只存 asset ID 和分组类型，不含 PHAsset
+    /// 轻量骨架：存 asset ID、分组类型、文件大小和日期，恢复时不再重新计算
     private struct GroupSkeleton: Codable {
         let type: String
         let assetIDs: [String]
         let bestItemID: String?
+        let fileSizes: [Int64]?
+        let creationDates: [Date?]?
     }
 
     private static let groupSkeletonsKey = "CleanupCoordinator.groupSkeletons"
@@ -93,7 +95,9 @@ final class CleanupCoordinator {
             GroupSkeleton(
                 type: group.type.rawValue,
                 assetIDs: group.items.map(\.id),
-                bestItemID: group.bestItemID
+                bestItemID: group.bestItemID,
+                fileSizes: group.items.map(\.fileSize),
+                creationDates: group.items.map(\.creationDate)
             )
         }
         guard let data = try? JSONEncoder().encode(skeletons) else { return }
@@ -101,7 +105,8 @@ final class CleanupCoordinator {
     }
 
     /// 从持久化骨架恢复分组，通过 PHAsset.localIdentifier 重建完整对象
-    func restoreGroups(using photoLibrary: PhotoLibraryService) {
+    /// 使用缓存的文件大小避免重新计算，异步执行不阻塞主线程
+    func restoreGroups(using photoLibrary: PhotoLibraryService) async {
         guard let data = UserDefaults.standard.data(forKey: Self.groupSkeletonsKey),
               let skeletons = try? JSONDecoder().decode([GroupSkeleton].self, from: data),
               !skeletons.isEmpty else { return }
@@ -120,14 +125,17 @@ final class CleanupCoordinator {
         for skeleton in skeletons {
             guard let type = CleanupGroup.GroupType(rawValue: skeleton.type) else { continue }
             var items: [MediaItem] = []
-            for assetID in skeleton.assetIDs {
+            let cachedSizes = skeleton.fileSizes
+            let cachedDates = skeleton.creationDates
+            for (index, assetID) in skeleton.assetIDs.enumerated() {
                 guard let asset = assetMap[assetID] else { continue }
-                let size = photoLibrary.fileSize(for: asset)
+                let size = cachedSizes?[safe: index] ?? photoLibrary.fileSize(for: asset)
+                let date = cachedDates?[safe: index] ?? asset.creationDate
                 items.append(MediaItem(
                     id: assetID,
                     asset: asset,
                     fileSize: size,
-                    creationDate: asset.creationDate
+                    creationDate: date
                 ))
             }
             // 跳过因删除导致不足 2 项的相似/连拍组

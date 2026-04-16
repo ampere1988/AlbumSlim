@@ -18,6 +18,8 @@ final class AppServiceContainer {
     let reminder: ReminderService
     let backgroundTask: BackgroundTaskService
 
+    private(set) var isReady = false
+
     init() {
         self.photoLibrary = PhotoLibraryService()
         self.storageAnalyzer = StorageAnalyzer()
@@ -28,12 +30,17 @@ final class AppServiceContainer {
         self.ocrService = OCRService()
         self.cleanupCoordinator = CleanupCoordinator()
         self.cleanupCoordinator.restoreScannedVersions()
-        self.cleanupCoordinator.restoreGroups(using: self.photoLibrary)
         self.notesExport = NotesExportService()
         self.subscription = SubscriptionService()
         self.analysisCache = AnalysisCacheService()
         self.achievement = AchievementService()
         self.reminder = ReminderService()
         self.backgroundTask = BackgroundTaskService()
+    }
+
+    /// 异步恢复缓存数据，不阻塞主线程
+    func prepareAsync() async {
+        await cleanupCoordinator.restoreGroups(using: photoLibrary)
+        isReady = true
     }
 }

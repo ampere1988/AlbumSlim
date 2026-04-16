@@ -16,6 +16,7 @@ struct AlbumSlimApp: App {
             if hasCompletedOnboarding && PermissionManager.isAuthorized {
                 MainTabView()
                     .environment(services)
+                    .task { await services.prepareAsync() }
             } else {
                 OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
             }
