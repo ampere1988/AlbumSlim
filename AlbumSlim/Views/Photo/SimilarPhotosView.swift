@@ -43,9 +43,7 @@ struct SimilarPhotosView: View {
                         .listRowInsets(EdgeInsets())
 
                         ForEach(Array(viewModel.similarGroups.enumerated()), id: \.element.id) { index, group in
-                            let locked = !ProFeatureGate.canViewSimilarGroup(
-                                groupIndex: index, isPro: services.subscription.isPro
-                            )
+                            let locked = !ProFeatureGate.canClean(isPro: services.subscription.isPro)
                             Section {
                                 if locked {
                                     lockedGroupOverlay
@@ -115,7 +113,11 @@ struct SimilarPhotosView: View {
             Text("可释放 \(selectedSize.formattedFileSize)")
                 .foregroundStyle(.secondary)
             Button("删除选中", role: .destructive) {
-                showDeleteConfirm = true
+                if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                    showDeleteConfirm = true
+                } else {
+                    showPaywall = true
+                }
             }
             .buttonStyle(.borderedProminent)
         }

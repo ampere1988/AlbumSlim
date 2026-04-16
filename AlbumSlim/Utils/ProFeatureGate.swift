@@ -1,17 +1,6 @@
 import Foundation
 
 enum ProFeatureGate {
-    static func canCleanWaste(currentCount: Int, isPro: Bool) -> Bool {
-        isPro || currentCount < 20
-    }
-
-    static func canViewSimilarGroup(groupIndex: Int, isPro: Bool) -> Bool {
-        true // TODO: 恢复 Pro 限制: isPro || groupIndex < 3
-    }
-
-    static func canCompress(isPro: Bool) -> Bool { isPro }
-
-    static func canOCR(isPro: Bool) -> Bool { isPro }
-
-    static func canQuickClean(isPro: Bool) -> Bool { isPro }
+    /// 所有清理/删除/压缩操作统一检查
+    static func canClean(isPro: Bool) -> Bool { isPro }
 }

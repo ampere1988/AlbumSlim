@@ -82,7 +82,11 @@ struct VideoCompressView: View {
 
                 Section {
                     Button(role: .destructive) {
-                        showDeleteConfirm = true
+                        if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                            showDeleteConfirm = true
+                        } else {
+                            showPaywall = true
+                        }
                     } label: {
                         HStack {
                             Spacer()
@@ -128,7 +132,7 @@ struct VideoCompressView: View {
                     Divider()
                     HStack(spacing: 12) {
                         Button {
-                            if ProFeatureGate.canCompress(isPro: services.subscription.isPro) {
+                            if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
                                 Task { await compressAndReplace() }
                             } else {
                                 showPaywall = true
@@ -143,7 +147,7 @@ struct VideoCompressView: View {
                         .tint(.blue)
 
                         Button {
-                            if ProFeatureGate.canCompress(isPro: services.subscription.isPro) {
+                            if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
                                 Task { await compressAndSaveNew() }
                             } else {
                                 showPaywall = true

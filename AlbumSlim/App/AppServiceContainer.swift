@@ -14,6 +14,7 @@ final class AppServiceContainer {
     let subscription: SubscriptionService
     let analysisCache: AnalysisCacheService
     let achievement: AchievementService
+    let notesExport: NotesExportService
     let reminder: ReminderService
     let backgroundTask: BackgroundTaskService
 
@@ -28,6 +29,7 @@ final class AppServiceContainer {
         self.cleanupCoordinator = CleanupCoordinator()
         self.cleanupCoordinator.restoreScannedVersions()
         self.cleanupCoordinator.restoreGroups(using: self.photoLibrary)
+        self.notesExport = NotesExportService()
         self.subscription = SubscriptionService()
         self.analysisCache = AnalysisCacheService()
         self.achievement = AchievementService()

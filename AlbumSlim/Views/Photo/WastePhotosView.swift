@@ -91,10 +91,7 @@ struct WastePhotosView: View {
                             Text("已选 \(viewModel.selectedForDeletion.count) 张")
                             Spacer()
                             Button("删除选中", role: .destructive) {
-                                if ProFeatureGate.canCleanWaste(
-                                    currentCount: viewModel.selectedForDeletion.count,
-                                    isPro: services.subscription.isPro
-                                ) {
+                                if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
                                     showDeleteConfirm = true
                                 } else {
                                     showPaywall = true

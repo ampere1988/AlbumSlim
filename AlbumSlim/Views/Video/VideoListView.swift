@@ -5,6 +5,7 @@ struct VideoListView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var viewModel = VideoManagerViewModel()
     @State private var showDeleteConfirm = false
+    @State private var showPaywall = false
 
     var body: some View {
         NavigationStack {
@@ -35,7 +36,11 @@ struct VideoListView: View {
                                 }
                                 .swipeActions(edge: .trailing) {
                                     Button("删除", role: .destructive) {
-                                        viewModel.deleteVideo(video, services: services)
+                                        if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                                            viewModel.deleteVideo(video, services: services)
+                                        } else {
+                                            showPaywall = true
+                                        }
                                     }
                                 }
                             }
@@ -91,6 +96,7 @@ struct VideoListView: View {
                 }
             }
             .task { await viewModel.loadVideos(services: services) }
+            .sheet(isPresented: $showPaywall) { PaywallView() }
         }
     }
 
@@ -100,13 +106,21 @@ struct VideoListView: View {
                 .font(.subheadline)
             Spacer()
             Button("批量压缩") {
-                Task {
-                    try? await viewModel.compressSelected(services: services)
+                if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                    Task {
+                        try? await viewModel.compressSelected(services: services)
+                    }
+                } else {
+                    showPaywall = true
                 }
             }
             .buttonStyle(.bordered)
             Button("删除", role: .destructive) {
-                showDeleteConfirm = true
+                if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                    showDeleteConfirm = true
+                } else {
+                    showPaywall = true
+                }
             }
             .buttonStyle(.borderedProminent)
         }

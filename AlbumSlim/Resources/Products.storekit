@@ -1,0 +1,49 @@
+{
+  "identifier" : "8A5C5E3A-1234-4B5C-9D6E-7F8A9B0C1D2E",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+    {
+      "displayPrice" : "6.00",
+      "familyShareable" : false,
+      "internalID" : "F1A2B3C4-D5E6-4F7A-8B9C-0D1E2F3A4B5C",
+      "localizations" : [
+        {
+          "description" : "一次购买，永久解锁所有 Pro 功能",
+          "displayName" : "Pro 永久版",
+          "locale" : "zh_CN"
+        },
+        {
+          "description" : "One-time purchase, unlock all Pro features forever",
+          "displayName" : "Pro Lifetime",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.hao.doushan.pro.lifetime",
+      "referenceName" : "Pro Lifetime",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_applicationInternalID" : "1234567890",
+    "_developerTeamID" : "XXXXXXXXXX",
+    "_lastSynchronizedDate" : "2025-01-01T00:00:00Z",
+    "_locale" : "zh_CN",
+    "_storefront" : "CHN",
+    "_storeKitErrors" : [
+      {
+        "current" : null,
+        "enabled" : false,
+        "name" : "Load Products"
+      }
+    ]
+  },
+  "subscriptionGroups" : [
+
+  ],
+  "version" : {
+    "major" : 4,
+    "minor" : 0
+  }
+}

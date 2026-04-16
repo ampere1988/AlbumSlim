@@ -6,6 +6,7 @@ struct ScreenshotListView: View {
     @State private var showPaywall = false
     @State private var exportToast: String?
     @State private var navigationPath = NavigationPath()
+    @State private var showSavedNotes = false
 
     private let columns = [GridItem(.adaptive(minimum: 100), spacing: 3)]
 
@@ -93,6 +94,14 @@ struct ScreenshotListView: View {
                             }
                         }
                     } else {
+                        if !services.notesExport.notes.isEmpty {
+                            Button {
+                                showSavedNotes = true
+                            } label: {
+                                Label("识别记录", systemImage: "doc.text")
+                            }
+                        }
+
                         Menu {
                             ForEach(ScreenshotSortOrder.allCases, id: \.self) { order in
                                 Button {
@@ -117,7 +126,7 @@ struct ScreenshotListView: View {
                         }
 
                         Button("全部识别") {
-                            if ProFeatureGate.canOCR(isPro: services.subscription.isPro) {
+                            if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
                                 Task { await viewModel.analyzeAllScreenshots(services: services) }
                             } else {
                                 showPaywall = true
@@ -147,6 +156,10 @@ struct ScreenshotListView: View {
             .animation(.default, value: exportToast)
             .task { await viewModel.loadScreenshots(services: services) }
             .sheet(isPresented: $showPaywall) { PaywallView() }
+            .sheet(isPresented: $showSavedNotes) {
+                SavedNotesView()
+                    .environment(services)
+            }
             .confirmationDialog(
                 "删除 \(viewModel.exportedCount) 张已存储截图？",
                 isPresented: $viewModel.showDeleteExportedConfirmation,
@@ -222,10 +235,10 @@ struct ScreenshotListView: View {
                 Spacer()
 
                 Button("识别并存储") {
-                    if ProFeatureGate.canOCR(isPro: services.subscription.isPro) {
+                    if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
                         Task {
                             let count = await viewModel.analyzeAndExportSelected(services: services)
-                            withAnimation { exportToast = "已存储 \(count) 条文字到文件" }
+                            withAnimation { exportToast = "已保存 \(count) 条识别记录" }
                         }
                     } else {
                         showPaywall = true
@@ -235,7 +248,11 @@ struct ScreenshotListView: View {
                 .disabled(viewModel.isAnalyzing || viewModel.selectedItems.isEmpty)
 
                 Button("删除", role: .destructive) {
-                    viewModel.showDeleteConfirmation = true
+                    if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                        viewModel.showDeleteConfirmation = true
+                    } else {
+                        showPaywall = true
+                    }
                 }
                 .buttonStyle(.bordered)
                 .disabled(viewModel.selectedItems.isEmpty)

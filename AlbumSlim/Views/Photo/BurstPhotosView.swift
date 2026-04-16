@@ -6,6 +6,7 @@ struct BurstPhotosView: View {
     @State private var burstGroups: [CleanupGroup] = []
     @State private var isLoading = false
     @State private var showDeleteConfirm = false
+    @State private var showPaywall = false
     @State private var pendingGroupID: UUID?
 
     var body: some View {
@@ -39,8 +40,12 @@ struct BurstPhotosView: View {
                             }
 
                             Button("只保留最佳") {
-                                pendingGroupID = group.id
-                                showDeleteConfirm = true
+                                if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                                    pendingGroupID = group.id
+                                    showDeleteConfirm = true
+                                } else {
+                                    showPaywall = true
+                                }
                             }
                             .font(.footnote)
                             .foregroundStyle(.red)
@@ -67,6 +72,7 @@ struct BurstPhotosView: View {
                 }
             }
         }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
         .task {
             if burstGroups.isEmpty && !isLoading {
                 await loadBursts()

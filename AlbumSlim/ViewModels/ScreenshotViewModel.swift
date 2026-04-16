@@ -86,7 +86,6 @@ final class ScreenshotViewModel {
         }
     }
 
-    // 批量：识别未识别的 → 存储到文件 → 返回成功数量
     func analyzeAndExportSelected(services: AppServiceContainer) async -> Int {
         isAnalyzing = true
         defer { isAnalyzing = false }
@@ -99,15 +98,16 @@ final class ScreenshotViewModel {
             analysisProgress = Double(index + 1) / Double(max(total, 1))
         }
 
-        let notesService = NotesExportService()
         var count = 0
         for item in items {
             guard let result = ocrResults[item.id] else { continue }
-            let (title, content) = notesService.formatScreenshotNote(ocrResult: result, date: item.creationDate)
-            if (try? notesService.saveNote(title: title, content: content)) != nil {
-                markExported(item.id)
-                count += 1
-            }
+            services.notesExport.saveNote(
+                text: result.text,
+                category: result.category,
+                screenshotDate: item.creationDate
+            )
+            markExported(item.id)
+            count += 1
         }
         return count
     }
@@ -220,18 +220,15 @@ final class ScreenshotViewModel {
     }
 
     func exportSelected(services: AppServiceContainer) {
-        let notesService = NotesExportService()
         let items = screenshots.filter { selectedItems.contains($0.id) }
-        var notes: [(title: String, content: String)] = []
         for item in items {
             guard let result = ocrResults[item.id] else { continue }
-            notes.append(notesService.formatScreenshotNote(ocrResult: result, date: item.creationDate))
-        }
-        guard !notes.isEmpty else { return }
-        if let _ = try? notesService.saveBatch(notes) {
-            for item in items where ocrResults[item.id] != nil {
-                markExported(item.id)
-            }
+            services.notesExport.saveNote(
+                text: result.text,
+                category: result.category,
+                screenshotDate: item.creationDate
+            )
+            markExported(item.id)
         }
     }
 }

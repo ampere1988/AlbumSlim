@@ -63,31 +63,27 @@ struct ScreenshotDetailView: View {
                         Divider()
 
                         HStack(spacing: 12) {
-                            // 存储到 Files
                             Button {
                                 guard saveState != .saving else { return }
                                 saveState = .saving
-                                let notesService = NotesExportService()
-                                let (title, content) = notesService.formatScreenshotNote(
-                                    ocrResult: result, date: item.creationDate
+                                services.notesExport.saveNote(
+                                    text: result.text,
+                                    category: result.category,
+                                    screenshotDate: item.creationDate
                                 )
-                                if (try? notesService.saveNote(title: title, content: content)) != nil {
-                                    isExported = true
-                                    saveState = .saved
-                                } else {
-                                    saveState = .failed
-                                }
+                                isExported = true
+                                saveState = .saved
                             } label: {
                                 Group {
                                     switch saveState {
                                     case .idle:
-                                        Label(isExported ? "重新存储" : "存储到文件", systemImage: "folder.badge.plus")
+                                        Label(isExported ? "重新保存" : "保存笔记", systemImage: "square.and.arrow.down")
                                     case .saving:
-                                        Label("存储中...", systemImage: "arrow.down.circle")
+                                        Label("保存中...", systemImage: "arrow.down.circle")
                                     case .saved:
-                                        Label("已存储", systemImage: "checkmark.circle.fill")
+                                        Label("已保存", systemImage: "checkmark.circle.fill")
                                     case .failed:
-                                        Label("存储失败", systemImage: "xmark.circle")
+                                        Label("保存失败", systemImage: "xmark.circle")
                                     }
                                 }
                                 .frame(maxWidth: .infinity)
@@ -96,10 +92,17 @@ struct ScreenshotDetailView: View {
                             .tint(saveState == .saved ? .green : saveState == .failed ? .red : .accentColor)
                             .disabled(saveState == .saving)
 
-                            // 分享（可选择备忘录）
                             ShareLink(
-                                item: NotesExportService().shareText(for: result, date: item.creationDate),
-                                subject: Text("截图内容")
+                                item: services.notesExport.shareText(
+                                    for: SavedNote(
+                                        id: UUID(),
+                                        text: result.text,
+                                        category: result.category.rawValue,
+                                        screenshotDate: item.creationDate,
+                                        savedDate: Date()
+                                    )
+                                ),
+                                subject: Text(result.category.rawValue)
                             ) {
                                 Label("分享", systemImage: "square.and.arrow.up")
                             }

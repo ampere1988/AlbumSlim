@@ -53,7 +53,7 @@ struct SettingsView: View {
     // MARK: - 订阅
 
     private var subscriptionSection: some View {
-        Section("Pro 订阅") {
+        Section("Pro") {
             if services.subscription.isPro {
                 HStack {
                     Label("Pro 已激活", systemImage: "crown.fill")
@@ -66,18 +66,12 @@ struct SettingsView: View {
                 Button {
                     showPaywall = true
                 } label: {
-                    Label("升级到 Pro", systemImage: "crown")
+                    Label("解锁 Pro", systemImage: "crown")
                 }
             }
 
             Button("恢复购买") {
                 Task { await services.subscription.restorePurchases() }
-            }
-
-            Button("管理订阅") {
-                if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
-                    UIApplication.shared.open(url)
-                }
             }
         }
     }

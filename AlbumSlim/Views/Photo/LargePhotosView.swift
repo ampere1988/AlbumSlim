@@ -7,6 +7,7 @@ struct LargePhotosView: View {
     @State private var isLoading = false
     @State private var selectedIDs: Set<String> = []
     @State private var showDeleteConfirm = false
+    @State private var showPaywall = false
     @State private var thresholdMB: Int = 10
 
     private static let thresholdOptions = [50, 30, 15, 10, 8, 5, 3]
@@ -77,7 +78,11 @@ struct LargePhotosView: View {
                 .safeAreaInset(edge: .bottom) {
                     if !selectedIDs.isEmpty {
                         Button(role: .destructive) {
-                            showDeleteConfirm = true
+                            if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                                showDeleteConfirm = true
+                            } else {
+                                showPaywall = true
+                            }
                         } label: {
                             Text("删除 \(selectedIDs.count) 张 · 释放 \(selectedSize.formattedFileSize)")
                                 .frame(maxWidth: .infinity)
@@ -95,6 +100,7 @@ struct LargePhotosView: View {
                 }
             }
         }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
         .onChange(of: thresholdMB) {
             selectedIDs = selectedIDs.filter { id in largePhotos.contains { $0.id == id } }
         }

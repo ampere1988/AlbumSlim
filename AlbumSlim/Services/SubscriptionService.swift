@@ -2,15 +2,10 @@ import StoreKit
 
 @MainActor @Observable
 final class SubscriptionService {
-    static let monthlyID = "com.hao.doushan.pro.monthly"
-    static let yearlyID = "com.hao.doushan.pro.yearly"
-    static let lifetimeID = "com.hao.doushan.pro.lifetime"
+    static let productID = "com.hao.doushan.pro.lifetime"
 
-    private static let allProductIDs: Set<String> = [monthlyID, yearlyID, lifetimeID]
-
-    // TODO: 测试完成后改回 false
-    var isPro: Bool = true
-    var products: [Product] = []
+    var isPro: Bool = false
+    var product: Product?
     var purchaseError: String?
     var isLoading = false
 
@@ -25,15 +20,12 @@ final class SubscriptionService {
         transactionListener?.cancel()
     }
 
-    func loadProducts() async {
-        guard products.isEmpty else { return }
+    func loadProduct() async {
         isLoading = true
         defer { isLoading = false }
         do {
-            let fetched = try await Product.products(for: Self.allProductIDs)
-            products = fetched.sorted { a, b in
-                a.price < b.price
-            }
+            let fetched = try await Product.products(for: [Self.productID])
+            product = fetched.first
         } catch {
             purchaseError = "无法加载产品信息"
         }
@@ -70,7 +62,7 @@ final class SubscriptionService {
         var hasPro = false
         for await result in Transaction.currentEntitlements {
             if let transaction = try? checkVerified(result) {
-                if Self.allProductIDs.contains(transaction.productID) {
+                if transaction.productID == Self.productID {
                     hasPro = true
                 }
             }
