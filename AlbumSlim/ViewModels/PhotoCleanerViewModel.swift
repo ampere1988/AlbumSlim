@@ -56,7 +56,7 @@ final class PhotoCleanerViewModel {
         do {
             try await services.photoLibrary.deleteAssets(assets)
         } catch {
-            errorMessage = "删除失败：\(error.localizedDescription)"
+            errorMessage = String(localized: "删除失败：\(error.localizedDescription)")
             return 0
         }
 

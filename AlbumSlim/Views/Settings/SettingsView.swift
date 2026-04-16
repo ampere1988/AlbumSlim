@@ -174,8 +174,8 @@ struct SettingsView: View {
         let appVersion = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "?"
         let systemVersion = UIDevice.current.systemVersion
         let deviceModel = UIDevice.current.model
-        let subject = "闪图 v\(appVersion) 意见反馈"
-        let body = "\n\n---\n设备: \(deviceModel)\n系统: iOS \(systemVersion)\n版本: \(appVersion)"
+        let subject = String(localized: "闪图 v\(appVersion) 意见反馈")
+        let body = "\n\n---\n\(String(localized: "设备")): \(deviceModel)\n\(String(localized: "系统")): iOS \(systemVersion)\n\(String(localized: "版本")): \(appVersion)"
 
         let encodedSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         let encodedBody = body.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""

@@ -10,7 +10,7 @@ final class DashboardViewModel {
     func loadStats(services: AppServiceContainer) async {
         let status = await services.photoLibrary.requestAuthorization()
         guard status == .authorized || status == .limited else {
-            errorMessage = "需要相册访问权限才能分析存储空间"
+            errorMessage = String(localized: "需要相册访问权限才能分析存储空间")
             return
         }
 

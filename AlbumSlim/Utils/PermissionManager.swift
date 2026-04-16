@@ -24,12 +24,12 @@ enum PermissionManager {
 
     static var statusDescription: String {
         switch photoLibraryStatus {
-        case .notDetermined: return "未请求权限"
-        case .restricted: return "访问受限"
-        case .denied: return "已拒绝访问"
-        case .authorized: return "已授权完整访问"
-        case .limited: return "已授权部分访问"
-        @unknown default: return "未知状态"
+        case .notDetermined: return String(localized: "未请求权限")
+        case .restricted: return String(localized: "访问受限")
+        case .denied: return String(localized: "已拒绝访问")
+        case .authorized: return String(localized: "已授权完整访问")
+        case .limited: return String(localized: "已授权部分访问")
+        @unknown default: return String(localized: "未知状态")
         }
     }
 }

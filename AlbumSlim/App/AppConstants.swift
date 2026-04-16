@@ -1,7 +1,7 @@
 import Foundation
 
 enum AppConstants {
-    static let appName = "闪图"
+    static let appName = String(localized: "闪图")
 
     enum Similarity {
         static let highThreshold: Float = 0.85
@@ -16,10 +16,12 @@ enum AppConstants {
     }
 
     enum Compression {
-        static let presets: [(name: String, width: Int, height: Int)] = [
-            ("高质量", 1920, 1080),
-            ("中质量", 1280, 720),
-            ("省空间", 640, 480),
-        ]
+        static var presets: [(name: String, width: Int, height: Int)] {
+            [
+                (String(localized: "高质量"), 1920, 1080),
+                (String(localized: "中质量"), 1280, 720),
+                (String(localized: "省空间"), 640, 480),
+            ]
+        }
     }
 }
