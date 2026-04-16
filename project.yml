@@ -5,6 +5,10 @@ options:
     iOS: "17.0"
   xcodeVersion: "16.0"
   generateEmptyDirectories: true
+  developmentLanguage: zh-Hans
+  knownRegions:
+    - zh-Hans
+    - en
 
 settings:
   base:
