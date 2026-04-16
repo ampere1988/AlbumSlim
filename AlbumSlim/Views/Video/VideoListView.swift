@@ -76,9 +76,9 @@ struct VideoListView: View {
                                 viewModel.sortOrder = order
                             } label: {
                                 if viewModel.sortOrder == order {
-                                    Label(order.rawValue, systemImage: "checkmark")
+                                    Label(order.localizedName, systemImage: "checkmark")
                                 } else {
-                                    Text(order.rawValue)
+                                    Text(order.localizedName)
                                 }
                             }
                         }

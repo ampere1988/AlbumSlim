@@ -36,7 +36,7 @@ struct QuickCleanView: View {
             .progressViewStyle(.linear)
             .padding(.horizontal, 40)
 
-            Text(services.cleanupCoordinator.scanPhase.rawValue)
+            Text(services.cleanupCoordinator.scanPhase.localizedName)
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
                 .animation(.default, value: services.cleanupCoordinator.scanPhase)

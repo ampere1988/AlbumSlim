@@ -58,7 +58,7 @@ struct VideoCompressView: View {
                     Picker("质量", selection: $selectedQuality) {
                         ForEach(CompressionQuality.allCases, id: \.self) { quality in
                             VStack(alignment: .leading) {
-                                Text(quality.rawValue)
+                                Text(quality.localizedName)
                                 Text("预估节省 \(quality.estimatedSavingsPercent)")
                                     .font(.caption)
                                     .foregroundStyle(.secondary)

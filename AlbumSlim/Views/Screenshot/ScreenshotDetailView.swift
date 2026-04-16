@@ -35,7 +35,7 @@ struct ScreenshotDetailView: View {
                 // 分类标签
                 if let result = ocrResult {
                     HStack {
-                        Text(result.category.rawValue)
+                        Text(result.category.localizedName)
                             .font(.subheadline.bold())
                             .padding(.horizontal, 12)
                             .padding(.vertical, 6)
@@ -102,7 +102,7 @@ struct ScreenshotDetailView: View {
                                         savedDate: Date()
                                     )
                                 ),
-                                subject: Text(result.category.rawValue)
+                                subject: Text(result.category.localizedName)
                             ) {
                                 Label("分享", systemImage: "square.and.arrow.up")
                             }

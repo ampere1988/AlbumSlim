@@ -4,6 +4,13 @@ import Photos
 enum ScreenshotSortOrder: String, CaseIterable {
     case date = "按日期"
     case size = "按大小"
+
+    var localizedName: String {
+        switch self {
+        case .date: return String(localized: "按日期")
+        case .size: return String(localized: "按大小")
+        }
+    }
 }
 
 @MainActor @Observable

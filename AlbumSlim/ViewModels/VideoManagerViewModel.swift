@@ -6,6 +6,14 @@ enum SortOrder: String, CaseIterable {
     case size = "按大小"
     case duration = "按时长"
     case date = "按日期"
+
+    var localizedName: String {
+        switch self {
+        case .size:     return String(localized: "按大小")
+        case .duration: return String(localized: "按时长")
+        case .date:     return String(localized: "按日期")
+        }
+    }
 }
 
 @MainActor @Observable

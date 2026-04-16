@@ -201,6 +201,17 @@ final class CleanupCoordinator {
         case largeVideo = "查找大视频..."
         case building = "正在整理结果..."
         case done = "扫描完成"
+
+        var localizedName: String {
+            switch self {
+            case .waste:      return String(localized: "检测废片...")
+            case .similar:    return String(localized: "查找相似照片...")
+            case .burst:      return String(localized: "分析连拍照片...")
+            case .largeVideo: return String(localized: "查找大视频...")
+            case .building:   return String(localized: "正在整理结果...")
+            case .done:       return String(localized: "扫描完成")
+            }
+        }
     }
 
     private(set) var scanPhase: ScanPhase = .done

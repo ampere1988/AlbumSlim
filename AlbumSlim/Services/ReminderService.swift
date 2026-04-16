@@ -42,6 +42,14 @@ final class ReminderService {
             case .monthly: 1
             }
         }
+
+        var localizedName: String {
+            switch self {
+            case .weekly:    return String(localized: "每周")
+            case .biweekly:  return String(localized: "每两周")
+            case .monthly:   return String(localized: "每月")
+            }
+        }
     }
 
     func requestNotificationPermission() async -> Bool {

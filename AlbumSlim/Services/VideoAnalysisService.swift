@@ -33,6 +33,15 @@ final class VideoAnalysisService {
                 case .possibleDuplicate: "blue"
                 }
             }
+
+            var localizedName: String {
+                switch self {
+                case .tooLong:           return String(localized: "超长视频")
+                case .lowQuality:        return String(localized: "低质量")
+                case .largeFile:         return String(localized: "大文件")
+                case .possibleDuplicate: return String(localized: "疑似重复")
+                }
+            }
         }
     }
 

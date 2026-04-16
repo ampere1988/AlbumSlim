@@ -23,6 +23,14 @@ enum CompressionQuality: String, CaseIterable {
         case .low:    return "80-90%"
         }
     }
+
+    var localizedName: String {
+        switch self {
+        case .high:   return String(localized: "高质量")
+        case .medium: return String(localized: "中质量")
+        case .low:    return String(localized: "省空间")
+        }
+    }
 }
 
 struct CompressionTask: Identifiable {

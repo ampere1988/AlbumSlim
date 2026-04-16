@@ -108,9 +108,9 @@ struct ScreenshotListView: View {
                                     viewModel.sortOrder = order
                                 } label: {
                                     if viewModel.sortOrder == order {
-                                        Label(order.rawValue, systemImage: "checkmark")
+                                        Label(order.localizedName, systemImage: "checkmark")
                                     } else {
-                                        Text(order.rawValue)
+                                        Text(order.localizedName)
                                     }
                                 }
                             }
@@ -212,7 +212,7 @@ struct ScreenshotListView: View {
                     }.count
                     if count > 0 {
                         FilterChip(
-                            title: "\(category.rawValue) (\(count))",
+                            title: "\(category.localizedName) (\(count))",
                             isSelected: viewModel.filterCategory == category && !viewModel.filterExported,
                             color: category.color
                         ) {
@@ -355,7 +355,7 @@ private struct ScreenshotThumbnailCell: View {
                         .background(.ultraThinMaterial, in: Capsule())
 
                     if let result = ocrResult {
-                        Text(result.category.rawValue)
+                        Text(result.category.localizedName)
                             .font(.system(size: 9))
                             .padding(.horizontal, 4)
                             .padding(.vertical, 2)

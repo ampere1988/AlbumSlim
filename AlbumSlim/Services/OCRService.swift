@@ -29,6 +29,21 @@ enum ScreenshotCategory: String, CaseIterable {
         case .other: .gray
         }
     }
+
+    var localizedName: String {
+        switch self {
+        case .verificationCode: return String(localized: "验证码")
+        case .address:          return String(localized: "地址")
+        case .chatRecord:       return String(localized: "聊天记录")
+        case .article:          return String(localized: "文章")
+        case .receipt:          return String(localized: "账单/收据")
+        case .delivery:         return String(localized: "快递")
+        case .meeting:          return String(localized: "会议")
+        case .code:             return String(localized: "代码")
+        case .socialMedia:      return String(localized: "社交媒体")
+        case .other:            return String(localized: "其他")
+        }
+    }
 }
 
 struct OCRResult {

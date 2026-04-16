@@ -104,7 +104,7 @@ struct SettingsView: View {
                     set: { reminder.reminderInterval = $0 }
                 )) {
                     ForEach(ReminderService.ReminderInterval.allCases, id: \.self) { interval in
-                        Text(interval.rawValue).tag(interval)
+                        Text(interval.localizedName).tag(interval)
                     }
                 }
             }
