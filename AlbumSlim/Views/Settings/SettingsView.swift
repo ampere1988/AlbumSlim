@@ -6,6 +6,8 @@ struct SettingsView: View {
     @State private var showPermissionDenied = false
     @State private var showClearCacheConfirm = false
     @State private var showPaywall = false
+    @State private var showRestartAlert = false
+    @AppStorage("appLanguage") private var appLanguage = "system"
 
     private let privacyPolicyURL = URL(string: "https://chunbingtang.com/privacy.html")!
     private let termsURL = URL(string: "https://chunbingtang.com/terms.html")!
@@ -43,6 +45,14 @@ struct SettingsView: View {
                 Button("取消", role: .cancel) {}
             } message: {
                 Text("将清除所有分析缓存数据，下次扫描需要重新分析。此操作不会影响您的照片和视频。")
+            }
+            .alert("语言已更改", isPresented: $showRestartAlert) {
+                Button("立即退出") {
+                    exit(0)
+                }
+                Button("稍后", role: .cancel) {}
+            } message: {
+                Text("新的语言设置将在重启 App 后生效")
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
@@ -115,6 +125,20 @@ struct SettingsView: View {
 
     private var generalSection: some View {
         Section("通用") {
+            Picker("语言", selection: $appLanguage) {
+                Text("跟随系统").tag("system")
+                Text("简体中文").tag("zh-Hans")
+                Text("English").tag("en")
+            }
+            .onChange(of: appLanguage) { _, newValue in
+                if newValue == "system" {
+                    UserDefaults.standard.removeObject(forKey: "AppleLanguages")
+                } else {
+                    UserDefaults.standard.set([newValue], forKey: "AppleLanguages")
+                }
+                showRestartAlert = true
+            }
+
             Button(role: .destructive) {
                 showClearCacheConfirm = true
             } label: {
