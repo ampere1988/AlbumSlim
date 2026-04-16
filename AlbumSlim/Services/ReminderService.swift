@@ -65,8 +65,8 @@ final class ReminderService {
         cancelReminder()
 
         let content = UNMutableNotificationContent()
-        content.title = "该清理相册了"
-        content.body = "您的相册可能积累了不少新照片，来看看有哪些可以清理吧"
+        content.title = String(localized: "该清理相册了")
+        content.body = String(localized: "您的相册可能积累了不少新照片，来看看有哪些可以清理吧")
         content.sound = .default
 
         var dateComponents = DateComponents()

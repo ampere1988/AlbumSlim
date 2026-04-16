@@ -60,7 +60,7 @@ final class VideoAnalysisService {
                     id: "\(video.id)_tooLong",
                     item: video,
                     type: .tooLong,
-                    reason: "时长超过5分钟，建议压缩或裁剪",
+                    reason: String(localized: "时长超过5分钟，建议压缩或裁剪"),
                     estimatedSaving: Int64(Double(video.fileSize) * 0.5)
                 ))
                 usedIDs.insert(video.id)
@@ -71,7 +71,7 @@ final class VideoAnalysisService {
                     id: "\(video.id)_lowQuality",
                     item: video,
                     type: .lowQuality,
-                    reason: video.pixelWidth < 1280 ? "分辨率低于720p" : "极短且体积小",
+                    reason: video.pixelWidth < 1280 ? String(localized: "分辨率低于720p") : String(localized: "极短且体积小"),
                     estimatedSaving: video.fileSize
                 ))
                 usedIDs.insert(video.id)
@@ -82,7 +82,7 @@ final class VideoAnalysisService {
                     id: "\(video.id)_largeFile",
                     item: video,
                     type: .largeFile,
-                    reason: "文件超过100MB，建议压缩",
+                    reason: String(localized: "文件超过100MB，建议压缩"),
                     estimatedSaving: Int64(Double(video.fileSize) * 0.5)
                 ))
                 usedIDs.insert(video.id)
@@ -102,7 +102,7 @@ final class VideoAnalysisService {
                     id: "\(a.id)_\(b.id)_dup",
                     item: smaller,
                     type: .possibleDuplicate,
-                    reason: "与相邻视频时间和时长相近",
+                    reason: String(localized: "与相邻视频时间和时长相近"),
                     estimatedSaving: smaller.fileSize
                 ))
             }

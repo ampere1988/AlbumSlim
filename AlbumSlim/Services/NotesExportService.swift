@@ -37,8 +37,8 @@ final class NotesExportService {
     func shareText(for note: SavedNote) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        let dateStr = note.screenshotDate.map { formatter.string(from: $0) } ?? "未知日期"
-        return "\(note.category) | \(dateStr)\n\n\(note.text)\n\n— 由闪图导出"
+        let dateStr = note.screenshotDate.map { formatter.string(from: $0) } ?? String(localized: "未知日期")
+        return "\(note.category) | \(dateStr)\n\n\(note.text)\n\n\(String(localized: "— 由闪图导出"))"
     }
 
     private func loadNotes() {

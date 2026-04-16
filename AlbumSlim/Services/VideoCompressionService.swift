@@ -165,10 +165,10 @@ final class VideoCompressionService {
         }.count
 
         let content = UNMutableNotificationContent()
-        content.title = "视频压缩完成"
+        content.title = String(localized: "视频压缩完成")
         content.body = failed > 0
-            ? "成功压缩 \(completed) 个视频，\(failed) 个失败"
-            : "成功压缩 \(completed) 个视频"
+            ? String(localized: "成功压缩 \(completed) 个视频，\(failed) 个失败")
+            : String(localized: "成功压缩 \(completed) 个视频")
         content.sound = .default
 
         let request = UNNotificationRequest(identifier: "compression-done", content: content, trigger: nil)
@@ -226,10 +226,10 @@ enum CompressionError: LocalizedError {
 
     var errorDescription: String? {
         switch self {
-        case .exportSessionFailed: return "无法创建压缩会话"
-        case .assetNotAvailable:   return "视频不可用（可能在 iCloud 中）"
-        case .saveFailed:          return "保存失败"
-        case .unknown:             return "压缩失败"
+        case .exportSessionFailed: return String(localized: "无法创建压缩会话")
+        case .assetNotAvailable:   return String(localized: "视频不可用（可能在 iCloud 中）")
+        case .saveFailed:          return String(localized: "保存失败")
+        case .unknown:             return String(localized: "压缩失败")
         }
     }
 }

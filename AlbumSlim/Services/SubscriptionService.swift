@@ -27,7 +27,7 @@ final class SubscriptionService {
             let fetched = try await Product.products(for: [Self.productID])
             product = fetched.first
         } catch {
-            purchaseError = "无法加载产品信息"
+            purchaseError = String(localized: "无法加载产品信息")
         }
     }
 
@@ -45,7 +45,7 @@ final class SubscriptionService {
         case .userCancelled:
             break
         case .pending:
-            purchaseError = "购买待确认"
+            purchaseError = String(localized: "购买待确认")
         @unknown default:
             break
         }
@@ -96,6 +96,6 @@ final class SubscriptionService {
 
     enum StoreError: LocalizedError {
         case verificationFailed
-        var errorDescription: String? { "交易验证失败" }
+        var errorDescription: String? { String(localized: "交易验证失败") }
     }
 }
