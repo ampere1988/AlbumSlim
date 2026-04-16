@@ -18,19 +18,14 @@
         }
       }
     },
-    "NSPhotoLibraryUsageDescription" : {
-      "extractionState" : "manual",
+    "CFBundleName" : {
+      "comment" : "Bundle name",
+      "extractionState" : "extracted_with_value",
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AlbumSlim needs access to your photo library to analyze and manage photos and videos. All processing is done locally on your device."
-          }
-        },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "闪图需要访问您的照片库来分析和管理照片视频，所有处理均在本地完成。"
+            "state" : "new",
+            "value" : "AlbumSlim"
           }
         }
       }
@@ -48,6 +43,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "闪图需要保存压缩后的视频到您的照片库。"
+          }
+        }
+      }
+    },
+    "NSPhotoLibraryUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AlbumSlim needs access to your photo library to analyze and manage photos and videos. All processing is done locally on your device."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "闪图需要访问您的照片库来分析和管理照片视频，所有处理均在本地完成。"
           }
         }
       }
