@@ -133,7 +133,7 @@ extension Notification.Name {
 }
 
 private struct StatCard: View {
-    let title: String
+    let title: LocalizedStringKey
     let count: Int
     let size: Int64
     let icon: String

@@ -71,7 +71,7 @@ struct PaywallView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
     }
 
-    private func featureRow(icon: String, color: Color, text: String) -> some View {
+    private func featureRow(icon: String, color: Color, text: LocalizedStringKey) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.title3)

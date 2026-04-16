@@ -87,7 +87,7 @@ struct OnboardingView: View {
         }
     }
 
-    private func featureRow(icon: String, text: String) -> some View {
+    private func featureRow(icon: String, text: LocalizedStringKey) -> some View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.title3)
@@ -169,7 +169,7 @@ struct PrivacyAgreementView: View {
         .padding(24)
     }
 
-    private func privacyItem(icon: String, title: String, detail: String) -> some View {
+    private func privacyItem(icon: String, title: LocalizedStringKey, detail: LocalizedStringKey) -> some View {
         HStack(alignment: .top, spacing: 14) {
             Image(systemName: icon)
                 .font(.title3)
