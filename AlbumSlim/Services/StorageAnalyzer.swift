@@ -69,7 +69,7 @@ final class StorageAnalyzer {
     }
 
     /// 实际扫描逻辑，在后台线程执行重计算
-    private func performScan(using photoLibrary: PhotoLibraryService, reportProgress: Bool) async -> StorageStats {
+    private func performScan(using photoLibrary: PhotoLibraryService, reportProgress _: Bool) async -> StorageStats {
         // PHFetchResult 获取很快（惰性），在主线程执行即可
         let allAssets = photoLibrary.fetchAllAssets()
         let total = allAssets.count
@@ -84,7 +84,7 @@ final class StorageAnalyzer {
         let batchSize = 500
         let reportEvery = max(total / 20, batchSize) // 最多报告 20 次进度
 
-        let result = await Task.detached(priority: .userInitiated) { [reportProgress] () -> StorageStats in
+        let result = await Task.detached(priority: .userInitiated) { () -> StorageStats in
             var stats = StorageStats()
 
             for batchStart in stride(from: 0, to: total, by: batchSize) {

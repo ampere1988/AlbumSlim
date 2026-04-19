@@ -34,12 +34,23 @@ final class PhotoCleanerViewModel {
         }
     }
 
+    func deselectGroup(_ group: CleanupGroup) {
+        for item in group.items {
+            selectedForDeletion.remove(item.id)
+        }
+    }
+
+    func isGroupFullySelectedExceptBest(_ group: CleanupGroup) -> Bool {
+        let nonBest = group.items.filter { $0.id != group.bestItemID }
+        guard !nonBest.isEmpty else { return false }
+        return nonBest.allSatisfy { selectedForDeletion.contains($0.id) }
+    }
+
     func autoSelectAllExceptBest(isPro: Bool) {
         selectedForDeletion.removeAll()
-        for (index, group) in similarGroups.enumerated() {
-            if ProFeatureGate.canClean(isPro: isPro) {
-                selectAllExceptBest(in: group)
-            }
+        guard ProFeatureGate.canClean(isPro: isPro) else { return }
+        for group in similarGroups {
+            selectAllExceptBest(in: group)
         }
     }
 

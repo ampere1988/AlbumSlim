@@ -44,7 +44,7 @@ struct OnboardingView: View {
             switch authStatus {
             case .denied, .restricted:
                 VStack(spacing: 12) {
-                    Text("需要相册访问权限才能使用")
+                    Text("未授权相册访问")
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
                     Button("前往系统设置") {
@@ -52,6 +52,10 @@ struct OnboardingView: View {
                     }
                     .buttonStyle(.borderedProminent)
                     .controlSize(.large)
+                    Button("稍后再说") {
+                        hasCompletedOnboarding = true
+                    }
+                    .font(.footnote)
                 }
             default:
                 Button {
@@ -60,9 +64,7 @@ struct OnboardingView: View {
                         let status = await PermissionManager.requestPhotoLibrary()
                         authStatus = status
                         isRequesting = false
-                        if status == .authorized || status == .limited {
-                            hasCompletedOnboarding = true
-                        }
+                        hasCompletedOnboarding = (status != .notDetermined)
                     }
                 } label: {
                     if isRequesting {

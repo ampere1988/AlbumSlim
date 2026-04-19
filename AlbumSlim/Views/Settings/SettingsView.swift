@@ -47,12 +47,9 @@ struct SettingsView: View {
                 Text("将清除所有分析缓存数据，下次扫描需要重新分析。此操作不会影响您的照片和视频。")
             }
             .alert("语言已更改", isPresented: $showRestartAlert) {
-                Button("立即退出") {
-                    exit(0)
-                }
-                Button("稍后", role: .cancel) {}
+                Button("知道了", role: .cancel) {}
             } message: {
-                Text("新的语言设置将在重启 App 后生效")
+                Text("请从后台完全关闭闪图后重新打开，新的语言设置即可生效")
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()

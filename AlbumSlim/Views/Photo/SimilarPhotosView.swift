@@ -56,8 +56,13 @@ struct SimilarPhotosView: View {
                                         selection: $viewModel.selectedForDeletion
                                     )
 
-                                    Button("选中除最佳外全部") {
-                                        viewModel.selectAllExceptBest(in: group)
+                                    let isFullySelected = viewModel.isGroupFullySelectedExceptBest(group)
+                                    Button(isFullySelected ? "取消选中本组" : "选中除最佳外全部") {
+                                        if isFullySelected {
+                                            viewModel.deselectGroup(group)
+                                        } else {
+                                            viewModel.selectAllExceptBest(in: group)
+                                        }
                                     }
                                     .font(.footnote)
                                 }

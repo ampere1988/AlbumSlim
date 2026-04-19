@@ -13,7 +13,7 @@ struct AlbumSlimApp: App {
 
     var body: some Scene {
         WindowGroup {
-            if hasCompletedOnboarding && PermissionManager.isAuthorized {
+            if hasCompletedOnboarding {
                 MainTabView()
                     .environment(services)
                     .task { await services.prepareAsync() }

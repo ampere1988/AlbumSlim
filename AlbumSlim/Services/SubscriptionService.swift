@@ -9,6 +9,7 @@ final class SubscriptionService {
     var purchaseError: String?
     var isLoading = false
 
+    @ObservationIgnored
     nonisolated(unsafe) private var transactionListener: Task<Void, Never>?
 
     init() {

@@ -154,7 +154,7 @@ struct VideoSuggestionsView: View {
     private func compressSelected() async {
         let items = viewModel.suggestions.filter { selectedIDs.contains($0.id) }.map(\.item)
         for item in items {
-            try? await services.videoCompression.compressVideo(asset: item.asset, quality: .high)
+            _ = try? await services.videoCompression.compressVideo(asset: item.asset, quality: .high)
         }
         selectedIDs.removeAll()
         isEditing = false

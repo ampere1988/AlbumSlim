@@ -13,7 +13,7 @@ options:
 settings:
   base:
     SWIFT_VERSION: "6.0"
-    MARKETING_VERSION: "1.3"
+    MARKETING_VERSION: "1.0"
     CURRENT_PROJECT_VERSION: 1
     DEVELOPMENT_TEAM: "74H37MDT83"
     SWIFT_STRICT_CONCURRENCY: targeted
@@ -49,8 +49,7 @@ targets:
           - com.hao.doushan.analysis
         UIBackgroundModes:
           - processing
-        UIFileSharingEnabled: true
-        LSSupportsOpeningDocumentsInPlace: true
+        ITSAppUsesNonExemptEncryption: false
     dependencies: []
 
   AlbumSlimTests:

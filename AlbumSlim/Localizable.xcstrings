@@ -12,6 +12,9 @@
         }
       }
     },
+    "·" : {
+
+    },
     "%@" : {
 
     },
@@ -39,6 +42,7 @@
       }
     },
     "%@ 永久解锁" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -47,6 +51,9 @@
           }
         }
       }
+    },
+    "%@ 解锁 Pro" : {
+
     },
     "%@ 项" : {
 
@@ -133,7 +140,11 @@
         }
       }
     },
+    "一次性付费，不自动续费。购买后在当前 Apple ID 下长期解锁所有 Pro 功能。" : {
+
+    },
     "一次性付费，不自动续费。购买后永久解锁所有 Pro 功能。" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -144,6 +155,7 @@
       }
     },
     "一次购买，永久使用" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -152,6 +164,9 @@
           }
         }
       }
+    },
+    "一次购买，终身使用" : {
+
     },
     "上次扫描结果" : {
       "extractionState" : "stale",
@@ -832,6 +847,17 @@
         }
       }
     },
+    "取消选中本组" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deselect This Group"
+          }
+        }
+      }
+    },
     "只保留最佳" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1174,6 +1200,9 @@
           }
         }
       }
+    },
+    "开启权限后才能扫描和清理" : {
+
     },
     "开始扫描" : {
       "extractionState" : "stale",
@@ -1544,6 +1573,7 @@
       }
     },
     "新的语言设置将在重启 App 后生效" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1745,6 +1775,9 @@
           }
         }
       }
+    },
+    "未授权相册访问" : {
+
     },
     "未知日期" : {
       "extractionState" : "stale",
@@ -2837,6 +2870,9 @@
         }
       }
     },
+    "请从后台完全关闭闪图后重新打开，新的语言设置即可生效" : {
+
+    },
     "请在系统设置中允许闪图发送通知，以便接收清理提醒" : {
       "localizations" : {
         "en" : {
@@ -3117,6 +3153,7 @@
       }
     },
     "需要相册访问权限才能使用" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

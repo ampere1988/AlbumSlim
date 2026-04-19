@@ -1,7 +1,9 @@
 import SwiftUI
+import Photos
 
 struct MainTabView: View {
     @State private var selectedTab = 0
+    @State private var photoAuthStatus: PHAuthorizationStatus = PermissionManager.photoLibraryStatus
 
     var body: some View {
         TabView(selection: $selectedTab) {
@@ -31,11 +33,43 @@ struct MainTabView: View {
                 }
                 .tag(4)
         }
+        .safeAreaInset(edge: .top) {
+            if photoAuthStatus != .authorized && photoAuthStatus != .limited {
+                permissionBanner
+            }
+        }
         .onReceive(NotificationCenter.default.publisher(for: .switchTab)) { notification in
             if let index = notification.userInfo?["index"] as? Int {
                 selectedTab = index
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+            photoAuthStatus = PermissionManager.photoLibraryStatus
+        }
+    }
+
+    private var permissionBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "exclamationmark.triangle.fill")
+                .foregroundStyle(.orange)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("未授权相册访问")
+                    .font(.footnote.bold())
+                Text("开启权限后才能扫描和清理")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+            Spacer()
+            Button("去设置") {
+                PermissionManager.openSettings()
+            }
+            .font(.footnote.bold())
+            .buttonStyle(.borderedProminent)
+            .controlSize(.small)
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(.thinMaterial)
     }
 }
 

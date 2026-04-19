@@ -79,7 +79,6 @@ final class AIAnalysisEngine: @unchecked Sendable {
         for corner in corners {
             var warmPixels = 0
             var totalPixels = 0
-            let step = max(1, (cornerW * cornerH) / 200)
             for y in stride(from: corner.yStart, to: corner.yStart + cornerH, by: max(1, cornerH / 14)) {
                 for x in stride(from: corner.xStart, to: corner.xStart + cornerW, by: max(1, cornerW / 14)) {
                     let offset = y * bytesPerRow + x * bpp

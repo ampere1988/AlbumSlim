@@ -49,7 +49,7 @@ struct PaywallView: View {
                 .foregroundStyle(.yellow.gradient)
             Text("解锁全部功能")
                 .font(.largeTitle.bold())
-            Text("一次购买，永久使用")
+            Text("一次购买，终身使用")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -101,7 +101,7 @@ struct PaywallView: View {
                             ProgressView()
                                 .tint(.white)
                         } else {
-                            Text("\(product.displayPrice) 永久解锁")
+                            Text("\(product.displayPrice) 解锁 Pro")
                                 .font(.headline)
                         }
                     }
@@ -134,10 +134,19 @@ struct PaywallView: View {
             }
             .font(.footnote)
 
-            Text("一次性付费，不自动续费。购买后永久解锁所有 Pro 功能。")
+            Text("一次性付费，不自动续费。购买后在当前 Apple ID 下长期解锁所有 Pro 功能。")
                 .font(.caption2)
                 .foregroundStyle(.tertiary)
                 .multilineTextAlignment(.center)
+
+            HStack(spacing: 16) {
+                Link("隐私政策", destination: URL(string: "https://chunbingtang.com/privacy.html")!)
+                Text("·").foregroundStyle(.tertiary)
+                Link("使用条款", destination: URL(string: "https://chunbingtang.com/terms.html")!)
+            }
+            .font(.caption2)
+            .foregroundStyle(.secondary)
+            .padding(.top, 4)
         }
     }
 }
