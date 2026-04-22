@@ -53,6 +53,24 @@ AlbumSlim/
 AlbumSlimWidget/            # WidgetKit 小组件 (独立 target)
 ```
 
+## 开发命令
+
+```bash
+# 重新生成 Xcode 项目（修改 Swift 文件或 project.yml 后必须执行）
+xcodegen generate
+
+# 编译（Debug, iOS Simulator）
+xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'
+
+# 运行测试
+xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'
+
+# 清理构建
+xcodebuild clean -project AlbumSlim.xcodeproj -scheme AlbumSlim
+```
+
 ## 编码规范
 
 - 所有 `@Observable` 类标记 `@MainActor`
@@ -64,7 +82,75 @@ AlbumSlimWidget/            # WidgetKit 小组件 (独立 target)
 - 并发严格性: `SWIFT_STRICT_CONCURRENCY = targeted`
 - git commit 消息用中文
 - 修改 Swift 文件后需 `xcodegen generate` 重新生成 xcodeproj
-- 编译验证: `xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'`
+
+### 命名规范
+
+| 类型 | 规则 | 示例 |
+|---|---|---|
+| Service | `{Domain}Service` 或 `{Domain}Coordinator/Analyzer/Engine` | `PhotoLibraryService`, `CleanupCoordinator` |
+| ViewModel | `{Feature}ViewModel` | `PhotoCleanerViewModel`, `DashboardViewModel` |
+| Model | 单数名词 | `MediaItem`, `CleanupGroup`, `StorageStats` |
+| View | `{Feature}View` | `PhotoCleanerView`, `DashboardView` |
+| 枚举 | PascalCase | `WasteReason`, `PhotoQuality`, `GroupType` |
+
+## 服务依赖关系
+
+```
+AppServiceContainer（统一容器，所有服务在 init 时创建）
+│
+├── PhotoLibraryService          # 基础层 — 无依赖
+├── AIAnalysisEngine             # 基础层 — 无依赖
+├── OCRService                   # 基础层 — 无依赖
+├── VideoAnalysisService         # 基础层 — 无依赖
+├── AchievementService           # 基础层 — 仅 UserDefaults
+├── NotesExportService           # 基础层 — 仅 UserDefaults
+├── ReminderService              # 基础层 — 无依赖
+├── SubscriptionService          # 基础层 — StoreKit
+├── AnalysisCacheService         # 基础层 — SwiftData
+│
+├── StorageAnalyzer              → PhotoLibraryService
+├── ImageSimilarityService       → PhotoLibraryService, AnalysisCacheService
+├── VideoCompressionService      # 独立 — AVFoundation
+├── CleanupCoordinator           → PhotoLibraryService, AIAnalysisEngine,
+│                                  AnalysisCacheService, ImageSimilarityService
+└── BackgroundTaskService        → AppServiceContainer (调用 cleanupCoordinator)
+```
+
+## ViewModel 模式
+
+ViewModel **不通过构造函数注入服务**，而是在异步方法中接收 `AppServiceContainer`：
+
+```swift
+@MainActor @Observable
+final class SomeFeatureViewModel {
+    var items: [Item] = []
+    var isLoading = false
+    var errorMessage: String?
+
+    func load(services: AppServiceContainer) async {
+        isLoading = true
+        defer { isLoading = false }
+        // 通过 services.xxx 访问具体服务
+    }
+
+    func delete(ids: Set<String>, services: AppServiceContainer) async {
+        // Pro 功能检查: services.subscription.isPro
+        // 删除操作: services.photoLibrary.deleteAssets(...)
+        // 成就记录: services.achievement.recordCleanup(...)
+    }
+}
+```
+
+View 中获取容器: `@Environment(AppServiceContainer.self) var services`
+
+## 添加新功能指南
+
+1. **Model** — 在 `Models/` 定义数据模型，遵循 `Identifiable`
+2. **Service**（如需要）— 在 `Services/` 创建，注册到 `AppServiceContainer`
+3. **ViewModel** — 在 `ViewModels/` 创建，`@MainActor @Observable`，方法接收 `services: AppServiceContainer`
+4. **View** — 在 `Views/{Feature}/` 创建，用 `@Environment(AppServiceContainer.self)` 获取容器
+5. **Pro 限制** — 清理/删除操作需 `ProFeatureGate` 包裹或检查 `services.subscription.isPro`
+6. **构建验证** — `xcodegen generate && xcodebuild build ...`
 
 ## 开发进度
 
