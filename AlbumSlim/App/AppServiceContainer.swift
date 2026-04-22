@@ -19,6 +19,7 @@ final class AppServiceContainer {
     let backgroundTask: BackgroundTaskService
 
     private(set) var isReady = false
+    private var prepareTask: Task<Void, Never>?
 
     init() {
         self.photoLibrary = PhotoLibraryService()
@@ -38,9 +39,18 @@ final class AppServiceContainer {
         self.backgroundTask = BackgroundTaskService()
     }
 
-    /// 异步恢复缓存数据，不阻塞主线程
+    /// 异步恢复缓存数据，不阻塞主线程。幂等：并发多次调用共享同一次执行
     func prepareAsync() async {
-        await cleanupCoordinator.restoreGroups(using: photoLibrary)
-        isReady = true
+        if isReady { return }
+        if let task = prepareTask {
+            await task.value
+            return
+        }
+        let task = Task { @MainActor in
+            await cleanupCoordinator.restoreGroups(using: photoLibrary)
+            isReady = true
+        }
+        prepareTask = task
+        await task.value
     }
 }

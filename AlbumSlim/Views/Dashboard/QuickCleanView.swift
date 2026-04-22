@@ -17,6 +17,8 @@ struct QuickCleanView: View {
         .navigationTitle("智能扫描")
         .navigationBarTitleDisplayMode(.inline)
         .task {
+            // 等待骨架恢复完成，避免重启后 pendingGroups 尚未加载就触发 fullScan
+            await services.prepareAsync()
             if viewModel.cleanupGroups.isEmpty && !viewModel.isScanning {
                 await viewModel.loadOrScan(services: services)
             }
