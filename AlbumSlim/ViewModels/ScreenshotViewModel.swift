@@ -91,6 +91,7 @@ final class ScreenshotViewModel {
             await analyzeScreenshot(item, services: services)
             analysisProgress = Double(index + 1) / Double(total)
         }
+        services.achievement.recordScan()
     }
 
     func analyzeAndExportSelected(services: AppServiceContainer) async -> Int {

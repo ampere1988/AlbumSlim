@@ -118,6 +118,7 @@ final class PhotoCleanerViewModel {
 
         coordinator.addGroups(similarGroups)
         coordinator.markCategoryScanned(.similar, libraryVersion: version)
+        services.achievement.recordScan()
         scanProgress = 1.0
     }
 
@@ -211,5 +212,6 @@ final class PhotoCleanerViewModel {
         let wasteGroup = CleanupGroup(type: .waste, items: waste, bestItemID: nil)
         coordinator.addGroups([wasteGroup])
         coordinator.markCategoryScanned(.waste, libraryVersion: version)
+        services.achievement.recordScan()
     }
 }

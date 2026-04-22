@@ -102,6 +102,7 @@ struct DashboardView: View {
                     }
                 }
                 .padding(.vertical)
+                .iPadContentMaxWidth()
             }
             .navigationTitle("闪图")
             .toolbar {

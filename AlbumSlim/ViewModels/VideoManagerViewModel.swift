@@ -95,8 +95,16 @@ final class VideoManagerViewModel {
         for item in items {
             services.videoCompression.enqueueCompression(asset: item.asset, quality: selectedQuality)
         }
+        let count = items.count
         selectedVideos.removeAll()
         await services.videoCompression.processQueue()
+        let compressed = services.videoCompression.queue.filter {
+            if case .completed = $0.status { return true }
+            return false
+        }.count
+        if compressed > 0 {
+            services.achievement.recordCompression(count: compressed)
+        }
         lastLibraryVersion = -1
         await loadVideos(services: services)
     }

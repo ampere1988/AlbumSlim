@@ -19,6 +19,24 @@ final class AchievementService {
         set { UserDefaults.standard.set(newValue, forKey: "totalDeletedCount") }
     }
 
+    var totalScanCount: Int {
+        get { UserDefaults.standard.integer(forKey: "totalScanCount") }
+        set { UserDefaults.standard.set(newValue, forKey: "totalScanCount") }
+    }
+
+    var totalCompressedCount: Int {
+        get { UserDefaults.standard.integer(forKey: "totalCompressedCount") }
+        set { UserDefaults.standard.set(newValue, forKey: "totalCompressedCount") }
+    }
+
+    func recordScan() {
+        totalScanCount += 1
+    }
+
+    func recordCompression(count: Int) {
+        totalCompressedCount += count
+    }
+
     @discardableResult
     func recordCleanup(freedSpace: Int64, deletedCount: Int) -> [Achievement] {
         totalFreedSpace += freedSpace

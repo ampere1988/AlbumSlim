@@ -19,6 +19,8 @@ struct SettingsView: View {
             Form {
                 subscriptionSection
 
+                usageStatsSection
+
                 reminderSection(reminder: reminder)
 
                 generalSection
@@ -80,6 +82,22 @@ struct SettingsView: View {
             Button("恢复购买") {
                 Task { await services.subscription.restorePurchases() }
             }
+        }
+    }
+
+    // MARK: - 使用统计
+
+    private var usageStatsSection: some View {
+        Section("使用统计") {
+            let achievement = services.achievement
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                StatCard(icon: "trash.circle.fill", color: .red, value: "\(achievement.totalDeletedCount)", label: String(localized: "已删除项目"))
+                StatCard(icon: "arrow.triangle.2.circlepath.circle.fill", color: .blue, value: "\(achievement.totalCleanupCount)", label: String(localized: "清理次数"))
+                StatCard(icon: "internaldrive.fill", color: .green, value: achievement.totalFreedSpace.formattedFileSize, label: String(localized: "节省空间"))
+                StatCard(icon: "magnifyingglass.circle.fill", color: .orange, value: "\(achievement.totalScanCount)", label: String(localized: "扫描分析"))
+                StatCard(icon: "video.circle.fill", color: .purple, value: "\(achievement.totalCompressedCount)", label: String(localized: "视频压缩"))
+            }
+            .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
         }
     }
 
@@ -189,6 +207,30 @@ struct SettingsView: View {
         guard let scene = UIApplication.shared.connectedScenes
             .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene else { return }
         SKStoreReviewController.requestReview(in: scene)
+    }
+
+    // MARK: - StatCard
+
+    private struct StatCard: View {
+        let icon: String
+        let color: Color
+        let value: String
+        let label: String
+
+        var body: some View {
+            VStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.title2)
+                    .foregroundStyle(color)
+                Text(value)
+                    .font(.title3.bold())
+                Text(label)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+        }
     }
 
     private func sendFeedbackEmail() {

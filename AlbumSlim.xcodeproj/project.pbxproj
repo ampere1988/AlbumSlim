@@ -49,6 +49,7 @@
 		A2AE72818CB526E3801BEEA7 /* ReviewPromptManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01B3DAB2CDA8AA28B4DB388D /* ReviewPromptManager.swift */; };
 		A6EFC8BE2ED9A9E69CADB997 /* NotesExportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A8F1256F58BBF87D2E2191C /* NotesExportService.swift */; };
 		A85122252BE78DA9456760AB /* VideoListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65D0EF955289F42624611D63 /* VideoListView.swift */; };
+		AB62A0612AC2AEA0B990EC76 /* View+iPadAdaptive.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED90E8A25CD3EEA84145F59D /* View+iPadAdaptive.swift */; };
 		ADFF6F46B351B315ED5A3E34 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168632FBA643967FF8F4CBF7 /* OnboardingView.swift */; };
 		B804842A575B51E01E2B6054 /* QuickCleanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F875F651E12872BBA0926BC2 /* QuickCleanViewModel.swift */; };
 		BB4AC2657683670C98143D12 /* ReminderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5400262DB6A4800E5054A6C /* ReminderService.swift */; };
@@ -149,6 +150,7 @@
 		D51B791FBB73A7995FF9DB90 /* StorageStatsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageStatsTests.swift; sourceTree = "<group>"; };
 		D5400262DB6A4800E5054A6C /* ReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderService.swift; sourceTree = "<group>"; };
 		EA2B04B956CF16DA0FD62C1D /* QuickCleanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickCleanView.swift; sourceTree = "<group>"; };
+		ED90E8A25CD3EEA84145F59D /* View+iPadAdaptive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+iPadAdaptive.swift"; sourceTree = "<group>"; };
 		F66C686CC08437B0FA879091 /* CleanupGroupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupGroupTests.swift; sourceTree = "<group>"; };
 		F875F651E12872BBA0926BC2 /* QuickCleanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickCleanViewModel.swift; sourceTree = "<group>"; };
 		FBC5D320592C9766E00115AB /* AsyncSemaphore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncSemaphore.swift; sourceTree = "<group>"; };
@@ -308,6 +310,7 @@
 				4357D7A7CCFCE2506C657CA9 /* ProFeatureGate.swift */,
 				01B3DAB2CDA8AA28B4DB388D /* ReviewPromptManager.swift */,
 				AE7CB5272F042217583FD9D2 /* ShareCardGenerator.swift */,
+				ED90E8A25CD3EEA84145F59D /* View+iPadAdaptive.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -529,6 +532,7 @@
 				A85122252BE78DA9456760AB /* VideoListView.swift in Sources */,
 				0ED444FD32F3FDD30A9E4900 /* VideoManagerViewModel.swift in Sources */,
 				8C38F32847A001562187A646 /* VideoSuggestionsView.swift in Sources */,
+				AB62A0612AC2AEA0B990EC76 /* View+iPadAdaptive.swift in Sources */,
 				0EEB4E217CE348DC5B8E6FE0 /* WastePhotosView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -560,8 +564,6 @@
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "闪图需要保存压缩后的视频到您的照片库。";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "闪图需要访问您的照片库来分析和管理照片视频，所有处理均在本地完成。";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				"INFOPLIST_KEY_UISupportedInterfaceOrientations~ipad" = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -667,8 +669,6 @@
 				INFOPLIST_KEY_NSPhotoLibraryAddUsageDescription = "闪图需要保存压缩后的视频到您的照片库。";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "闪图需要访问您的照片库来分析和管理照片视频，所有处理均在本地完成。";
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
-				"INFOPLIST_KEY_UISupportedInterfaceOrientations~ipad" = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
