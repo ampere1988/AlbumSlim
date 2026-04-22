@@ -3,13 +3,82 @@ import Photos
 
 struct ScreenshotDetailView: View {
     @Environment(AppServiceContainer.self) private var services
+    let screenshots: [MediaItem]
+    @Bindable var viewModel: ScreenshotViewModel
+    let onDelete: (String) -> Void
+
+    @State private var currentIndex: Int
+    @State private var showDeleteConfirmation = false
+
+    init(screenshots: [MediaItem], currentID: String, viewModel: ScreenshotViewModel, onDelete: @escaping (String) -> Void) {
+        self.screenshots = screenshots
+        self.viewModel = viewModel
+        self.onDelete = onDelete
+        self._currentIndex = State(initialValue: screenshots.firstIndex(where: { $0.id == currentID }) ?? 0)
+    }
+
+    private var currentItem: MediaItem? {
+        screenshots.indices.contains(currentIndex) ? screenshots[currentIndex] : nil
+    }
+
+    var body: some View {
+        TabView(selection: $currentIndex) {
+            ForEach(Array(screenshots.enumerated()), id: \.element.id) { index, item in
+                ScreenshotDetailPage(
+                    item: item,
+                    ocrResult: Binding(
+                        get: { viewModel.ocrResults[item.id] },
+                        set: { viewModel.ocrResults[item.id] = $0 }
+                    ),
+                    isExported: Binding(
+                        get: { viewModel.exportedIDs.contains(item.id) },
+                        set: { if $0 { viewModel.markExported(item.id) } else { viewModel.unmarkExported(item.id) } }
+                    )
+                )
+                .tag(index)
+            }
+        }
+        .tabViewStyle(.page(indexDisplayMode: .never))
+        .navigationTitle(currentItem?.creationDate?.formatted(date: .abbreviated, time: .shortened) ?? "截图详情")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItemGroup(placement: .bottomBar) {
+                if let id = currentItem?.id, let text = viewModel.ocrResults[id]?.text {
+                    Button {
+                        UIPasteboard.general.string = text
+                    } label: {
+                        Label("复制文字", systemImage: "doc.on.doc")
+                    }
+                    Spacer()
+                }
+
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
+                    Label("删除截图", systemImage: "trash")
+                }
+            }
+        }
+        .confirmationDialog("确定删除这张截图？", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
+            Button("删除", role: .destructive) {
+                guard let id = currentItem?.id else { return }
+                Task {
+                    try? await Task.sleep(for: .milliseconds(300))
+                    onDelete(id)
+                }
+            }
+        }
+    }
+}
+
+private struct ScreenshotDetailPage: View {
+    @Environment(AppServiceContainer.self) private var services
+    @Environment(\.horizontalSizeClass) private var horizontalSizeClass
     let item: MediaItem
     @Binding var ocrResult: OCRResult?
     @Binding var isExported: Bool
-    let onDelete: () -> Void
 
     @State private var image: UIImage?
-    @State private var showDeleteConfirmation = false
     @State private var saveState: SaveState = .idle
 
     enum SaveState { case idle, saving, saved, failed }
@@ -17,12 +86,16 @@ struct ScreenshotDetailView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // 大图预览
                 Group {
                     if let image {
+                        let isCompact = horizontalSizeClass == .compact
                         Image(uiImage: image)
                             .resizable()
                             .aspectRatio(contentMode: .fit)
+                            .frame(
+                                maxWidth: isCompact ? .infinity : 400,
+                                maxHeight: UIScreen.main.bounds.height * (isCompact ? 0.55 : 0.5)
+                            )
                     } else {
                         ProgressView()
                             .frame(height: 300)
@@ -32,7 +105,6 @@ struct ScreenshotDetailView: View {
                 .clipShape(RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal)
 
-                // 分类标签
                 if let result = ocrResult {
                     HStack {
                         Text(result.category.localizedName)
@@ -50,7 +122,6 @@ struct ScreenshotDetailView: View {
                     }
                 }
 
-                // OCR 文本
                 if let result = ocrResult {
                     VStack(alignment: .leading, spacing: 12) {
                         Text("识别文字")
@@ -113,56 +184,19 @@ struct ScreenshotDetailView: View {
                     .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
                     .padding(.horizontal)
                 } else {
-                    HStack(spacing: 12) {
-                        Button("开始识别") {
-                            Task {
-                                let size = CGSize(width: 1024, height: 1024)
-                                guard let img = await services.photoLibrary.thumbnail(for: item.asset, size: size),
-                                      let result = await services.ocrService.recognizeText(from: img) else { return }
-                                ocrResult = result
-                            }
+                    Button("开始识别") {
+                        Task {
+                            let size = CGSize(width: 1024, height: 1024)
+                            guard let img = await services.photoLibrary.thumbnail(for: item.asset, size: size),
+                                  let result = await services.ocrService.recognizeText(from: img) else { return }
+                            ocrResult = result
                         }
-                        .buttonStyle(.bordered)
-
-                        Button("直接删除", role: .destructive) {
-                            showDeleteConfirmation = true
-                        }
-                        .buttonStyle(.bordered)
                     }
+                    .buttonStyle(.bordered)
                 }
             }
             .padding(.vertical)
-        }
-        .navigationTitle(item.creationDate?.formatted(date: .abbreviated, time: .shortened) ?? "截图详情")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItemGroup(placement: .bottomBar) {
-                if ocrResult != nil {
-                    Button {
-                        if let text = ocrResult?.text {
-                            UIPasteboard.general.string = text
-                        }
-                    } label: {
-                        Label("复制文字", systemImage: "doc.on.doc")
-                    }
-
-                    Spacer()
-                }
-
-                Button(role: .destructive) {
-                    showDeleteConfirmation = true
-                } label: {
-                    Label("删除截图", systemImage: "trash")
-                }
-            }
-        }
-        .confirmationDialog("确定删除这张截图？", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
-            Button("删除", role: .destructive) {
-                Task {
-                    try? await Task.sleep(for: .milliseconds(300))
-                    onDelete()
-                }
-            }
+            .iPadContentMaxWidth()
         }
         .task {
             image = await services.photoLibrary.thumbnail(

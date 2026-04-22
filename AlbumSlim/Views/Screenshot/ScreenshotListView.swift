@@ -51,23 +51,19 @@ struct ScreenshotListView: View {
                         }
                     }
                     .navigationDestination(for: String.self) { screenshotID in
-                        if let screenshot = viewModel.screenshots.first(where: { $0.id == screenshotID }) {
-                            ScreenshotDetailView(
-                                item: screenshot,
-                                ocrResult: ocrBinding(for: screenshotID),
-                                isExported: exportedBinding(for: screenshotID),
-                                onDelete: {
-                                    let asset = screenshot.asset
-                                    viewModel.removeScreenshotFromUI(screenshotID)
-                                    navigationPath.removeLast()
-                                    Task {
-                                        try? await services.photoLibrary.deleteAssets([asset])
-                                    }
+                        ScreenshotDetailView(
+                            screenshots: viewModel.filteredScreenshots,
+                            currentID: screenshotID,
+                            viewModel: viewModel,
+                            onDelete: { deletedID in
+                                guard let asset = viewModel.screenshots.first(where: { $0.id == deletedID })?.asset else { return }
+                                viewModel.removeScreenshotFromUI(deletedID)
+                                navigationPath.removeLast()
+                                Task {
+                                    try? await services.photoLibrary.deleteAssets([asset])
                                 }
-                            )
-                        } else {
-                            Color.clear
-                        }
+                            }
+                        )
                     }
                     .safeAreaInset(edge: .bottom) {
                         if viewModel.isEditing && !viewModel.selectedItems.isEmpty {
@@ -170,20 +166,6 @@ struct ScreenshotListView: View {
                 }
             }
         }
-    }
-
-    private func ocrBinding(for id: String) -> Binding<OCRResult?> {
-        Binding(
-            get: { viewModel.ocrResults[id] },
-            set: { viewModel.ocrResults[id] = $0 }
-        )
-    }
-
-    private func exportedBinding(for id: String) -> Binding<Bool> {
-        Binding(
-            get: { viewModel.exportedIDs.contains(id) },
-            set: { if $0 { viewModel.markExported(id) } else { viewModel.unmarkExported(id) } }
-        )
     }
 
     private var filterPicker: some View {
