@@ -55,8 +55,7 @@ struct ScreenshotDetailView: View {
                             set: { if $0 { viewModel.markExported(item.id) } else { viewModel.unmarkExported(item.id) } }
                         ),
                         isZoomedIn: $isZoomedIn,
-                        isActive: index == currentIndex,
-                        onDelete: { showDeleteConfirmation = true }
+                        isActive: index == currentIndex
                     )
                     .tag(index)
                 }
@@ -89,6 +88,13 @@ struct ScreenshotDetailView: View {
                     } label: {
                         Label("复制文字", systemImage: "doc.on.doc")
                     }
+                    Spacer()
+                }
+
+                Button(role: .destructive) {
+                    showDeleteConfirmation = true
+                } label: {
+                    Label("删除截图", systemImage: "trash")
                 }
             }
         }
@@ -157,7 +163,6 @@ private struct ScreenshotDetailPage: View {
     @Binding var isExported: Bool
     @Binding var isZoomedIn: Bool
     let isActive: Bool
-    let onDelete: () -> Void
 
     @State private var image: UIImage?
     @State private var loadProgress: Double = 0
@@ -404,34 +409,23 @@ private struct ScreenshotDetailPage: View {
                 .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12))
                 .padding(.horizontal, horizontalPadding)
             } else {
-                HStack(spacing: 12) {
-                    Button {
-                        guard !isRecognizing else { return }
-                        isRecognizing = true
-                        Task {
-                            let size = CGSize(width: 1024, height: 1024)
-                            if let img = await services.photoLibrary.thumbnail(for: item.asset, size: size),
-                               let result = await services.ocrService.recognizeText(from: img) {
-                                ocrResult = result
-                            }
-                            isRecognizing = false
+                Button {
+                    guard !isRecognizing else { return }
+                    isRecognizing = true
+                    Task {
+                        let size = CGSize(width: 1024, height: 1024)
+                        if let img = await services.photoLibrary.thumbnail(for: item.asset, size: size),
+                           let result = await services.ocrService.recognizeText(from: img) {
+                            ocrResult = result
                         }
-                    } label: {
-                        Label(isRecognizing ? "识别中..." : "开始识别", systemImage: isRecognizing ? "arrow.triangle.2.circlepath" : "doc.text.viewfinder")
-                            .frame(maxWidth: .infinity)
+                        isRecognizing = false
                     }
-                    .buttonStyle(.borderedProminent)
-                    .disabled(isRecognizing)
-
-                    Button(role: .destructive) {
-                        onDelete()
-                    } label: {
-                        Label("删除截图", systemImage: "trash")
-                            .frame(maxWidth: .infinity)
-                    }
-                    .buttonStyle(.bordered)
-                    .tint(.red)
+                } label: {
+                    Label(isRecognizing ? "识别中..." : "开始识别", systemImage: isRecognizing ? "arrow.triangle.2.circlepath" : "doc.text.viewfinder")
+                        .frame(maxWidth: .infinity)
                 }
+                .buttonStyle(.borderedProminent)
+                .disabled(isRecognizing)
                 .padding(.horizontal, horizontalPadding)
             }
         }

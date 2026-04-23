@@ -10,11 +10,14 @@ final class AnalysisCacheService {
 
     init() {
         let schema = Schema([CachedAnalysis.self])
-        let config = ModelConfiguration(isStoredInMemoryOnly: false)
-        do {
-            self.modelContainer = try ModelContainer(for: schema, configurations: [config])
-        } catch {
-            fatalError("无法初始化 ModelContainer: \(error)")
+        let diskConfig = ModelConfiguration(isStoredInMemoryOnly: false)
+        if let container = try? ModelContainer(for: schema, configurations: [diskConfig]) {
+            self.modelContainer = container
+        } else {
+            // 磁盘存储初始化失败（存储异常/迁移冲突等）时，降级为内存存储，避免启动崩溃。
+            // 本次会话内缓存不持久化，下次启动会重试磁盘。
+            let memoryConfig = ModelConfiguration(isStoredInMemoryOnly: true)
+            self.modelContainer = try! ModelContainer(for: schema, configurations: [memoryConfig])
         }
         self.modelContext = ModelContext(modelContainer)
     }

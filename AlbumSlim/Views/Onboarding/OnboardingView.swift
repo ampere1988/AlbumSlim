@@ -106,6 +106,7 @@ struct PrivacyAgreementView: View {
     @Environment(\.openURL) private var openURL
 
     private let privacyPolicyURL = URL(string: "https://chunbingtang.com/privacy.html")!
+    private let termsOfServiceURL = URL(string: "https://chunbingtang.com/terms.html")!
 
     var body: some View {
         VStack(spacing: 28) {
@@ -160,11 +161,24 @@ struct PrivacyAgreementView: View {
                 .controlSize(.large)
                 .tint(.green)
 
-                Button {
-                    openURL(privacyPolicyURL)
-                } label: {
-                    Text("查看隐私政策")
+                HStack(spacing: 16) {
+                    Button {
+                        openURL(privacyPolicyURL)
+                    } label: {
+                        Text("隐私政策")
+                            .font(.subheadline)
+                    }
+
+                    Text("·")
                         .font(.subheadline)
+                        .foregroundStyle(.secondary)
+
+                    Button {
+                        openURL(termsOfServiceURL)
+                    } label: {
+                        Text("使用条款")
+                            .font(.subheadline)
+                    }
                 }
             }
         }
