@@ -7,6 +7,7 @@ struct ScreenshotListView: View {
     @State private var exportToast: String?
     @State private var navigationPath = NavigationPath()
     @State private var showSavedNotes = false
+    @Namespace private var zoomNamespace
 
     private let columns = [GridItem(.adaptive(minimum: 100), spacing: 3)]
 
@@ -45,6 +46,7 @@ struct ScreenshotListView: View {
                                             navigationPath.append(screenshot.id)
                                         }
                                     }
+                                    .zoomTransitionSource(id: screenshot.id, in: zoomNamespace)
                                 }
                             }
                             .padding(.horizontal, 3)
@@ -64,6 +66,7 @@ struct ScreenshotListView: View {
                                 }
                             }
                         )
+                        .zoomNavigationTransition(id: screenshotID, in: zoomNamespace)
                     }
                     .safeAreaInset(edge: .bottom) {
                         if viewModel.isEditing && !viewModel.selectedItems.isEmpty {
@@ -270,6 +273,28 @@ private struct FilterChip: View {
                 .foregroundStyle(isSelected ? color : .primary)
         }
         .buttonStyle(.plain)
+    }
+}
+
+// MARK: - iOS 18+ Zoom 过渡(原相册从缩略图展开到全屏)
+
+private extension View {
+    @ViewBuilder
+    func zoomTransitionSource(id: some Hashable, in namespace: Namespace.ID) -> some View {
+        if #available(iOS 18.0, *) {
+            self.matchedTransitionSource(id: id, in: namespace)
+        } else {
+            self
+        }
+    }
+
+    @ViewBuilder
+    func zoomNavigationTransition(id: some Hashable, in namespace: Namespace.ID) -> some View {
+        if #available(iOS 18.0, *) {
+            self.navigationTransition(.zoom(sourceID: id, in: namespace))
+        } else {
+            self
+        }
     }
 }
 
