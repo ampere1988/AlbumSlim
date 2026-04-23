@@ -12,6 +12,14 @@ struct ScreenshotListView: View {
     private let columns = [GridItem(.adaptive(minimum: 100), spacing: 3)]
 
     var body: some View {
+        screenshotNavigationStack
+            .onReceive(NotificationCenter.default.publisher(for: .screenshotTabLeft)) { _ in
+                // 切离截图 tab 时 pop 所有 detail,避免切回来时 detail 页 UIScrollView 残留放大状态
+                navigationPath = NavigationPath()
+            }
+    }
+
+    private var screenshotNavigationStack: some View {
         NavigationStack(path: $navigationPath) {
             Group {
                 if viewModel.isLoading {

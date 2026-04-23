@@ -121,6 +121,38 @@ final class PhotoLibraryService: NSObject {
         }.value
     }
 
+    /// 加载原图并上报下载进度。允许 iCloud 下载,progressHandler 在 iCloud 场景会多次回调 0~1;
+    /// 本地图片瞬间完成,progress 可能不触发或只触发一次 1.0
+    func loadFullImage(
+        for asset: PHAsset,
+        size: CGSize,
+        onProgress: @escaping @MainActor (Double) -> Void
+    ) async -> UIImage? {
+        await thumbnailSemaphore.wait()
+        defer { thumbnailSemaphore.signal() }
+
+        return await withCheckedContinuation { (continuation: CheckedContinuation<UIImage?, Never>) in
+            let options = PHImageRequestOptions()
+            options.deliveryMode = .highQualityFormat
+            options.isNetworkAccessAllowed = true
+            options.isSynchronous = false
+            options.resizeMode = .fast
+            options.progressHandler = { progress, _, _, _ in
+                Task { @MainActor in onProgress(progress) }
+            }
+
+            let once = OnceResume()
+            PHImageManager.default().requestImage(
+                for: asset, targetSize: size, contentMode: .aspectFill, options: options
+            ) { image, info in
+                // deliveryMode=.highQualityFormat 下理论上只回调一次,但 iCloud 取消/错误场景仍可能多次触发,加锁保护
+                let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+                if isDegraded { return }
+                once.fire { continuation.resume(returning: image) }
+            }
+        }
+    }
+
     // MARK: - 删除（分批，每批最多 50 个，避免系统弹窗超大列表卡死）
 
     nonisolated func deleteAssets(_ assets: [PHAsset]) async throws {
@@ -175,6 +207,19 @@ final class PhotoLibraryService: NSObject {
             }
             return items
         }.value
+    }
+}
+
+// MARK: - 一次性 continuation 保护(防止 PHImageManager 回调多次 resume 崩溃)
+
+private final class OnceResume: @unchecked Sendable {
+    private let lock = NSLock()
+    private var fired = false
+    func fire(_ block: () -> Void) {
+        lock.lock(); defer { lock.unlock() }
+        guard !fired else { return }
+        fired = true
+        block()
     }
 }
 

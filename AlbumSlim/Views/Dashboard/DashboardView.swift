@@ -131,6 +131,8 @@ struct DashboardView: View {
 
 extension Notification.Name {
     static let switchTab = Notification.Name("switchTab")
+    /// 用户切离截图 tab 时发送,携带被离开的 tab index 没有意义 —— 仅做信号
+    static let screenshotTabLeft = Notification.Name("screenshotTabLeft")
 }
 
 private struct StatCard: View {

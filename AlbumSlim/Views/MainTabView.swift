@@ -46,6 +46,13 @@ struct MainTabView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             photoAuthStatus = PermissionManager.photoLibraryStatus
         }
+        .onChange(of: selectedTab) { oldValue, newValue in
+            // 离开截图 tab(tag 3)时通知 ScreenshotListView 重置导航栈,
+            // 避免切回来时 detail 页 UIScrollView 残留放大状态
+            if oldValue == 3, newValue != 3 {
+                NotificationCenter.default.post(name: .screenshotTabLeft, object: nil)
+            }
+        }
     }
 
     private var permissionBanner: some View {

@@ -160,6 +160,7 @@ private struct ScreenshotDetailPage: View {
     let onDelete: () -> Void
 
     @State private var image: UIImage?
+    @State private var loadProgress: Double = 0
     @State private var isRecognizing = false
     @State private var saveState: SaveState = .idle
 
@@ -197,9 +198,10 @@ private struct ScreenshotDetailPage: View {
             }
         }
         .task {
-            image = await services.photoLibrary.thumbnail(
+            image = await services.photoLibrary.loadFullImage(
                 for: item.asset,
-                size: CGSize(width: CGFloat(item.pixelWidth), height: CGFloat(item.pixelHeight))
+                size: CGSize(width: CGFloat(item.pixelWidth), height: CGFloat(item.pixelHeight)),
+                onProgress: { loadProgress = $0 }
             )
         }
     }
@@ -259,23 +261,50 @@ private struct ScreenshotDetailPage: View {
 
     // MARK: - 共享组件
 
+    /// 图片加载占位:iCloud 下载时显示线性进度 + 百分比,本地瞬时加载显示系统转圈
+    @ViewBuilder
+    private var loadingPlaceholder: some View {
+        if loadProgress > 0, loadProgress < 1 {
+            VStack(spacing: 10) {
+                ProgressView(value: loadProgress)
+                    .progressViewStyle(.linear)
+                    .frame(width: 180)
+                Text("正在从 iCloud 下载 \(Int(loadProgress * 100))%")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
+            }
+        } else {
+            ProgressView()
+        }
+    }
+
     private func imageSection(maxHeight: CGFloat) -> some View {
+        // 非激活页面用普通 Image,激活页面才挂载 ZoomableImageView。
+        // 切走时 ZoomableImageView 会被销毁,切回时重新创建 —— 彻底避免 UIScrollView 状态在页面间残留
         Group {
             if let image {
-                ZoomableImageView(
-                    image: image,
-                    isActive: isActive,
-                    onZoomStateChanged: { zoomed in
-                        if isZoomedIn != zoomed {
-                            isZoomedIn = zoomed
+                if isActive {
+                    ZoomableImageView(
+                        image: image,
+                        onZoomStateChanged: { zoomed in
+                            if isZoomedIn != zoomed {
+                                isZoomedIn = zoomed
+                            }
                         }
-                    }
-                )
-                .aspectRatio(image.size, contentMode: .fit)
-                .frame(maxHeight: maxHeight)
+                    )
+                    .aspectRatio(image.size, contentMode: .fit)
+                    .frame(maxHeight: maxHeight)
+                } else {
+                    Image(uiImage: image)
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxHeight: maxHeight)
+                }
             } else {
-                ProgressView()
+                loadingPlaceholder
                     .frame(height: 300)
+                    .frame(maxWidth: .infinity)
             }
         }
         .frame(maxWidth: .infinity)
@@ -413,7 +442,6 @@ private struct ScreenshotDetailPage: View {
 
 private struct ZoomableImageView: UIViewRepresentable {
     let image: UIImage
-    let isActive: Bool
     let onZoomStateChanged: (Bool) -> Void
 
     func makeUIView(context: Context) -> ZoomableScrollView {
@@ -447,18 +475,11 @@ private struct ZoomableImageView: UIViewRepresentable {
 
         context.coordinator.scrollView = scroll
         context.coordinator.onZoomStateChanged = onZoomStateChanged
-        context.coordinator.wasActive = isActive
         return scroll
     }
 
     func updateUIView(_ scroll: ZoomableScrollView, context: Context) {
         context.coordinator.onZoomStateChanged = onZoomStateChanged
-
-        // 翻页切走时(从 active 变为 inactive)复位 zoom,下次回到这张时从 fit 开始
-        if context.coordinator.wasActive, !isActive {
-            scroll.resetZoom()
-        }
-        context.coordinator.wasActive = isActive
 
         guard scroll.imageView?.image !== image else { return }
         scroll.imageView?.image = image
@@ -474,7 +495,6 @@ private struct ZoomableImageView: UIViewRepresentable {
     final class Coordinator: NSObject, UIScrollViewDelegate {
         weak var scrollView: ZoomableScrollView?
         var onZoomStateChanged: ((Bool) -> Void)?
-        var wasActive = false
         private var lastReportedZoomed = false
 
         func viewForZooming(in scrollView: UIScrollView) -> UIView? {
@@ -567,9 +587,14 @@ private final class ZoomableScrollView: UIScrollView {
             zoomScale = fitScale
             needsInitialZoom = false
         } else if previousFit > 0.0001, abs(fitScale - previousFit) > 0.0001 {
-            // bounds 变化(如全屏切换导致容器尺寸变大/变小):保持 zoom 相对 fit 的比例,避免画面突然缩放
-            let ratio = previousZoom / previousFit
-            zoomScale = min(maximumZoomScale, max(minimumZoomScale, fitScale * ratio))
+            // bounds 变化(如全屏切换、旋转)时,若切换前处于 fit 则保持 fit,否则按原缩放比例等比缩放
+            let wasFit = abs(previousZoom - previousFit) < previousFit * 0.01
+            if wasFit {
+                zoomScale = fitScale
+            } else {
+                let ratio = previousZoom / previousFit
+                zoomScale = min(maximumZoomScale, max(minimumZoomScale, fitScale * ratio))
+            }
         } else if zoomScale < minimumZoomScale {
             zoomScale = minimumZoomScale
         }
@@ -592,13 +617,15 @@ private final class ZoomableScrollView: UIScrollView {
         }
     }
 
-    /// 复位到 fit 缩放(翻页切走时用);无动画,避免用户切回时看到回弹过程
-    func resetZoom() {
-        if minimumZoomScale > 0, zoomScale != minimumZoomScale {
-            setZoomScale(minimumZoomScale, animated: false)
-        }
+    /// 切 Tab、NavigationStack pop 等场景下 scrollView 会被从 window 移除再添加回来,
+    /// 这些场景的 layoutSubviews 时序不可控 —— 重新加入 window 时主动走 fit 初始化分支,
+    /// 保证每次重新显示都从全貌开始
+    override func didMoveToWindow() {
+        super.didMoveToWindow()
+        guard window != nil, imageView?.image != nil else { return }
+        needsInitialZoom = true
+        lastFitScale = 0
         contentOffset = .zero
-        updateContentInset()
-        panGestureRecognizer.isEnabled = false
+        setNeedsLayout()
     }
 }
