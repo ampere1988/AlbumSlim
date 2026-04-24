@@ -10,10 +10,9 @@ struct ScreenshotDetailView: View {
     let onTrash: (String) -> Void
 
     @State private var screenshots: [MediaItem]
-    @State private var currentIndex: Int
+    @State private var scrolledID: String?
     @State private var showDeleteConfirmation = false
     @State private var isZoomedIn = false
-    @State private var dragOffset: CGSize = .zero
     @State private var showOCRPanel = false
     @State private var isRecognizing = false
     @State private var recognitionFailed = false
@@ -25,43 +24,45 @@ struct ScreenshotDetailView: View {
         self.viewModel = viewModel
         self.onTrash = onTrash
         self._screenshots = State(initialValue: screenshots)
-        self._currentIndex = State(initialValue: screenshots.firstIndex(where: { $0.id == currentID }) ?? 0)
+        self._scrolledID = State(initialValue: currentID)
     }
 
     private var currentItem: MediaItem? {
-        screenshots.indices.contains(currentIndex) ? screenshots[currentIndex] : nil
+        guard let id = scrolledID else { return screenshots.first }
+        return screenshots.first { $0.id == id } ?? screenshots.first
     }
 
-    private var dismissProgress: CGFloat {
-        min(max(dragOffset.height, 0) / 500, 1)
-    }
-
-    private var dismissScale: CGFloat {
-        1 - dismissProgress * 0.5
+    private var currentIndex: Int {
+        guard let id = scrolledID else { return 0 }
+        return screenshots.firstIndex { $0.id == id } ?? 0
     }
 
     var body: some View {
         ZStack {
-            Color.black
-                .opacity(isZoomedIn ? 1 : dismissProgress * 0.85)
-                .ignoresSafeArea()
+            Color.black.ignoresSafeArea()
 
-            TabView(selection: $currentIndex) {
-                ForEach(Array(screenshots.enumerated()), id: \.element.id) { index, item in
-                    ScreenshotDetailPage(
-                        item: item,
-                        isZoomedIn: $isZoomedIn,
-                        isActive: index == currentIndex
-                    )
-                    .tag(index)
+            GeometryReader { geo in
+                let currentIdx = currentIndex
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack(spacing: 0) {
+                        ForEach(Array(screenshots.enumerated()), id: \.element.id) { index, item in
+                            ScreenshotDetailPage(
+                                item: item,
+                                isZoomedIn: $isZoomedIn,
+                                isActive: item.id == scrolledID,
+                                shouldLoad: abs(index - currentIdx) <= 1
+                            )
+                            .frame(width: geo.size.width, height: geo.size.height)
+                            .id(item.id)
+                        }
+                    }
+                    .scrollTargetLayout()
                 }
+                .scrollTargetBehavior(.paging)
+                .scrollPosition(id: $scrolledID, anchor: .leading)
+                .scrollDisabled(isZoomedIn)
             }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .ignoresSafeArea(.container, edges: isZoomedIn ? .all : [])
-            .clipShape(RoundedRectangle(cornerRadius: dismissProgress * 24, style: .continuous))
-            .scaleEffect(dismissScale, anchor: .center)
-            .offset(dragOffset)
-            .opacity(1 - dismissProgress * 0.15)
+            .ignoresSafeArea()
 
             if showOCRPanel, let item = currentItem {
                 VStack(spacing: 0) {
@@ -88,6 +89,11 @@ struct ScreenshotDetailView: View {
                         },
                         onRetry: {
                             startRecognition(for: item)
+                        },
+                        onClose: {
+                            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
+                                showOCRPanel = false
+                            }
                         }
                     )
                 }
@@ -118,23 +124,11 @@ struct ScreenshotDetailView: View {
             }
         }
         .background(Color.black.ignoresSafeArea())
-        .navigationTitle(currentItem?.creationDate?.formatted(date: .abbreviated, time: .shortened) ?? "截图详情")
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(isZoomedIn ? .hidden : .visible, for: .navigationBar)
+        .toolbar(.hidden, for: .navigationBar)
         .toolbar(isZoomedIn ? .hidden : .visible, for: .bottomBar)
         .statusBarHidden(isZoomedIn)
         .persistentSystemOverlays(isZoomedIn ? .hidden : .automatic)
         .toolbar {
-            if showOCRPanel {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("返回查看") {
-                        withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                            showOCRPanel = false
-                        }
-                    }
-                }
-            }
-
             ToolbarItemGroup(placement: .bottomBar) {
                 if !showOCRPanel {
                     Button {
@@ -166,7 +160,7 @@ struct ScreenshotDetailView: View {
                 handleTrashCurrent()
             }
         }
-        .onChange(of: currentIndex) { _, _ in
+        .onChange(of: scrolledID) { _, _ in
             recognitionTask?.cancel()
             if isZoomedIn { isZoomedIn = false }
             if showOCRPanel {
@@ -180,7 +174,6 @@ struct ScreenshotDetailView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: isZoomedIn)
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showOCRPanel)
-        .simultaneousGesture(dragToDismissGesture)
     }
 
     private func handleOCRButtonTap() {
@@ -226,17 +219,19 @@ struct ScreenshotDetailView: View {
         recognitionTask?.cancel()
         viewModel.trashScreenshot(item, services: services)
         let deletedIndex = currentIndex
-        screenshots.remove(at: deletedIndex)
         if showOCRPanel {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showOCRPanel = false }
         }
         isRecognizing = false
         recognitionFailed = false
-        if screenshots.isEmpty {
+        if screenshots.count <= 1 {
+            screenshots.removeAll()
             dismiss()
-        } else {
-            currentIndex = min(deletedIndex, screenshots.count - 1)
+            return
         }
+        let nextIndex = deletedIndex == screenshots.count - 1 ? deletedIndex - 1 : deletedIndex + 1
+        scrolledID = screenshots[nextIndex].id
+        screenshots.remove(at: deletedIndex)
     }
 
     private func triggerSaveFlyIn() {
@@ -247,38 +242,6 @@ struct ScreenshotDetailView: View {
         }
     }
 
-    private var dragToDismissGesture: some Gesture {
-        DragGesture(minimumDistance: 20)
-            .onChanged { value in
-                guard !isZoomedIn, !showOCRPanel else {
-                    if dragOffset != .zero { dragOffset = .zero }
-                    return
-                }
-                let dx = value.translation.width
-                let dy = value.translation.height
-                guard dy > 0, abs(dy) > abs(dx) * 1.2 else {
-                    if dragOffset != .zero { dragOffset = .zero }
-                    return
-                }
-                dragOffset = CGSize(width: dx * 0.3, height: dy)
-            }
-            .onEnded { value in
-                guard !isZoomedIn, !showOCRPanel else {
-                    if dragOffset != .zero {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) { dragOffset = .zero }
-                    }
-                    return
-                }
-                let triggered = value.translation.height > 120 || value.predictedEndTranslation.height > 260
-                if triggered, abs(value.translation.height) > abs(value.translation.width) {
-                    dismiss()
-                } else {
-                    withAnimation(.interactiveSpring(response: 0.4, dampingFraction: 0.78, blendDuration: 0.25)) {
-                        dragOffset = .zero
-                    }
-                }
-            }
-    }
 }
 
 private struct ScreenshotDetailPage: View {
@@ -286,6 +249,7 @@ private struct ScreenshotDetailPage: View {
     let item: MediaItem
     @Binding var isZoomedIn: Bool
     let isActive: Bool
+    let shouldLoad: Bool
 
     @State private var image: UIImage?
     @State private var loadProgress: Double = 0
@@ -293,37 +257,25 @@ private struct ScreenshotDetailPage: View {
     var body: some View {
         Group {
             if let image {
-                if isActive {
-                    ZoomableImageView(
-                        image: image,
-                        onZoomStateChanged: { zoomed in
-                            if isZoomedIn != zoomed { isZoomedIn = zoomed }
-                        }
-                    )
-                    .aspectRatio(image.size, contentMode: .fit)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                } else {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
-                }
-            } else {
-                loadingPlaceholder
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-            }
-        }
-        .task(id: isActive) {
-            if isActive {
-                image = await services.photoLibrary.loadFullImage(
-                    for: item.asset,
-                    size: CGSize(width: CGFloat(item.pixelWidth), height: CGFloat(item.pixelHeight)),
-                    onProgress: { loadProgress = $0 }
+                ZoomableImageView(
+                    image: image,
+                    onZoomStateChanged: { zoomed in
+                        guard isActive else { return }
+                        if isZoomedIn != zoomed { isZoomedIn = zoomed }
+                    }
                 )
             } else {
-                image = nil
-                loadProgress = 0
+                loadingPlaceholder
             }
+        }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .task(id: shouldLoad) {
+            guard shouldLoad, image == nil else { return }
+            image = await services.photoLibrary.loadFullImage(
+                for: item.asset,
+                size: CGSize(width: CGFloat(item.pixelWidth), height: CGFloat(item.pixelHeight)),
+                onProgress: { loadProgress = $0 }
+            )
         }
     }
 
@@ -353,14 +305,27 @@ private struct OCROverlayPanel: View {
     let isSaved: Bool
     let onSave: () -> Void
     let onRetry: () -> Void
+    let onClose: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
-            Capsule()
-                .fill(.secondary.opacity(0.4))
-                .frame(width: 36, height: 4)
-                .padding(.top, 10)
-                .padding(.bottom, 14)
+            ZStack {
+                Capsule()
+                    .fill(.secondary.opacity(0.4))
+                    .frame(width: 36, height: 4)
+                HStack {
+                    Spacer()
+                    Button(action: onClose) {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.title3)
+                            .foregroundStyle(.secondary)
+                            .symbolRenderingMode(.hierarchical)
+                    }
+                    .padding(.trailing, 14)
+                }
+            }
+            .padding(.top, 10)
+            .padding(.bottom, 14)
 
             if isRecognizing && ocrResult == nil {
                 HStack(spacing: 10) {
@@ -395,7 +360,7 @@ private struct OCROverlayPanel: View {
         }
         .frame(maxWidth: .infinity)
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.sheet, style: .continuous))
         .shadow(color: .black.opacity(0.2), radius: 16, y: -4)
     }
 
@@ -427,7 +392,7 @@ private struct OCROverlayPanel: View {
                     .padding(.vertical, 8)
             }
             .frame(maxHeight: 180)
-            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: 10))
+            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Radius.thumb))
             .padding(.horizontal, 12)
 
             Button(action: onSave) {
