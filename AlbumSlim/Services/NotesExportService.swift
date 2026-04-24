@@ -34,11 +34,15 @@ final class NotesExportService {
         persist()
     }
 
-    func shareText(for note: SavedNote) -> String {
+    func shareText(text: String, category: String, screenshotDate: Date?) -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd HH:mm"
-        let dateStr = note.screenshotDate.map { formatter.string(from: $0) } ?? String(localized: "未知日期")
-        return "\(note.category) | \(dateStr)\n\n\(note.text)\n\n\(String(localized: "— 由闪图导出"))"
+        let dateStr = screenshotDate.map { formatter.string(from: $0) } ?? String(localized: "未知日期")
+        return "\(category) | \(dateStr)\n\n\(text)\n\n\(String(localized: "— 由闪图导出"))"
+    }
+
+    func shareText(for note: SavedNote) -> String {
+        shareText(text: note.text, category: note.category, screenshotDate: note.screenshotDate)
     }
 
     private func loadNotes() {

@@ -17,6 +17,7 @@ final class AppServiceContainer {
     let notesExport: NotesExportService
     let reminder: ReminderService
     let backgroundTask: BackgroundTaskService
+    let trash: TrashService
 
     private(set) var isReady = false
     private var prepareTask: Task<Void, Never>?
@@ -37,6 +38,7 @@ final class AppServiceContainer {
         self.achievement = AchievementService()
         self.reminder = ReminderService()
         self.backgroundTask = BackgroundTaskService()
+        self.trash = TrashService()
     }
 
     /// 异步恢复缓存数据，不阻塞主线程。幂等：并发多次调用共享同一次执行

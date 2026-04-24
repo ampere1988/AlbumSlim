@@ -31,6 +31,16 @@
     "%@ MB" : {
 
     },
+    "%@ 张截图 · %@ 尚未释放" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ 张截图 · %2$@ 尚未释放"
+          }
+        }
+      }
+    },
     "%@ 条建议" : {
       "localizations" : {
         "en" : {
@@ -257,7 +267,6 @@
       }
     },
     "使用条款" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -921,6 +930,7 @@
       }
     },
     "处理中..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1867,6 +1877,7 @@
       }
     },
     "查看隐私政策" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1963,6 +1974,9 @@
           }
         }
       }
+    },
+    "正在识别文字..." : {
+
     },
     "每两周" : {
       "extractionState" : "stale",
@@ -2503,6 +2517,9 @@
         }
       }
     },
+    "移入垃圾桶的截图将显示在这里" : {
+
+    },
     "稍后" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2786,6 +2803,9 @@
         }
       }
     },
+    "识别中 %@%%" : {
+
+    },
     "识别内容" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2796,6 +2816,9 @@
           }
         }
       }
+    },
+    "识别失败，请重试" : {
+
     },
     "识别并存储" : {
       "extractionState" : "stale",
@@ -2809,6 +2832,7 @@
       }
     },
     "识别文字" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -3134,7 +3158,6 @@
       }
     },
     "隐私政策" : {
-      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

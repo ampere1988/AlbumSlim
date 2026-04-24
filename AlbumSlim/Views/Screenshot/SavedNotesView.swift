@@ -19,7 +19,7 @@ struct SavedNotesView: View {
                 }
             }
             .navigationTitle("识别记录")
-            .navigationBarTitleDisplayMode(.inline)
+            .navigationBarTitleDisplayMode(.large)
             .toolbar {
                 if !services.notesExport.notes.isEmpty {
                     ToolbarItem(placement: .topBarTrailing) {

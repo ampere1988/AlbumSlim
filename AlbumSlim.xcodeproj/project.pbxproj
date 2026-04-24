@@ -27,6 +27,7 @@
 		412B67359A45D3B0B4A36A58 /* VideoCompressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B449A6EA8783D0129574825D /* VideoCompressView.swift */; };
 		420AF12F2DDE34EBE4457032 /* AnalysisResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FDACB976E6244E859C31A0C /* AnalysisResult.swift */; };
 		4309BBAC59F7F63F23C70E30 /* CleanupCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 611ADBFEAFCB00D031ED1F62 /* CleanupCoordinator.swift */; };
+		4A1CD9FAEE90BD47CCFF1530 /* TrashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E312A77F0A4F5F78C41D6FC /* TrashView.swift */; };
 		4C78296DE76E4DBBC3A8EE0E /* ScanProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39ED70F86DE055F155159538 /* ScanProgress.swift */; };
 		4C87053F591C6238F0C9BF53 /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CFD894333B69341192564C9 /* AppConstants.swift */; };
 		5539B6879DC638794A2BB97C /* FileSize+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC06BC66186D55E657980BD0 /* FileSize+Extensions.swift */; };
@@ -51,6 +52,7 @@
 		A85122252BE78DA9456760AB /* VideoListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65D0EF955289F42624611D63 /* VideoListView.swift */; };
 		AB62A0612AC2AEA0B990EC76 /* View+iPadAdaptive.swift in Sources */ = {isa = PBXBuildFile; fileRef = ED90E8A25CD3EEA84145F59D /* View+iPadAdaptive.swift */; };
 		ADFF6F46B351B315ED5A3E34 /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 168632FBA643967FF8F4CBF7 /* OnboardingView.swift */; };
+		B19A90C2AD2CEAA8A9CCE74F /* TrashService.swift in Sources */ = {isa = PBXBuildFile; fileRef = DEB1DA8A206EADB7C135B857 /* TrashService.swift */; };
 		B804842A575B51E01E2B6054 /* QuickCleanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = F875F651E12872BBA0926BC2 /* QuickCleanViewModel.swift */; };
 		BB4AC2657683670C98143D12 /* ReminderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5400262DB6A4800E5054A6C /* ReminderService.swift */; };
 		BE973DE375B029B479D6DD33 /* LargePhotosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5C06A408C3515B4008DBC07 /* LargePhotosView.swift */; };
@@ -122,6 +124,7 @@
 		611ADBFEAFCB00D031ED1F62 /* CleanupCoordinator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupCoordinator.swift; sourceTree = "<group>"; };
 		65D0EF955289F42624611D63 /* VideoListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoListView.swift; sourceTree = "<group>"; };
 		6A801972BC9D199E85E0859B /* BackgroundTaskService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskService.swift; sourceTree = "<group>"; };
+		6E312A77F0A4F5F78C41D6FC /* TrashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashView.swift; sourceTree = "<group>"; };
 		763869D357F2A1DACB84C5B1 /* MediaGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaGridView.swift; sourceTree = "<group>"; };
 		7FDACB976E6244E859C31A0C /* AnalysisResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisResult.swift; sourceTree = "<group>"; };
 		842819C73550B214DBA1A282 /* CleanupCoordinatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupCoordinatorTests.swift; sourceTree = "<group>"; };
@@ -149,6 +152,7 @@
 		CEAFBC976F45C172EF02CA47 /* WastePhotosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WastePhotosView.swift; sourceTree = "<group>"; };
 		D51B791FBB73A7995FF9DB90 /* StorageStatsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageStatsTests.swift; sourceTree = "<group>"; };
 		D5400262DB6A4800E5054A6C /* ReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderService.swift; sourceTree = "<group>"; };
+		DEB1DA8A206EADB7C135B857 /* TrashService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashService.swift; sourceTree = "<group>"; };
 		EA2B04B956CF16DA0FD62C1D /* QuickCleanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickCleanView.swift; sourceTree = "<group>"; };
 		ED90E8A25CD3EEA84145F59D /* View+iPadAdaptive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "View+iPadAdaptive.swift"; sourceTree = "<group>"; };
 		F66C686CC08437B0FA879091 /* CleanupGroupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupGroupTests.swift; sourceTree = "<group>"; };
@@ -181,6 +185,7 @@
 				D5400262DB6A4800E5054A6C /* ReminderService.swift */,
 				0C68C07709C3006187C872DA /* StorageAnalyzer.swift */,
 				C9EDE091273DB393B30083A7 /* SubscriptionService.swift */,
+				DEB1DA8A206EADB7C135B857 /* TrashService.swift */,
 				52B155DB63764DE06B63F472 /* VideoAnalysisService.swift */,
 				B179657B7267FF4E1C3F378A /* VideoCompressionService.swift */,
 			);
@@ -254,6 +259,7 @@
 				B1A38387ECA687ECFD947A68 /* SavedNotesView.swift */,
 				4288FF7BBA1B7B7100EE8E4A /* ScreenshotDetailView.swift */,
 				44A2E63276E56A4BF20C022F /* ScreenshotListView.swift */,
+				6E312A77F0A4F5F78C41D6FC /* TrashView.swift */,
 			);
 			path = Screenshot;
 			sourceTree = "<group>";
@@ -526,6 +532,8 @@
 				EB4890C9AFD51E9B367FFA8A /* StorageRingChart.swift in Sources */,
 				DDFC5F8F07C4C9317BC11B5F /* StorageStats.swift in Sources */,
 				E81C68D979020D16FAF183B4 /* SubscriptionService.swift in Sources */,
+				B19A90C2AD2CEAA8A9CCE74F /* TrashService.swift in Sources */,
+				4A1CD9FAEE90BD47CCFF1530 /* TrashView.swift in Sources */,
 				3FAFF41916DD14E752C2366C /* VideoAnalysisService.swift in Sources */,
 				412B67359A45D3B0B4A36A58 /* VideoCompressView.swift in Sources */,
 				D2557DD37701D67559527A3E /* VideoCompressionService.swift in Sources */,
