@@ -82,11 +82,7 @@ struct DashboardView: View {
                             }
                             .padding()
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(
-                                LinearGradient(colors: [.orange.opacity(0.15), .red.opacity(0.15)],
-                                               startPoint: .leading, endPoint: .trailing),
-                                in: RoundedRectangle(cornerRadius: 12)
-                            )
+                            .background(.orange.opacity(0.12), in: RoundedRectangle(cornerRadius: Radius.card))
                         }
                         .buttonStyle(.plain)
                         .padding(.horizontal)
@@ -160,6 +156,6 @@ private struct StatCard: View {
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.card))
     }
 }

@@ -16,6 +16,7 @@
 		1EE04521FED290D0C07FE6DB /* SpaceSavedBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F1447FDD9993E149FC4FDF3 /* SpaceSavedBanner.swift */; };
 		21548605D409C5712F8A4B8F /* SavedNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A38387ECA687ECFD947A68 /* SavedNotesView.swift */; };
 		2173567B7E7488FF05586BC7 /* BackgroundTaskService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A801972BC9D199E85E0859B /* BackgroundTaskService.swift */; };
+		23F65CC84308DAA86A1EC3CB /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C79998029C673603AD8781 /* DesignSystem.swift */; };
 		2AA0C1E732FA859ECA427DA0 /* SimilarPhotosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E9E06B04C8F8E285C8F5985 /* SimilarPhotosView.swift */; };
 		31D9B669AE9A1EDBE6608626 /* CleanupGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DEF85CBC76F96E545D1E97C /* CleanupGroup.swift */; };
 		3608F5A7335BC941F63F606A /* PhotoCleanerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40B5A45D3ACFA11C18388A01 /* PhotoCleanerViewModel.swift */; };
@@ -106,6 +107,7 @@
 		361DB7BF6430418A9AA876E2 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		368545C3C186E127DB89EC4C /* SavedNote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedNote.swift; sourceTree = "<group>"; };
 		36AF9E22CA3B926DA5510340 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
+		39C79998029C673603AD8781 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
 		39ED70F86DE055F155159538 /* ScanProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanProgress.swift; sourceTree = "<group>"; };
 		3A4C5247F157094EEA132FFE /* AnalysisCacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisCacheService.swift; sourceTree = "<group>"; };
 		3DA9D51AD7B82500381DEBD0 /* OCRService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRService.swift; sourceTree = "<group>"; };
@@ -311,6 +313,7 @@
 			isa = PBXGroup;
 			children = (
 				FBC5D320592C9766E00115AB /* AsyncSemaphore.swift */,
+				39C79998029C673603AD8781 /* DesignSystem.swift */,
 				AC06BC66186D55E657980BD0 /* FileSize+Extensions.swift */,
 				A188D7B80D61FA1E8F8C3532 /* PermissionManager.swift */,
 				4357D7A7CCFCE2506C657CA9 /* ProFeatureGate.swift */,
@@ -499,6 +502,7 @@
 				31D9B669AE9A1EDBE6608626 /* CleanupGroup.swift in Sources */,
 				FC4E3480C8C08A8FC6F2EA73 /* DashboardView.swift in Sources */,
 				8D0A66CE26CBD405CF1349D5 /* DashboardViewModel.swift in Sources */,
+				23F65CC84308DAA86A1EC3CB /* DesignSystem.swift in Sources */,
 				5539B6879DC638794A2BB97C /* FileSize+Extensions.swift in Sources */,
 				89A400351EC88097E87D1E24 /* ImageSimilarityService.swift in Sources */,
 				BE973DE375B029B479D6DD33 /* LargePhotosView.swift in Sources */,

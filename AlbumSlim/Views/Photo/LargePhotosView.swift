@@ -220,7 +220,7 @@ private struct LargePhotoRow: View {
                         .overlay { ProgressView() }
                 }
             }
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.fileSizeText)

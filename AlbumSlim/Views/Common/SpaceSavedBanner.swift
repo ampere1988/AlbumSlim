@@ -21,7 +21,7 @@ struct SpaceSavedBanner: View {
             Spacer()
         }
         .padding()
-        .background(.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+        .background(.green.opacity(0.1), in: RoundedRectangle(cornerRadius: Radius.card))
         .padding(.horizontal)
     }
 }

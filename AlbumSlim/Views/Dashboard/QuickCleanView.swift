@@ -142,9 +142,9 @@ struct QuickCleanView: View {
         HStack(spacing: 14) {
             Image(systemName: iconForType(type))
                 .font(.title2)
-                .foregroundStyle(.white)
+                .foregroundStyle(colorForType(type))
                 .frame(width: 44, height: 44)
-                .background(colorForType(type).gradient, in: RoundedRectangle(cornerRadius: 10))
+                .background(colorForType(type).opacity(0.15), in: RoundedRectangle(cornerRadius: Radius.thumb))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(titleForType(type))
@@ -163,7 +163,7 @@ struct QuickCleanView: View {
                 .foregroundStyle(.tertiary)
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.card))
     }
 
     // MARK: - Helpers

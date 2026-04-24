@@ -196,8 +196,8 @@ private struct VideoThumbnail: View {
             }
         }
         .frame(width: 60, height: 44)
-        .clipShape(RoundedRectangle(cornerRadius: 6))
-        .background(.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
+        .background(.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: Radius.thumb))
         .task {
             thumbnail = await services.photoLibrary.thumbnail(for: asset, size: CGSize(width: 120, height: 88))
         }

@@ -64,7 +64,7 @@ struct WastePhotosView: View {
 
                                 AsyncThumbnail(asset: item.asset, services: services)
                                     .frame(width: 60, height: 60)
-                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                    .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
 
                                 VStack(alignment: .leading, spacing: 4) {
                                     if let reason = viewModel.wasteReasons[item.id] {

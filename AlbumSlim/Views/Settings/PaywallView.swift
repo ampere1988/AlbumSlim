@@ -46,7 +46,7 @@ struct PaywallView: View {
         VStack(spacing: 8) {
             Image(systemName: "crown.fill")
                 .font(.system(size: 48))
-                .foregroundStyle(.yellow.gradient)
+                .foregroundStyle(.yellow)
             Text("解锁全部功能")
                 .font(.largeTitle.bold())
             Text("一次购买，终身使用")
@@ -68,7 +68,7 @@ struct PaywallView: View {
             featureRow(icon: "wand.and.stars", color: .pink, text: "智能一键扫描清理")
         }
         .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.card))
     }
 
     private func featureRow(icon: String, color: Color, text: LocalizedStringKey) -> some View {

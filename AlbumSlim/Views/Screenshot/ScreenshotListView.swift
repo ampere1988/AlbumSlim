@@ -223,7 +223,7 @@ struct ScreenshotListView: View {
                 .font(.body)
             if unreadNotesCount > 0 {
                 Text("\(min(unreadNotesCount, 99))")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.caption2.bold())
                     .foregroundStyle(.white)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 1)
@@ -328,7 +328,7 @@ private struct ScreenshotThumbnailCell: View {
                 Spacer()
                 HStack(spacing: 4) {
                     Text(item.fileSizeText)
-                        .font(.system(size: 10))
+                        .font(.caption2)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 2)
                         .background(.black.opacity(0.5), in: Capsule())
@@ -336,7 +336,7 @@ private struct ScreenshotThumbnailCell: View {
 
                     if let result = ocrResult {
                         Text(result.category.localizedName)
-                            .font(.system(size: 9))
+                            .font(.caption2)
                             .padding(.horizontal, 4)
                             .padding(.vertical, 2)
                             .background(result.category.color.opacity(0.85), in: Capsule())
@@ -348,7 +348,7 @@ private struct ScreenshotThumbnailCell: View {
                 .padding(4)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
         .task {

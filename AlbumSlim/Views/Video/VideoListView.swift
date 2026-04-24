@@ -166,8 +166,8 @@ private struct VideoRow: View {
                 }
             }
             .frame(width: 60, height: 44)
-            .clipShape(RoundedRectangle(cornerRadius: 6))
-            .background(.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 6))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
+            .background(.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: Radius.thumb))
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(item.creationDate?.formatted(date: .abbreviated, time: .shortened) ?? "未知日期")

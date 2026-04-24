@@ -223,7 +223,7 @@ private struct TrashedItemCell: View {
                 Spacer()
                 HStack {
                     Text(item.fileSizeText)
-                        .font(.system(size: 10))
+                        .font(.caption2)
                         .padding(.horizontal, 4)
                         .padding(.vertical, 2)
                         .background(.black.opacity(0.5), in: Capsule())
@@ -233,7 +233,7 @@ private struct TrashedItemCell: View {
                 .padding(4)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 4))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
         .contentShape(Rectangle())
         .onTapGesture { onTap() }
         .contextMenu {

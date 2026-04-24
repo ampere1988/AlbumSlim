@@ -80,33 +80,60 @@ struct MainTabView: View {
     }
 }
 
+enum PhotoCleanerCategory: Int, CaseIterable, Identifiable {
+    case similar, waste, burst, large
+
+    var id: Int { rawValue }
+
+    var title: LocalizedStringKey {
+        switch self {
+        case .similar: "相似照片"
+        case .waste: "废片"
+        case .burst: "连拍"
+        case .large: "超大照片"
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .similar: "rectangle.stack.fill"
+        case .waste: "trash"
+        case .burst: "square.stack.3d.up.fill"
+        case .large: "photo.badge.plus"
+        }
+    }
+}
+
 struct PhotoCleanerTabView: View {
-    @State private var selectedTab = 0
+    @State private var selectedCategory: PhotoCleanerCategory = .similar
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                Picker("清理类型", selection: $selectedTab) {
-                    Text("相似照片").tag(0)
-                    Text("废片").tag(1)
-                    Text("连拍").tag(2)
-                    Text("超大照片").tag(3)
+            Group {
+                switch selectedCategory {
+                case .similar: SimilarPhotosView()
+                case .waste: WastePhotosView()
+                case .burst: BurstPhotosView()
+                case .large: LargePhotosView()
                 }
-                .pickerStyle(.segmented)
-                .padding()
-
-                Group {
-                    switch selectedTab {
-                    case 0: SimilarPhotosView()
-                    case 1: WastePhotosView()
-                    case 2: BurstPhotosView()
-                    case 3: LargePhotosView()
-                    default: EmptyView()
+            }
+            .navigationTitle(selectedCategory.title)
+            .navigationBarTitleDisplayMode(.large)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Menu {
+                        Picker("清理类型", selection: $selectedCategory) {
+                            ForEach(PhotoCleanerCategory.allCases) { category in
+                                Label(category.title, systemImage: category.icon)
+                                    .tag(category)
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "line.3.horizontal.decrease.circle")
+                            .font(.title3)
                     }
                 }
-                .frame(maxHeight: .infinity)
             }
-            .navigationTitle("照片清理")
         }
     }
 }

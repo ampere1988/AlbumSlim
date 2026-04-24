@@ -1191,6 +1191,7 @@
       }
     },
     "废片" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1720,6 +1721,9 @@
           }
         }
       }
+    },
+    "暂无识别结果" : {
+
     },
     "暂无识别记录" : {
       "extractionState" : "stale",
@@ -2279,6 +2283,7 @@
       }
     },
     "相似照片" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2955,6 +2960,7 @@
       }
     },
     "超大照片" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2986,6 +2992,7 @@
       }
     },
     "连拍" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {

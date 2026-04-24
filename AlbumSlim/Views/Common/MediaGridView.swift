@@ -77,7 +77,7 @@ private struct ThumbnailCell: View {
             VStack {
                 Spacer()
                 Text(item.fileSizeText)
-                    .font(.system(size: 10))
+                    .font(.caption2)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 2)
                     .background(.ultraThinMaterial, in: Capsule())
@@ -85,10 +85,10 @@ private struct ThumbnailCell: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 6))
+        .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
         .overlay {
             if isBest {
-                RoundedRectangle(cornerRadius: 6)
+                RoundedRectangle(cornerRadius: Radius.thumb)
                     .stroke(.yellow, lineWidth: 2)
             }
         }

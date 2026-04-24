@@ -21,7 +21,7 @@ struct OnboardingView: View {
 
             Image(systemName: "photo.stack")
                 .font(.system(size: 72))
-                .foregroundStyle(.blue.gradient)
+                .foregroundStyle(.blue)
 
             VStack(spacing: 12) {
                 Text("闪图")
@@ -114,7 +114,7 @@ struct PrivacyAgreementView: View {
 
             Image(systemName: "shield.checkered")
                 .font(.system(size: 64))
-                .foregroundStyle(.green.gradient)
+                .foregroundStyle(.green)
 
             VStack(spacing: 8) {
                 Text("隐私保护承诺")
