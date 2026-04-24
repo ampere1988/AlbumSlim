@@ -1,6 +1,7 @@
 import Foundation
 import Photos
 import UIKit
+import AVFoundation
 
 @MainActor @Observable
 final class PhotoLibraryService: NSObject {
@@ -150,6 +151,51 @@ final class PhotoLibraryService: NSObject {
                 if isDegraded { return }
                 once.fire { continuation.resume(returning: image) }
             }
+        }
+    }
+
+    // MARK: - Live Photo（用于沉浸式浏览播放）
+
+    func loadLivePhoto(for asset: PHAsset, targetSize: CGSize) async -> PHLivePhoto? {
+        await thumbnailSemaphore.wait()
+        defer { thumbnailSemaphore.signal() }
+
+        return await withCheckedContinuation { (continuation: CheckedContinuation<PHLivePhoto?, Never>) in
+            let options = PHLivePhotoRequestOptions()
+            options.isNetworkAccessAllowed = true
+            options.deliveryMode = .highQualityFormat
+            let once = OnceResume()
+            PHImageManager.default().requestLivePhoto(
+                for: asset, targetSize: targetSize, contentMode: .aspectFill, options: options
+            ) { livePhoto, info in
+                let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+                if isDegraded { return }
+                once.fire { continuation.resume(returning: livePhoto) }
+            }
+        }
+    }
+
+    // MARK: - 视频 PlayerItem（用于沉浸式浏览视频播放）
+
+    func loadPlayerItem(for asset: PHAsset) async -> AVPlayerItem? {
+        await withCheckedContinuation { (continuation: CheckedContinuation<AVPlayerItem?, Never>) in
+            let options = PHVideoRequestOptions()
+            options.isNetworkAccessAllowed = true
+            options.deliveryMode = .highQualityFormat
+            let once = OnceResume()
+            PHImageManager.default().requestPlayerItem(forVideo: asset, options: options) { item, _ in
+                once.fire { continuation.resume(returning: item) }
+            }
+        }
+    }
+
+    // MARK: - 收藏
+
+    func toggleFavorite(_ asset: PHAsset) async throws {
+        let target = !asset.isFavorite
+        try await PHPhotoLibrary.shared().performChanges {
+            let request = PHAssetChangeRequest(for: asset)
+            request.isFavorite = target
         }
     }
 

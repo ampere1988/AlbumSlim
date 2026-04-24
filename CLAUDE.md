@@ -176,10 +176,19 @@ View 中获取容器: `@Environment(AppServiceContainer.self) var services`
 15. ~~社交化~~ — 10 个清理成就 + 分享卡片 (ImageRenderer) + SKStoreReviewController
 16. ~~视频压缩队列~~ — CompressionTask 队列 + 后台处理 + 本地通知
 
+### ✅ 首页改版：沉浸式随机浏览 (已完成)
+- Tab 0 重构为 TikTok 式竖向分页浏览器（`Views/Shuffle/`）：
+  - `ShuffleFeedView` + `ScrollView(.vertical)` + `.scrollTargetBehavior(.paging)`
+  - `ShuffleIndexQueue` Fisher–Yates 随机 + 近期去重
+  - `ShufflePhotoView`（aspectFill）+ `ShuffleVideoView`（AVPlayerLooper 循环 + 带声）+ `ShuffleLivePhotoView`（播一次后定格）
+  - `ShuffleMetaOverlay`（左下 位置+日期+大小）+ `ShuffleActionsOverlay`（右下 收藏/删除/更多横向展开）
+  - `LocationNameService` CLGeocoder 反解城市名 + 缓存串行化
+  - `PhotoLibraryService.toggleFavorite` + `loadPlayerItem` + `loadLivePhoto`
+  - Haptic 反馈 + 首次上滑提示 + PHChange 自动剔除失效 asset
+- 原 Dashboard 合并到设置 Tab（`Views/Settings/OverviewSection.swift`）
+
 ### 🔲 P3 - 高级功能
 17. Foundation Models 智能总结 (iOS 26+)
-18. Live Photo 优化
-17. 清理成就系统 + 分享卡片
 18. 微信/QQ 图片识别清理
 19. 证件照安全提醒
 20. Shortcuts / AppIntents 集成

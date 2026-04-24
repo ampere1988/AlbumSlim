@@ -19,6 +19,8 @@ struct SettingsView: View {
             Form {
                 subscriptionSection
 
+                OverviewSection()
+
                 usageStatsSection
 
                 reminderSection(reminder: reminder)
