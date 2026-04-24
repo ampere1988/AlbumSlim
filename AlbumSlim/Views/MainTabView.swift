@@ -7,28 +7,22 @@ struct MainTabView: View {
     @State private var photoAuthStatus: PHAuthorizationStatus = PermissionManager.photoLibraryStatus
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            TabView(selection: $selectedTab) {
-                ShuffleFeedView()
-                    .toolbar(.hidden, for: .tabBar)
-                    .tag(0)
-                VideoListView()
-                    .toolbar(.hidden, for: .tabBar)
-                    .tag(1)
-                PhotoCleanerTabView()
-                    .toolbar(.hidden, for: .tabBar)
-                    .tag(2)
-                ScreenshotListView()
-                    .toolbar(.hidden, for: .tabBar)
-                    .tag(3)
-                SettingsView()
-                    .toolbar(.hidden, for: .tabBar)
-                    .tag(4)
-            }
-
-            ShuffleNavMenu(selectedTab: $selectedTab)
-                .padding(.trailing, 16)
-                .padding(.bottom, 24)
+        TabView(selection: $selectedTab) {
+            ShuffleFeedView()
+                .tabItem { Label("浏览", systemImage: "shuffle") }
+                .tag(0)
+            VideoListView()
+                .tabItem { Label("视频", systemImage: "video.fill") }
+                .tag(1)
+            PhotoCleanerTabView()
+                .tabItem { Label("照片", systemImage: "photo.on.rectangle.angled") }
+                .tag(2)
+            ScreenshotListView()
+                .tabItem { Label("截图", systemImage: "scissors") }
+                .tag(3)
+            SettingsView()
+                .tabItem { Label("设置", systemImage: "gearshape.fill") }
+                .tag(4)
         }
         .safeAreaInset(edge: .top) {
             // 浏览 Tab 走沉浸式全屏，不显示权限横幅（由 ShuffleFeedView 自己做 overlay 引导）
