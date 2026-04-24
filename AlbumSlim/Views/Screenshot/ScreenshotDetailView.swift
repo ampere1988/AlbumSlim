@@ -125,6 +125,7 @@ struct ScreenshotDetailView: View {
         }
         .background(Color.black.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
         .toolbar(isZoomedIn ? .hidden : .visible, for: .bottomBar)
         .statusBarHidden(isZoomedIn)
         .persistentSystemOverlays(isZoomedIn ? .hidden : .automatic)
