@@ -4,32 +4,34 @@ import SwiftUI
 
 @MainActor @Observable
 final class ShuffleFeedViewModel {
-    /// 当前被渲染的媒体序列（单调增长，到达上限后从头截断）
     private(set) var items: [ShuffleItem] = []
-
-    /// 授权状态（用于首屏 overlay 引导）
     var authStatus: PHAuthorizationStatus = .notDetermined
-
-    /// 启动失败时的友好文案（例如相册为空）
     var emptyMessage: String?
 
-    /// 全量 PHFetchResult（按 creationDate 倒序）
     private var fetchResult: PHFetchResult<PHAsset>?
-
-    /// 随机索引队列
     private var indexQueue = ShuffleIndexQueue(total: 0)
-
-    /// items 数组大小保留上限，超出后从头截断以控制内存
     private let maxItemCount = 80
 
-    /// 已自动播放过的 Live Photo asset id —— 回滑不再重播
     private(set) var playedLiveIds: Set<String> = []
 
-    func markLivePlayed(_ assetID: String) {
-        playedLiveIds.insert(assetID)
-    }
+    /// thumbnail LRU 缓存（容量 12）
+    private var thumbnailCache: [String: UIImage] = [:]
+    private var thumbnailCacheOrder: [String] = []
 
-    /// 初次加载（首次进入 Tab 0 或权限变化后）
+    private var prefetchTasks: [String: Task<Void, Never>] = [:]
+
+    /// 当前正在通过 PHCachingImageManager 预热的 asset IDs
+    private var prefetchedFullImageIDs: Set<String> = []
+
+    /// 高清 UIImage 内存缓存（容量 3），命中时 ShufflePhotoView.load() 直接展示高清
+    private var fullImageCache: [String: UIImage] = [:]
+    private var fullImageCacheOrder: [String] = []
+    private var fullImagePrefetchTasks: [String: Task<Void, Never>] = [:]
+
+    func markLivePlayed(_ assetID: String) { playedLiveIds.insert(assetID) }
+    func cachedThumbnail(for assetID: String) -> UIImage? { thumbnailCache[assetID] }
+    func cachedFullImage(for assetID: String) -> UIImage? { fullImageCache[assetID] }
+
     func bootstrap(services: AppServiceContainer) async {
         let status = await services.photoLibrary.requestAuthorization()
         authStatus = status
@@ -42,63 +44,169 @@ final class ShuffleFeedViewModel {
         }
         self.fetchResult = result
         self.indexQueue = ShuffleIndexQueue(total: result.count)
-
-        // 预铺初始窗口：当前 cursor + 之后 4 个
         items.removeAll(keepingCapacity: true)
         appendNext(count: 5)
     }
 
-    /// 用户滑到新的 page（可能是前进或后退）后回调
-    func onPageAppeared(itemID: ShuffleItem.ID?) {
-        guard let itemID else { return }
-        guard let currentIdx = items.firstIndex(where: { $0.id == itemID }) else { return }
-        // 距离尾部不足 3 项时继续追加
-        let remainingAhead = items.count - 1 - currentIdx
-        if remainingAhead < 3 {
-            appendNext(count: 3)
+    /// 维护 thumbnail 预热窗口（prev 1 + next 2）+ 下一张全图 PHCachingImageManager 热身 + 当前/下一张 UIImage 内存预加载
+    func updatePrefetchWindow(around currentID: ShuffleItem.ID?, services: AppServiceContainer) {
+        guard let currentID,
+              let currentIdx = items.firstIndex(where: { $0.id == currentID }) else { return }
+
+        // --- thumbnail 预热 ---
+        var desiredAssets: [String: PHAsset] = [:]
+        for offset in AppConstants.Shuffle.prefetchOffsets {
+            let idx = currentIdx + offset
+            guard idx >= 0, idx < items.count else { continue }
+            let it = items[idx]
+            guard it.kind == .photo || it.kind == .livePhoto else { continue }
+            desiredAssets[it.asset.localIdentifier] = it.asset
         }
-        // 头部积累过多时截断，保持内存可控
-        if items.count > maxItemCount {
-            let dropCount = items.count - maxItemCount + 20
-            // 仅在当前 page 前方还有大量缓冲时才 drop，避免滚动跳动
-            if currentIdx > dropCount + 5 {
-                items.removeFirst(dropCount)
+
+        for (id, task) in prefetchTasks where desiredAssets[id] == nil {
+            task.cancel()
+            prefetchTasks.removeValue(forKey: id)
+        }
+        for (id, asset) in desiredAssets
+        where thumbnailCache[id] == nil && prefetchTasks[id] == nil {
+            prefetchTasks[id] = Task { [weak self] in
+                let thumb = await services.photoLibrary.thumbnail(
+                    for: asset, size: AppConstants.Shuffle.thumbnailSize, contentMode: .aspectFit
+                )
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    guard let self else { return }
+                    self.prefetchTasks.removeValue(forKey: id)
+                    if let thumb { self.storeThumbnail(thumb, for: id) }
+                }
+            }
+        }
+
+        // --- 全图 PHCachingImageManager 热身（仅下一张 photo，只用本地缓存）---
+        var newPrefetchIDs: Set<String> = []
+        let nextIdx = currentIdx + 1
+        if nextIdx < items.count {
+            let next = items[nextIdx]
+            if next.kind == .photo { newPrefetchIDs.insert(next.asset.localIdentifier) }
+        }
+
+        let toStop = prefetchedFullImageIDs.subtracting(newPrefetchIDs)
+        let toStart = newPrefetchIDs.subtracting(prefetchedFullImageIDs)
+        let targetSize = AppConstants.Shuffle.fullImageTargetSize
+
+        let stopAssets = toStop.compactMap { id in items.first(where: { $0.asset.localIdentifier == id })?.asset }
+        if !stopAssets.isEmpty { services.photoLibrary.stopPrefetchingImages(for: stopAssets, targetSize: targetSize) }
+
+        let startAssets = toStart.compactMap { id in items.first(where: { $0.asset.localIdentifier == id })?.asset }
+        if !startAssets.isEmpty { services.photoLibrary.startPrefetchingImages(for: startAssets, targetSize: targetSize) }
+
+        prefetchedFullImageIDs = newPrefetchIDs
+
+        // --- 真正预加载 UIImage 到内存（当前 + 下一张 photo）---
+        var desiredFullImage: [String: PHAsset] = [:]
+        for offset in [0, 1] {
+            let idx = currentIdx + offset
+            guard idx >= 0, idx < items.count else { continue }
+            let it = items[idx]
+            guard it.kind == .photo else { continue }
+            desiredFullImage[it.asset.localIdentifier] = it.asset
+        }
+
+        for (id, task) in fullImagePrefetchTasks where desiredFullImage[id] == nil {
+            task.cancel()
+            fullImagePrefetchTasks.removeValue(forKey: id)
+        }
+        for (id, asset) in desiredFullImage
+        where fullImageCache[id] == nil && fullImagePrefetchTasks[id] == nil {
+            fullImagePrefetchTasks[id] = Task { [weak self] in
+                let image = await services.photoLibrary.loadFullImage(
+                    for: asset, size: targetSize
+                )
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    guard let self else { return }
+                    self.fullImagePrefetchTasks.removeValue(forKey: id)
+                    if let image { self.storeFullImage(image, for: id) }
+                }
             }
         }
     }
 
-    /// 从 items 中移除某一项（被用户删除的 asset）
-    func remove(itemID: ShuffleItem.ID) {
-        if let idx = items.firstIndex(where: { $0.id == itemID }) {
-            let fetchIndex = items[idx].fetchIndex
-            items.remove(at: idx)
-            indexQueue.remove(fetchIndex: fetchIndex)
+    func onPageAppeared(itemID: ShuffleItem.ID?) {
+        guard let itemID else { return }
+        guard let currentIdx = items.firstIndex(where: { $0.id == itemID }) else { return }
+        let remainingAhead = items.count - 1 - currentIdx
+        if remainingAhead < 3 { appendNext(count: 3) }
+        if items.count > maxItemCount {
+            let dropCount = items.count - maxItemCount + 20
+            if currentIdx > dropCount + 5 {
+                let dropped = items[0..<dropCount]
+                items.removeFirst(dropCount)
+                for it in dropped { evictAll(for: it.asset.localIdentifier) }
+            }
         }
     }
 
-    /// 相册在应用外发生变化（系统相册删除、iCloud 同步）后，剔除不存在的 items
+    func remove(itemID: ShuffleItem.ID) {
+        guard let idx = items.firstIndex(where: { $0.id == itemID }) else { return }
+        let removed = items[idx]
+        items.remove(at: idx)
+        indexQueue.remove(fetchIndex: removed.fetchIndex)
+        evictAll(for: removed.asset.localIdentifier)
+    }
+
     func refreshAfterLibraryChange(services: AppServiceContainer) async {
         let ids = items.map { $0.asset.localIdentifier }
         guard !ids.isEmpty else { return }
         let existing = PHAsset.fetchAssets(withLocalIdentifiers: ids, options: nil)
         var aliveIDs: Set<String> = []
         existing.enumerateObjects { asset, _, _ in aliveIDs.insert(asset.localIdentifier) }
+        let removed = items.filter { !aliveIDs.contains($0.asset.localIdentifier) }
         items.removeAll { !aliveIDs.contains($0.asset.localIdentifier) }
+        for it in removed { evictAll(for: it.asset.localIdentifier) }
     }
 
-    /// 向 items 尾部追加 n 个新 page
+    // MARK: - Private
+
     private func appendNext(count: Int) {
         guard let fetchResult else { return }
         for _ in 0..<count {
             let next: Int?
-            if items.isEmpty {
-                next = indexQueue.current ?? indexQueue.advance()
-            } else {
-                next = indexQueue.advance()
-            }
+            if items.isEmpty { next = indexQueue.current ?? indexQueue.advance() }
+            else { next = indexQueue.advance() }
             guard let fetchIndex = next, fetchIndex < fetchResult.count else { break }
             let asset = fetchResult.object(at: fetchIndex)
             items.append(ShuffleItem(asset: asset, fetchIndex: fetchIndex))
         }
+    }
+
+    private func storeThumbnail(_ image: UIImage, for id: String) {
+        if thumbnailCache[id] == nil { thumbnailCacheOrder.append(id) }
+        thumbnailCache[id] = image
+        while thumbnailCacheOrder.count > AppConstants.Shuffle.thumbnailCacheCapacity {
+            let oldest = thumbnailCacheOrder.removeFirst()
+            thumbnailCache.removeValue(forKey: oldest)
+        }
+    }
+
+    private func storeFullImage(_ image: UIImage, for id: String) {
+        if fullImageCache[id] == nil { fullImageCacheOrder.append(id) }
+        fullImageCache[id] = image
+        while fullImageCacheOrder.count > AppConstants.Shuffle.fullImageCacheCapacity {
+            let oldest = fullImageCacheOrder.removeFirst()
+            fullImageCache.removeValue(forKey: oldest)
+        }
+    }
+
+    /// 一次性清理某个 asset 相关的所有缓存与在途任务（thumbnail + full image + prefetch tasks）。
+    private func evictAll(for id: String) {
+        thumbnailCache.removeValue(forKey: id)
+        thumbnailCacheOrder.removeAll { $0 == id }
+        prefetchTasks[id]?.cancel()
+        prefetchTasks.removeValue(forKey: id)
+        fullImageCache.removeValue(forKey: id)
+        fullImageCacheOrder.removeAll { $0 == id }
+        fullImagePrefetchTasks[id]?.cancel()
+        fullImagePrefetchTasks.removeValue(forKey: id)
     }
 }

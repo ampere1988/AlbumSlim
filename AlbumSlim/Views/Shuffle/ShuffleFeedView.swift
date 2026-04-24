@@ -9,6 +9,8 @@ struct ShuffleFeedView: View {
     @State private var scrolledID: ShuffleItem.ID?
     @AppStorage("shuffleSwipeHintShown") private var hintShown = false
     @State private var showHint = false
+    /// 当前媒体（照片 / Live Photo）是否处于缩放状态，用于暂停外层分页滚动
+    @State private var mediaZoomActive = false
 
     // Sheets & Alerts
     @State private var showPaywall = false
@@ -16,6 +18,7 @@ struct ShuffleFeedView: View {
     @State private var pendingDelete: ShuffleItem?
     @State private var shareItems: [Any] = []
     @State private var showShareSheet = false
+    @State private var isPreparingShare = false
     @State private var detailItem: ShuffleItem?
 
     private var activeItem: ShuffleItem? {
@@ -77,17 +80,28 @@ struct ShuffleFeedView: View {
         ScrollView(.vertical, showsIndicators: false) {
             LazyVStack(spacing: 0) {
                 ForEach(viewModel.items) { item in
-                    ShuffleMediaPage(item: item, isActive: scrolledID == item.id, viewModel: viewModel)
-                        .frame(width: size.width, height: size.height)
-                        .id(item.id)
+                    ShuffleMediaPage(
+                        item: item,
+                        isActive: scrolledID == item.id,
+                        viewModel: viewModel,
+                        onZoomStateChanged: { zoomed in
+                            guard scrolledID == item.id else { return }
+                            mediaZoomActive = zoomed
+                        }
+                    )
+                    .frame(width: size.width, height: size.height)
+                    .id(item.id)
                 }
             }
             .scrollTargetLayout()
         }
         .scrollTargetBehavior(.paging)
+        .scrollDisabled(mediaZoomActive)
         .scrollPosition(id: $scrolledID, anchor: .top)
         .onChange(of: scrolledID) { _, newID in
+            mediaZoomActive = false
             viewModel.onPageAppeared(itemID: newID)
+            viewModel.updatePrefetchWindow(around: newID, services: services)
         }
         .onAppear {
             if scrolledID == nil, let first = viewModel.items.first {
@@ -109,7 +123,6 @@ struct ShuffleFeedView: View {
                         item: active,
                         onDelete: { triggerDelete(active) },
                         onShare: { Task { await triggerShare(active) } },
-                        onOpenInPhotos: { openInSystemPhotos() },
                         onShowDetail: { detailItem = active }
                     )
                     .fixedSize()
@@ -212,18 +225,18 @@ struct ShuffleFeedView: View {
     }
 
     private func triggerShare(_ item: ShuffleItem) async {
-        let size = CGSize(width: 1600, height: 1600)
-        if let image = await services.photoLibrary.loadFullImage(for: item.asset, size: size, onProgress: { _ in }) {
+        guard !isPreparingShare else { return }
+        isPreparingShare = true
+        defer { isPreparingShare = false }
+        if let image = await services.photoLibrary.loadFullImage(
+            for: item.asset,
+            size: AppConstants.Shuffle.shareImageSize
+        ) {
             shareItems = [image]
             showShareSheet = true
         }
     }
 
-    private func openInSystemPhotos() {
-        if let url = URL(string: "photos-redirect://") {
-            UIApplication.shared.open(url)
-        }
-    }
 }
 
 // MARK: - UIActivityViewController SwiftUI 包装

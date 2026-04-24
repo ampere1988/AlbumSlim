@@ -10,8 +10,23 @@ final class PhotoLibraryService: NSObject {
     /// 相册指纹：基于照片/视频总数 + 最新修改时间计算，跨重启稳定
     private(set) var libraryVersion: Int = 0
 
-    /// 缩略图并发限制，防止同时发起过多图片请求导致内存暴涨
     private let thumbnailSemaphore = AsyncSemaphore(limit: 6)
+    private let prefetchManager = PHCachingImageManager()
+
+    func startPrefetchingImages(for assets: [PHAsset], targetSize: CGSize) {
+        guard !assets.isEmpty else { return }
+        let opts = PHImageRequestOptions()
+        opts.isNetworkAccessAllowed = false
+        opts.deliveryMode = .highQualityFormat
+        prefetchManager.startCachingImages(for: assets, targetSize: targetSize,
+                                           contentMode: .aspectFit, options: opts)
+    }
+
+    func stopPrefetchingImages(for assets: [PHAsset], targetSize: CGSize) {
+        guard !assets.isEmpty else { return }
+        prefetchManager.stopCachingImages(for: assets, targetSize: targetSize,
+                                          contentMode: .aspectFit, options: nil)
+    }
 
     /// 防抖：批量删除时多次 photoLibraryDidChange 合并为一次指纹刷新
     private var versionBumpTask: Task<Void, Never>?
@@ -101,7 +116,12 @@ final class PhotoLibraryService: NSObject {
 
     // MARK: - 缩略图
 
-    func thumbnail(for asset: PHAsset, size: CGSize) async -> UIImage? {
+    /// 加载缩略图。默认 aspectFill 适合 grid 略缩图；Shuffle 需保留原 aspect 时传 `.aspectFit`。
+    func thumbnail(
+        for asset: PHAsset,
+        size: CGSize,
+        contentMode: PHImageContentMode = .aspectFill
+    ) async -> UIImage? {
         await thumbnailSemaphore.wait()
         defer { thumbnailSemaphore.signal() }
 
@@ -114,7 +134,7 @@ final class PhotoLibraryService: NSObject {
             options.resizeMode = .fast
             var result: UIImage?
             PHImageManager.default().requestImage(
-                for: asset, targetSize: size, contentMode: .aspectFill, options: options
+                for: asset, targetSize: size, contentMode: contentMode, options: options
             ) { image, _ in
                 result = image
             }
@@ -122,34 +142,46 @@ final class PhotoLibraryService: NSObject {
         }.value
     }
 
-    /// 加载原图并上报下载进度。允许 iCloud 下载,progressHandler 在 iCloud 场景会多次回调 0~1;
-    /// 本地图片瞬间完成,progress 可能不触发或只触发一次 1.0
+    /// 加载原图。只返回高清终版，低清占位请由上层通过 `thumbnail(for:size:)` 获取。
+    /// - 支持 Task 取消：外层任务被取消时主动 `cancelImageRequest`，信号量立即归还
+    /// - 所有终态（成功/错误/取消）都 resume 一次，不会泄漏 continuation
     func loadFullImage(
         for asset: PHAsset,
         size: CGSize,
-        onProgress: @escaping @MainActor (Double) -> Void
+        onProgress: @escaping @Sendable @MainActor (Double) -> Void = { _ in }
     ) async -> UIImage? {
         await thumbnailSemaphore.wait()
         defer { thumbnailSemaphore.signal() }
 
-        return await withCheckedContinuation { (continuation: CheckedContinuation<UIImage?, Never>) in
-            let options = PHImageRequestOptions()
-            options.deliveryMode = .highQualityFormat
-            options.isNetworkAccessAllowed = true
-            options.isSynchronous = false
-            options.resizeMode = .fast
-            options.progressHandler = { progress, _, _, _ in
-                Task { @MainActor in onProgress(progress) }
-            }
+        let requestIDBox = PHRequestIDBox()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<UIImage?, Never>) in
+                let options = PHImageRequestOptions()
+                options.deliveryMode = .highQualityFormat
+                options.isNetworkAccessAllowed = true
+                options.isSynchronous = false
+                options.resizeMode = .fast
+                options.progressHandler = { progress, _, _, _ in
+                    Task { @MainActor in onProgress(progress) }
+                }
 
-            let once = OnceResume()
-            PHImageManager.default().requestImage(
-                for: asset, targetSize: size, contentMode: .aspectFill, options: options
-            ) { image, info in
-                // deliveryMode=.highQualityFormat 下理论上只回调一次,但 iCloud 取消/错误场景仍可能多次触发,加锁保护
-                let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
-                if isDegraded { return }
-                once.fire { continuation.resume(returning: image) }
+                let once = OnceResume()
+                // aspectFit：保留原照片完整内容和比例，不让 PHImageManager 做裁切——
+                // 视觉上的 fit/fill 由上层 UIImageView/ZoomableScrollView 自行决定
+                let id = PHImageManager.default().requestImage(
+                    for: asset, targetSize: size, contentMode: .aspectFit, options: options
+                ) { image, info in
+                    // highQualityFormat 只回调一次终态，加 once 防御 iCloud 异常多回调
+                    let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+                    if isDegraded { return }
+                    once.fire { continuation.resume(returning: image) }
+                }
+                requestIDBox.set(id)
+            }
+        } onCancel: {
+            let id = requestIDBox.take()
+            if id != PHInvalidImageRequestID {
+                PHImageManager.default().cancelImageRequest(id)
             }
         }
     }
@@ -160,17 +192,26 @@ final class PhotoLibraryService: NSObject {
         await thumbnailSemaphore.wait()
         defer { thumbnailSemaphore.signal() }
 
-        return await withCheckedContinuation { (continuation: CheckedContinuation<PHLivePhoto?, Never>) in
-            let options = PHLivePhotoRequestOptions()
-            options.isNetworkAccessAllowed = true
-            options.deliveryMode = .highQualityFormat
-            let once = OnceResume()
-            PHImageManager.default().requestLivePhoto(
-                for: asset, targetSize: targetSize, contentMode: .aspectFill, options: options
-            ) { livePhoto, info in
-                let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
-                if isDegraded { return }
-                once.fire { continuation.resume(returning: livePhoto) }
+        let requestIDBox = PHRequestIDBox()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<PHLivePhoto?, Never>) in
+                let options = PHLivePhotoRequestOptions()
+                options.isNetworkAccessAllowed = true
+                options.deliveryMode = .highQualityFormat
+                let once = OnceResume()
+                let id = PHImageManager.default().requestLivePhoto(
+                    for: asset, targetSize: targetSize, contentMode: .aspectFit, options: options
+                ) { livePhoto, info in
+                    let isDegraded = (info?[PHImageResultIsDegradedKey] as? Bool) ?? false
+                    if isDegraded { return }
+                    once.fire { continuation.resume(returning: livePhoto) }
+                }
+                requestIDBox.set(id)
+            }
+        } onCancel: {
+            let id = requestIDBox.take()
+            if id != PHInvalidImageRequestID {
+                PHImageManager.default().cancelImageRequest(id)
             }
         }
     }
@@ -178,13 +219,22 @@ final class PhotoLibraryService: NSObject {
     // MARK: - 视频 PlayerItem（用于沉浸式浏览视频播放）
 
     func loadPlayerItem(for asset: PHAsset) async -> AVPlayerItem? {
-        await withCheckedContinuation { (continuation: CheckedContinuation<AVPlayerItem?, Never>) in
-            let options = PHVideoRequestOptions()
-            options.isNetworkAccessAllowed = true
-            options.deliveryMode = .highQualityFormat
-            let once = OnceResume()
-            PHImageManager.default().requestPlayerItem(forVideo: asset, options: options) { item, _ in
-                once.fire { continuation.resume(returning: item) }
+        let requestIDBox = PHRequestIDBox()
+        return await withTaskCancellationHandler {
+            await withCheckedContinuation { (continuation: CheckedContinuation<AVPlayerItem?, Never>) in
+                let options = PHVideoRequestOptions()
+                options.isNetworkAccessAllowed = true
+                options.deliveryMode = .highQualityFormat
+                let once = OnceResume()
+                let id = PHImageManager.default().requestPlayerItem(forVideo: asset, options: options) { item, _ in
+                    once.fire { continuation.resume(returning: item) }
+                }
+                requestIDBox.set(id)
+            }
+        } onCancel: {
+            let id = requestIDBox.take()
+            if id != PHInvalidImageRequestID {
+                PHImageManager.default().cancelImageRequest(id)
             }
         }
     }
@@ -266,6 +316,20 @@ private final class OnceResume: @unchecked Sendable {
         guard !fired else { return }
         fired = true
         block()
+    }
+}
+
+// MARK: - PHImageRequestID 的线程安全持有盒（供 Task cancellation handler 跨 actor 访问）
+
+private final class PHRequestIDBox: @unchecked Sendable {
+    private let lock = NSLock()
+    private var id: PHImageRequestID = PHInvalidImageRequestID
+    func set(_ value: PHImageRequestID) { lock.lock(); id = value; lock.unlock() }
+    func take() -> PHImageRequestID {
+        lock.lock(); defer { lock.unlock() }
+        let v = id
+        id = PHInvalidImageRequestID
+        return v
     }
 }
 

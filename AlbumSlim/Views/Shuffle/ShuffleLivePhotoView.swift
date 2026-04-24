@@ -2,7 +2,10 @@ import SwiftUI
 import PhotosUI
 import Photos
 
-/// Live Photo 页面：首次进入自动播放一次（带音效），播完定格到关键帧
+/// Live Photo 页面：
+/// - 首次进入自动播放一次（带音效），播完定格到关键帧
+/// - 长按屏幕（≥0.35s）可再次播放，次数不限
+/// - 全程走 ZoomableLivePhotoView，支持双指缩放浏览细节
 struct ShuffleLivePhotoView: View {
     @Environment(AppServiceContainer.self) private var services
     let item: ShuffleItem
@@ -11,23 +14,28 @@ struct ShuffleLivePhotoView: View {
     let onPlaybackDidEnd: () -> Void
     /// ViewModel 告知本 item 之前是否已播放过
     let hasPlayedBefore: Bool
+    var onZoomStateChanged: (Bool) -> Void = { _ in }
 
     @State private var livePhoto: PHLivePhoto?
     @State private var isLoading = true
-    @State private var shouldAutoPlay = false
+    @State private var playTrigger: Int = 0
 
     var body: some View {
         GeometryReader { geo in
             ZStack {
                 Color.black
                 if let livePhoto {
-                    LivePhotoRepresentable(
+                    ZoomableLivePhotoView(
                         livePhoto: livePhoto,
-                        shouldPlay: shouldAutoPlay,
-                        onPlaybackEnded: handlePlaybackEnded
+                        playTrigger: playTrigger,
+                        onPlaybackEnded: onPlaybackDidEnd,
+                        onLongPress: {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            playTrigger &+= 1
+                        },
+                        onZoomStateChanged: onZoomStateChanged
                     )
                     .frame(width: geo.size.width, height: geo.size.height)
-                    .allowsHitTesting(false)
                 }
                 if isLoading {
                     ProgressView().tint(.white).controlSize(.large)
@@ -39,11 +47,12 @@ struct ShuffleLivePhotoView: View {
             if isActive {
                 await activate()
             } else {
-                shouldAutoPlay = false
+                playTrigger = 0
+                onZoomStateChanged(false)
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .shuffleTabLeft)) { _ in
-            shouldAutoPlay = false
+            playTrigger = 0
         }
     }
 
@@ -56,67 +65,14 @@ struct ShuffleLivePhotoView: View {
 
         if livePhoto == nil {
             isLoading = true
-            let scale = UIScreen.main.scale
-            let bounds = UIScreen.main.bounds.size
-            let size = CGSize(width: bounds.width * scale, height: bounds.height * scale)
-            livePhoto = await services.photoLibrary.loadLivePhoto(for: item.asset, targetSize: size)
+            livePhoto = await services.photoLibrary.loadLivePhoto(
+                for: item.asset,
+                targetSize: AppConstants.Shuffle.fullImageTargetSize
+            )
             isLoading = false
         }
         if !hasPlayedBefore {
-            shouldAutoPlay = true
-        }
-    }
-
-    private func handlePlaybackEnded() {
-        shouldAutoPlay = false
-        onPlaybackDidEnd()
-    }
-}
-
-// MARK: - PHLivePhotoView SwiftUI 包装
-
-private struct LivePhotoRepresentable: UIViewRepresentable {
-    let livePhoto: PHLivePhoto
-    let shouldPlay: Bool
-    let onPlaybackEnded: () -> Void
-
-    func makeUIView(context: Context) -> PHLivePhotoView {
-        let view = PHLivePhotoView()
-        view.contentMode = .scaleAspectFill
-        view.clipsToBounds = true
-        view.isMuted = false
-        view.delegate = context.coordinator
-        return view
-    }
-
-    func updateUIView(_ uiView: PHLivePhotoView, context: Context) {
-        if uiView.livePhoto !== livePhoto {
-            uiView.livePhoto = livePhoto
-        }
-        context.coordinator.onPlaybackEnded = onPlaybackEnded
-        if shouldPlay, !context.coordinator.hasStarted {
-            context.coordinator.hasStarted = true
-            uiView.startPlayback(with: .full)
-        } else if !shouldPlay {
-            uiView.stopPlayback()
-        }
-    }
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator(onPlaybackEnded: onPlaybackEnded)
-    }
-
-    final class Coordinator: NSObject, PHLivePhotoViewDelegate {
-        var onPlaybackEnded: () -> Void
-        var hasStarted = false
-
-        init(onPlaybackEnded: @escaping () -> Void) {
-            self.onPlaybackEnded = onPlaybackEnded
-        }
-
-        func livePhotoView(_ livePhotoView: PHLivePhotoView,
-                           didEndPlaybackWith playbackStyle: PHLivePhotoViewPlaybackStyle) {
-            onPlaybackEnded()
+            playTrigger &+= 1
         }
     }
 }
