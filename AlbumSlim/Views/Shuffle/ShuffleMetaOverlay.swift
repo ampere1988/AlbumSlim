@@ -19,7 +19,7 @@ struct ShuffleMetaOverlay: View {
             }
             HStack(spacing: 8) {
                 if let date = item.asset.creationDate {
-                    Text(date, format: .dateTime.year().month().day())
+                    Text(date, format: .dateTime.year().month().day().hour().minute())
                 }
                 if fileSize > 0 {
                     Text("·")

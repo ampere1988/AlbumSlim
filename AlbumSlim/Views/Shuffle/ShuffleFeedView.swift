@@ -104,7 +104,16 @@ struct ShuffleFeedView: View {
             viewModel.updatePrefetchWindow(around: newID, services: services)
         }
         .onAppear {
-            if scrolledID == nil, let first = viewModel.items.first {
+            // 防御：scrolledID 为 nil 或指向已不存在的 item 时，回落到首项
+            guard let first = viewModel.items.first else { return }
+            if scrolledID == nil || !viewModel.items.contains(where: { $0.id == scrolledID }) {
+                scrolledID = first.id
+            }
+        }
+        .onChange(of: viewModel.items.count) { _, newCount in
+            // items 因删除/库变化被清空后又补充时，scrolledID 可能指向已移除项
+            guard newCount > 0, let first = viewModel.items.first else { return }
+            if scrolledID == nil || !viewModel.items.contains(where: { $0.id == scrolledID }) {
                 scrolledID = first.id
             }
         }

@@ -33,6 +33,9 @@ final class ShuffleFeedViewModel {
     func cachedFullImage(for assetID: String) -> UIImage? { fullImageCache[assetID] }
 
     func bootstrap(services: AppServiceContainer) async {
+        // 幂等：已初始化完成则直接返回，避免切 tab 回来时清空 items 导致 scrolledID 失效
+        if fetchResult != nil, !items.isEmpty { return }
+
         let status = await services.photoLibrary.requestAuthorization()
         authStatus = status
         guard status == .authorized || status == .limited else { return }
@@ -153,6 +156,7 @@ final class ShuffleFeedViewModel {
         items.remove(at: idx)
         indexQueue.remove(fetchIndex: removed.fetchIndex)
         evictAll(for: removed.asset.localIdentifier)
+        if items.count < 5 { appendNext(count: 5) }
     }
 
     func refreshAfterLibraryChange(services: AppServiceContainer) async {
@@ -163,7 +167,11 @@ final class ShuffleFeedViewModel {
         existing.enumerateObjects { asset, _, _ in aliveIDs.insert(asset.localIdentifier) }
         let removed = items.filter { !aliveIDs.contains($0.asset.localIdentifier) }
         items.removeAll { !aliveIDs.contains($0.asset.localIdentifier) }
-        for it in removed { evictAll(for: it.asset.localIdentifier) }
+        for it in removed {
+            indexQueue.remove(fetchIndex: it.fetchIndex)
+            evictAll(for: it.asset.localIdentifier)
+        }
+        if items.count < 5 { appendNext(count: 5) }
     }
 
     // MARK: - Private
