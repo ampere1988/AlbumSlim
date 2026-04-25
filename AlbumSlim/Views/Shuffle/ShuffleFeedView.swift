@@ -14,8 +14,6 @@ struct ShuffleFeedView: View {
 
     // Sheets & Alerts
     @State private var showPaywall = false
-    @State private var showDeleteConfirm = false
-    @State private var pendingDelete: ShuffleItem?
     @State private var shareItems: [Any] = []
     @State private var showShareSheet = false
     @State private var isPreparingShare = false
@@ -61,16 +59,6 @@ struct ShuffleFeedView: View {
         }
         .sheet(item: $detailItem) { item in
             ShuffleDetailSheet(item: item)
-        }
-        .confirmationDialog("删除这个项目？",
-                            isPresented: $showDeleteConfirm,
-                            titleVisibility: .visible) {
-            Button("移到「最近删除」", role: .destructive) {
-                Task { await performDelete() }
-            }
-            Button("取消", role: .cancel) { pendingDelete = nil }
-        } message: {
-            Text("删除后 30 天内可在系统相册「最近删除」中恢复")
         }
     }
 
@@ -211,25 +199,28 @@ struct ShuffleFeedView: View {
 
     private func triggerDelete(_ item: ShuffleItem) {
         guard ProFeatureGate.canClean(isPro: services.subscription.isPro) else {
-            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            Haptics.proGate()
             showPaywall = true
             return
         }
-        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-        pendingDelete = item
-        showDeleteConfirm = true
+        let size = services.photoLibrary.fileSize(for: item.asset)
+        services.trash.moveToTrash(
+            assets: [item.asset],
+            source: .shuffle,
+            mediaType: trashMediaType(for: item)
+        )
+        Haptics.moveToTrash()
+        services.toast.movedToTrash(1)
+        services.achievement.recordCleanup(freedSpace: size, deletedCount: 1)
+        viewModel.remove(itemID: item.id)
     }
 
-    private func performDelete() async {
-        guard let target = pendingDelete else { return }
-        pendingDelete = nil
-        let size = services.photoLibrary.fileSize(for: target.asset)
-        do {
-            try await services.photoLibrary.deleteAssets([target.asset])
-            services.achievement.recordCleanup(freedSpace: size, deletedCount: 1)
-            viewModel.remove(itemID: target.id)
-        } catch {
-            // 用户在系统弹窗中取消或系统异常，无需特殊处理
+    private func trashMediaType(for item: ShuffleItem) -> TrashedMediaType {
+        switch item.asset.mediaType {
+        case .video: return .video
+        case .image:
+            return item.asset.mediaSubtypes.contains(.photoLive) ? .livePhoto : .photo
+        default: return .photo
         }
     }
 
