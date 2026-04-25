@@ -94,27 +94,6 @@ final class TrashService {
         persist()
     }
 
-    /// 兼容老入口：保留给截图 ViewModel 现有调用，内部转发
-    @available(*, deprecated, message: "使用 moveToTrash(assets:source:mediaType:)")
-    func trash(_ items: [MediaItem]) {
-        let now = Date()
-        let existingIDs = trashedAssetIDs
-        let newItems = items.compactMap { item -> TrashedItem? in
-            guard !existingIDs.contains(item.id) else { return nil }
-            return TrashedItem(
-                id: item.id,
-                fileSize: item.fileSize,
-                creationDate: item.creationDate,
-                trashedDate: now,
-                sourceModule: .screenshot,
-                mediaType: .screenshot
-            )
-        }
-        guard !newItems.isEmpty else { return }
-        trashedItems.insert(contentsOf: newItems, at: 0)
-        persist()
-    }
-
     // MARK: - 恢复 / 永久删除
 
     func restore(_ ids: Set<String>) {
