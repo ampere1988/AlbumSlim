@@ -4,16 +4,17 @@ import Photos
 struct VideoListView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var viewModel = VideoManagerViewModel()
-    @State private var showDeleteConfirm = false
+    @State private var isEditing = false
     @State private var showPaywall = false
+    @State private var showTrash = false
 
     var body: some View {
         NavigationStack {
             Group {
                 if viewModel.isLoading {
-                    ProgressView("加载视频...")
+                    LoadingState(AppStrings.loading)
                 } else if viewModel.sortedVideos.isEmpty {
-                    ContentUnavailableView("没有视频", systemImage: "video.slash")
+                    EmptyState("视频", systemImage: AppIcons.video)
                 } else {
                     List {
                         Section {
@@ -27,7 +28,7 @@ struct VideoListView: View {
                         }
 
                         ForEach(viewModel.sortedVideos) { video in
-                            if viewModel.isEditing {
+                            if isEditing {
                                 VideoRow(item: video, services: services, isSelected: viewModel.selectedVideos.contains(video.id))
                                     .onTapGesture { viewModel.toggleSelection(video.id) }
                             } else {
@@ -35,10 +36,15 @@ struct VideoListView: View {
                                     VideoRow(item: video, services: services)
                                 }
                                 .swipeActions(edge: .trailing) {
-                                    Button("删除", role: .destructive) {
+                                    Button(AppStrings.moveToTrash, role: .destructive) {
                                         if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                                            let count = 1
                                             viewModel.deleteVideo(video, services: services)
+                                            Haptics.moveToTrash()
+                                            services.toast.movedToTrash(count)
                                         } else {
+                                            Haptics.proGate()
+                                            services.toast.proRequired()
                                             showPaywall = true
                                         }
                                     }
@@ -54,8 +60,43 @@ struct VideoListView: View {
                         }
                     }
                     .safeAreaInset(edge: .bottom) {
-                        if viewModel.isEditing && !viewModel.selectedVideos.isEmpty {
-                            batchActionBar
+                        if isEditing && !viewModel.selectedVideos.isEmpty {
+                            ActionBar {
+                                Button {
+                                    Haptics.tap()
+                                    if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                                        Task {
+                                            try? await viewModel.compressSelected(services: services)
+                                        }
+                                    } else {
+                                        Haptics.proGate()
+                                        services.toast.proRequired()
+                                        showPaywall = true
+                                    }
+                                } label: {
+                                    Text("压缩 \(AppStrings.items(viewModel.selectedVideos.count))")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .secondaryActionStyle()
+
+                                Button(role: .destructive) {
+                                    if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                                        let count = viewModel.selectedVideos.count
+                                        viewModel.deleteSelected(services: services)
+                                        Haptics.moveToTrash()
+                                        services.toast.movedToTrash(count)
+                                        isEditing = false
+                                    } else {
+                                        Haptics.proGate()
+                                        services.toast.proRequired()
+                                        showPaywall = true
+                                    }
+                                } label: {
+                                    Text("\(AppStrings.moveToTrash) \(AppStrings.items(viewModel.selectedVideos.count))")
+                                        .frame(maxWidth: .infinity)
+                                }
+                                .primaryActionStyle(destructive: true)
+                            }
                         }
                     }
                 }
@@ -87,55 +128,21 @@ struct VideoListView: View {
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button(viewModel.isEditing ? "完成" : "选择") {
-                        viewModel.isEditing.toggle()
-                        if !viewModel.isEditing {
-                            viewModel.selectedVideos.removeAll()
-                        }
+                    TrashToolbarButton(count: services.trash.trashedItems.count) {
+                        showTrash = true
                     }
                 }
             }
+            .selectionToolbar(
+                isEditing: $isEditing,
+                selectedCount: viewModel.selectedVideos.count,
+                totalCount: viewModel.sortedVideos.count,
+                onSelectAll: { viewModel.selectedVideos = Set(viewModel.sortedVideos.map(\.id)) },
+                onDeselectAll: { viewModel.selectedVideos.removeAll() }
+            )
             .task { await viewModel.loadVideos(services: services) }
             .sheet(isPresented: $showPaywall) { PaywallView() }
-        }
-    }
-
-    private var batchActionBar: some View {
-        HStack {
-            Text("已选 \(viewModel.selectedVideos.count) 个")
-                .font(.subheadline)
-            Spacer()
-            Button("批量压缩") {
-                if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                    Task {
-                        try? await viewModel.compressSelected(services: services)
-                    }
-                } else {
-                    showPaywall = true
-                }
-            }
-            .buttonStyle(.bordered)
-            Button("删除", role: .destructive) {
-                if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                    showDeleteConfirm = true
-                } else {
-                    showPaywall = true
-                }
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .padding()
-        .background(.ultraThinMaterial)
-        .confirmationDialog(
-            "确定删除 \(viewModel.selectedVideos.count) 个视频？",
-            isPresented: $showDeleteConfirm,
-            titleVisibility: .visible
-        ) {
-            Button("删除", role: .destructive) {
-                viewModel.deleteSelected(services: services)
-            }
-        } message: {
-            Text("删除后可在\"最近删除\"中恢复")
+            .sheet(isPresented: $showTrash) { GlobalTrashView() }
         }
     }
 }

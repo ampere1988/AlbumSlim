@@ -95,7 +95,6 @@ final class VideoManagerViewModel {
         for item in items {
             services.videoCompression.enqueueCompression(asset: item.asset, quality: selectedQuality)
         }
-        let count = items.count
         selectedVideos.removeAll()
         await services.videoCompression.processQueue()
         let compressed = services.videoCompression.queue.filter {
@@ -109,24 +108,10 @@ final class VideoManagerViewModel {
         await loadVideos(services: services)
     }
 
-    /// 乐观删除：先同步移除 UI，再异步删除 Photos 资产。
-    /// 必须从 swipeActions 按钮里直接调用（不要包 Task），
-    /// 保证 UI 更新与 UIKit swipe 动画在同一事务中完成。
     func deleteVideo(_ item: MediaItem, services: AppServiceContainer) {
-        let asset = item.asset
         videos.removeAll { $0.id == item.id }
         refreshSortedVideos()
-
-        Task {
-            do {
-                try await services.photoLibrary.deleteAssets([asset])
-                lastLibraryVersion = services.photoLibrary.libraryVersion
-            } catch {
-                // 用户取消系统确认对话框 → 回滚，重新从 Photos 加载
-                lastLibraryVersion = -1
-                await loadVideos(services: services)
-            }
-        }
+        services.trash.moveToTrash(assets: [item.asset], source: .video, mediaType: .video)
     }
 
     func deleteSelected(services: AppServiceContainer) {
@@ -139,15 +124,7 @@ final class VideoManagerViewModel {
         selectedVideos.removeAll()
         isEditing = false
 
-        Task {
-            do {
-                try await services.photoLibrary.deleteAssets(assets)
-                lastLibraryVersion = services.photoLibrary.libraryVersion
-            } catch {
-                lastLibraryVersion = -1
-                await loadVideos(services: services)
-            }
-        }
+        services.trash.moveToTrash(assets: assets, source: .video, mediaType: .video)
     }
 
     func estimatedSize(for item: MediaItem, services: AppServiceContainer) -> Int64 {
