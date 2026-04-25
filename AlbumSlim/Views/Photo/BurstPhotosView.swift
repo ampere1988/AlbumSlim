@@ -5,18 +5,15 @@ struct BurstPhotosView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var burstGroups: [CleanupGroup] = []
     @State private var isLoading = false
-    @State private var showDeleteConfirm = false
     @State private var showPaywall = false
-    @State private var pendingGroupID: UUID?
+    @State private var showTrash = false
 
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("扫描连拍照片...")
+                LoadingState(AppStrings.scanning)
             } else if burstGroups.isEmpty {
-                ContentUnavailableView {
-                    Label("未发现连拍照片", systemImage: "square.stack.3d.up")
-                } actions: {
+                EmptyState("连拍照片", systemImage: AppIcons.burst) {
                     Button("开始扫描") {
                         Task { await loadBursts() }
                     }
@@ -39,13 +36,16 @@ struct BurstPhotosView: View {
                                 .padding(.vertical, 4)
                             }
 
-                            Button("只保留最佳") {
+                            Button {
                                 if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                                    pendingGroupID = group.id
-                                    showDeleteConfirm = true
+                                    keepOnlyBest(id: group.id)
                                 } else {
+                                    Haptics.proGate()
+                                    services.toast.proRequired()
                                     showPaywall = true
                                 }
+                            } label: {
+                                Label("只保留最佳", systemImage: AppIcons.checkmarkCircle)
                             }
                             .font(.footnote)
                             .foregroundStyle(.red)
@@ -61,18 +61,17 @@ struct BurstPhotosView: View {
                         }
                     }
                 }
-                .confirmationDialog("确认删除", isPresented: $showDeleteConfirm) {
-                    if let id = pendingGroupID,
-                       let group = burstGroups.first(where: { $0.id == id }) {
-                        let count = group.items.count - 1
-                        Button("删除 \(count) 张，只保留最佳", role: .destructive) {
-                            keepOnlyBest(id: id)
-                        }
-                    }
+            }
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                TrashToolbarButton(count: services.trash.trashedItems.count) {
+                    showTrash = true
                 }
             }
         }
         .sheet(isPresented: $showPaywall) { PaywallView() }
+        .sheet(isPresented: $showTrash) { GlobalTrashView() }
         .task {
             if burstGroups.isEmpty && !isLoading {
                 await loadBursts()
@@ -121,9 +120,9 @@ struct BurstPhotosView: View {
         let assets = toDelete.map(\.asset)
         burstGroups.removeAll { $0.id == id }
 
-        Task {
-            try? await services.photoLibrary.deleteAssets(assets)
-        }
+        services.trash.moveToTrash(assets: assets, source: .burst, mediaType: .photo)
+        Haptics.moveToTrash()
+        services.toast.movedToTrash(assets.count)
     }
 }
 
