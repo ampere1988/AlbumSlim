@@ -6,7 +6,7 @@ struct VideoSuggestionsView: View {
     @Bindable var viewModel: VideoManagerViewModel
     @State private var selectedIDs: Set<String> = []
     @State private var isEditing = false
-    @State private var showDeleteConfirm = false
+    @State private var showTrash = false
 
     private var groupedSuggestions: [(VideoAnalysisService.VideoSuggestion.SuggestionType, [VideoAnalysisService.VideoSuggestion])] {
         let grouped = Dictionary(grouping: viewModel.suggestions, by: \.type)
@@ -19,9 +19,9 @@ struct VideoSuggestionsView: View {
     var body: some View {
         Group {
             if viewModel.isAnalyzingSuggestions {
-                ProgressView("正在分析视频...")
+                ProgressLoadingState(phase: AppStrings.scanning, progress: 0.5)
             } else if viewModel.suggestions.isEmpty {
-                ContentUnavailableView("没有清理建议", systemImage: "checkmark.circle", description: Text("您的视频库状态良好"))
+                EmptyState("清理建议", systemImage: AppIcons.checkmarkCircle, description: "暂无可清理的视频")
             } else {
                 List {
                     savingBanner
@@ -38,18 +38,49 @@ struct VideoSuggestionsView: View {
                 }
                 .safeAreaInset(edge: .bottom) {
                     if isEditing && !selectedIDs.isEmpty {
-                        batchActionBar
+                        ActionBar {
+                            Button {
+                                Haptics.tap()
+                                Task { await compressSelected() }
+                            } label: {
+                                Text("压缩 \(AppStrings.items(selectedIDs.count))")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .secondaryActionStyle()
+
+                            Button(role: .destructive) {
+                                let assets = viewModel.suggestions
+                                    .filter { selectedIDs.contains($0.id) }
+                                    .map(\.item.asset)
+                                let count = assets.count
+                                viewModel.suggestions.removeAll { selectedIDs.contains($0.id) }
+                                selectedIDs.removeAll()
+                                isEditing = false
+                                services.trash.moveToTrash(assets: assets, source: .video, mediaType: .video)
+                                Haptics.moveToTrash()
+                                services.toast.movedToTrash(count)
+                            } label: {
+                                Text("\(AppStrings.moveToTrash) \(AppStrings.items(selectedIDs.count))")
+                                    .frame(maxWidth: .infinity)
+                            }
+                            .primaryActionStyle(destructive: true)
+                        }
                     }
                 }
             }
         }
         .navigationTitle("清理建议")
         .toolbar {
-            if !viewModel.suggestions.isEmpty {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(isEditing ? "完成" : "选择") {
-                        isEditing.toggle()
-                        if !isEditing { selectedIDs.removeAll() }
+            ToolbarItem(placement: .topBarTrailing) {
+                HStack {
+                    if !viewModel.suggestions.isEmpty {
+                        Button(isEditing ? AppStrings.done : AppStrings.select) {
+                            isEditing.toggle()
+                            if !isEditing { selectedIDs.removeAll() }
+                        }
+                    }
+                    TrashToolbarButton(count: services.trash.trashedItems.count) {
+                        showTrash = true
                     }
                 }
             }
@@ -59,14 +90,7 @@ struct VideoSuggestionsView: View {
                 await viewModel.analyzeSuggestions(services: services)
             }
         }
-        .confirmationDialog("确认删除", isPresented: $showDeleteConfirm) {
-            Button("删除选中视频", role: .destructive) {
-                deleteSelected()
-            }
-            Button("取消", role: .cancel) {}
-        } message: {
-            Text("将删除 \(selectedIDs.count) 个视频，此操作可在\"最近删除\"中撤回")
-        }
+        .sheet(isPresented: $showTrash) { GlobalTrashView() }
     }
 
     private var savingBanner: some View {
@@ -125,24 +149,6 @@ struct VideoSuggestionsView: View {
         }
     }
 
-    private var batchActionBar: some View {
-        HStack {
-            Text("已选 \(selectedIDs.count) 个")
-                .font(.subheadline)
-            Spacer()
-            Button("批量压缩") {
-                Task { await compressSelected() }
-            }
-            .buttonStyle(.bordered)
-            Button("删除", role: .destructive) {
-                showDeleteConfirm = true
-            }
-            .buttonStyle(.borderedProminent)
-        }
-        .padding()
-        .background(.ultraThinMaterial)
-    }
-
     private func toggleSelection(_ id: String) {
         if selectedIDs.contains(id) {
             selectedIDs.remove(id)
@@ -160,21 +166,6 @@ struct VideoSuggestionsView: View {
         isEditing = false
         await viewModel.loadVideos(services: services)
         await viewModel.analyzeSuggestions(services: services)
-    }
-
-    private func deleteSelected() {
-        let assets = viewModel.suggestions
-            .filter { selectedIDs.contains($0.id) }
-            .map(\.item.asset)
-        viewModel.suggestions.removeAll { selectedIDs.contains($0.id) }
-        selectedIDs.removeAll()
-        isEditing = false
-
-        Task {
-            try? await services.photoLibrary.deleteAssets(assets)
-            await viewModel.loadVideos(services: services)
-            await viewModel.analyzeSuggestions(services: services)
-        }
     }
 }
 

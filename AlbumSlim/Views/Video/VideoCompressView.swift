@@ -14,7 +14,6 @@ struct VideoCompressView: View {
     @State private var thumbnail: UIImage?
     @State private var player: AVPlayer?
     @State private var showPaywall = false
-    @State private var showDeleteConfirm = false
 
     private var isCompleted: Bool { compressedSize != nil }
 
@@ -83,14 +82,18 @@ struct VideoCompressView: View {
                 Section {
                     Button(role: .destructive) {
                         if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                            showDeleteConfirm = true
+                            services.trash.moveToTrash(assets: [item.asset], source: .video, mediaType: .video)
+                            Haptics.moveToTrash()
+                            services.toast.movedToTrash(1)
+                            dismiss()
                         } else {
+                            Haptics.proGate()
                             showPaywall = true
                         }
                     } label: {
                         HStack {
                             Spacer()
-                            Label("删除视频", systemImage: "trash")
+                            Label("移到垃圾桶", systemImage: AppIcons.trash)
                             Spacer()
                         }
                     }
@@ -99,14 +102,7 @@ struct VideoCompressView: View {
 
             if isCompressing {
                 Section {
-                    VStack(spacing: 8) {
-                        ProgressView(value: services.videoCompression.progress) {
-                            Text("压缩中...")
-                        }
-                        Text("\(Int(services.videoCompression.progress * 100))%")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                    }
+                    ProgressLoadingState(phase: AppStrings.compressing, progress: services.videoCompression.progress)
                 }
             }
 
@@ -128,60 +124,40 @@ struct VideoCompressView: View {
         }
         .safeAreaInset(edge: .bottom) {
             if !isCompressing && !isCompleted {
-                VStack(spacing: 0) {
-                    Divider()
-                    HStack(spacing: 12) {
-                        Button {
-                            if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                                Task { await compressAndReplace() }
-                            } else {
-                                showPaywall = true
-                            }
-                        } label: {
-                            Text("压缩并替换原视频")
-                                .font(.subheadline.weight(.semibold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
+                ActionBar {
+                    Button {
+                        if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                            Task { await compressAndSaveNew() }
+                        } else {
+                            Haptics.proGate()
+                            showPaywall = true
                         }
-                        .buttonStyle(.bordered)
-                        .tint(.blue)
-
-                        Button {
-                            if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                                Task { await compressAndSaveNew() }
-                            } else {
-                                showPaywall = true
-                            }
-                        } label: {
-                            Text("压缩保存为新视频")
-                                .font(.subheadline.weight(.semibold))
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 12)
-                        }
-                        .buttonStyle(.borderedProminent)
+                    } label: {
+                        Text("压缩保存为新视频")
+                            .frame(maxWidth: .infinity)
                     }
-                    .padding(.horizontal)
-                    .padding(.vertical, 10)
+                    .secondaryActionStyle()
+
+                    Button {
+                        if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                            Task { await compressAndReplace() }
+                        } else {
+                            Haptics.proGate()
+                            showPaywall = true
+                        }
+                    } label: {
+                        Text("压缩并替换原视频")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .primaryActionStyle()
                 }
-                .background(.ultraThinMaterial)
             }
-        }
-        .confirmationDialog("确认删除", isPresented: $showDeleteConfirm, titleVisibility: .visible) {
-            Button("删除视频", role: .destructive) {
-                Task {
-                    try? await services.photoLibrary.deleteAssets([item.asset])
-                    dismiss()
-                }
-            }
-        } message: {
-            Text("删除后视频将移至「最近删除」相簿")
         }
         .navigationTitle("视频压缩")
         .task {
             thumbnail = await services.photoLibrary.thumbnail(
                 for: item.asset, size: CGSize(width: 600, height: 400)
             )
-            // 加载视频播放器
             let options = PHVideoRequestOptions()
             options.isNetworkAccessAllowed = true
             options.deliveryMode = .highQualityFormat
@@ -216,7 +192,10 @@ struct VideoCompressView: View {
             let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
             let size = attrs?[.size] as? Int64 ?? 0
             try await services.videoCompression.replaceOriginal(asset: item.asset, with: url)
+            let savedBytes = item.fileSize - size
             compressedSize = size
+            Haptics.operationSuccess()
+            services.toast.compressed(max(0, savedBytes))
         } catch {
             self.error = error.localizedDescription
         }
@@ -232,7 +211,10 @@ struct VideoCompressView: View {
             let attrs = try? FileManager.default.attributesOfItem(atPath: url.path)
             let size = attrs?[.size] as? Int64 ?? 0
             try await services.videoCompression.saveCompressedToLibrary(url: url)
+            let savedBytes = item.fileSize - size
             compressedSize = size
+            Haptics.operationSuccess()
+            services.toast.compressed(max(0, savedBytes))
         } catch {
             self.error = error.localizedDescription
         }
