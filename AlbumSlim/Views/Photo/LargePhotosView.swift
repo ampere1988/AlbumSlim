@@ -6,8 +6,9 @@ struct LargePhotosView: View {
     @State private var allPhotos: [MediaItem] = []
     @State private var isLoading = false
     @State private var selectedIDs: Set<String> = []
-    @State private var showDeleteConfirm = false
     @State private var showPaywall = false
+    @State private var showTrash = false
+    @State private var isEditing = false
     @State private var thresholdMB: Int = 10
 
     private static let thresholdOptions = [50, 30, 15, 10, 8, 5, 3]
@@ -21,42 +22,25 @@ struct LargePhotosView: View {
     var body: some View {
         Group {
             if isLoading {
-                ProgressView("扫描超大照片...")
+                LoadingState(AppStrings.scanning)
             } else if allPhotos.isEmpty {
-                ContentUnavailableView {
-                    Label("未发现超大照片", systemImage: "photo.badge.exclamationmark")
-                } description: {
-                    Text("没有超过 \(thresholdMB) MB 的照片")
-                } actions: {
-                    thresholdPicker
-                        .padding(.bottom, 8)
-                    Button("开始扫描") {
-                        Task { await loadAllPhotos() }
+                EmptyState("超大照片", systemImage: AppIcons.largePhoto, description: "没有超过 \(thresholdMB) MB 的照片") {
+                    VStack(spacing: 12) {
+                        thresholdPicker
+                        Button("开始扫描") {
+                            Task { await loadAllPhotos() }
+                        }
+                        .primaryActionStyle()
                     }
-                    .buttonStyle(.borderedProminent)
                 }
             } else if largePhotos.isEmpty {
-                ContentUnavailableView {
-                    Label("未发现超大照片", systemImage: "photo.badge.exclamationmark")
-                } description: {
-                    Text("没有超过 \(thresholdMB) MB 的照片，试试降低阈值")
-                } actions: {
+                EmptyState("超大照片", systemImage: AppIcons.largePhoto, description: "没有超过 \(thresholdMB) MB 的照片，试试降低阈值") {
                     thresholdPicker
                 }
             } else {
                 List {
                     Section {
-                        HStack {
-                            thresholdPicker
-                            Spacer()
-                            if selectedIDs.isEmpty {
-                                Button("全选") { selectedIDs = Set(largePhotos.map(\.id)) }
-                                    .font(.footnote)
-                            } else {
-                                Button("取消全选") { selectedIDs.removeAll() }
-                                    .font(.footnote)
-                            }
-                        }
+                        thresholdPicker
                     }
 
                     Section {
@@ -69,6 +53,7 @@ struct LargePhotosView: View {
                         LargePhotoRow(
                             item: item,
                             isSelected: selectedIDs.contains(item.id),
+                            isEditing: isEditing,
                             services: services
                         ) {
                             toggleSelection(item.id)
@@ -76,31 +61,56 @@ struct LargePhotosView: View {
                     }
                 }
                 .safeAreaInset(edge: .bottom) {
-                    if !selectedIDs.isEmpty {
-                        Button(role: .destructive) {
-                            if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                                showDeleteConfirm = true
-                            } else {
-                                showPaywall = true
+                    if isEditing && !selectedIDs.isEmpty {
+                        let savableBytes = largePhotos
+                            .filter { selectedIDs.contains($0.id) }
+                            .reduce(Int64(0)) { $0 + $1.fileSize }
+
+                        ActionBar {
+                            Button(role: .destructive) {
+                                guard services.subscription.isPro else {
+                                    Haptics.proGate()
+                                    services.toast.proRequired()
+                                    showPaywall = true
+                                    return
+                                }
+                                let count = selectedIDs.count
+                                let toDelete = largePhotos.filter { selectedIDs.contains($0.id) }
+                                let assets = toDelete.map(\.asset)
+                                let freedSize = toDelete.reduce(Int64(0)) { $0 + $1.fileSize }
+                                let _ = services.achievement.recordCleanup(freedSpace: freedSize, deletedCount: count)
+                                services.trash.moveToTrash(assets: assets, source: .largePhoto, mediaType: .photo)
+                                Haptics.moveToTrash()
+                                services.toast.movedToTrash(count)
+                                allPhotos.removeAll { selectedIDs.contains($0.id) }
+                                selectedIDs.removeAll()
+                                isEditing = false
+                            } label: {
+                                Text("\(AppStrings.moveToTrash) \(AppStrings.items(selectedIDs.count)) · \(AppStrings.releasable(savableBytes))")
+                                    .frame(maxWidth: .infinity)
                             }
-                        } label: {
-                            Text("删除 \(selectedIDs.count) 张 · 释放 \(selectedSize.formattedFileSize)")
-                                .frame(maxWidth: .infinity)
+                            .primaryActionStyle(destructive: true)
                         }
-                        .buttonStyle(.borderedProminent)
-                        .tint(.red)
-                        .padding()
-                        .background(.bar)
-                    }
-                }
-                .confirmationDialog("确认删除", isPresented: $showDeleteConfirm) {
-                    Button("删除 \(selectedIDs.count) 张照片", role: .destructive) {
-                        deleteSelected()
                     }
                 }
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                TrashToolbarButton(count: services.trash.trashedItems.count) {
+                    showTrash = true
+                }
+            }
+        }
+        .selectionToolbar(
+            isEditing: $isEditing,
+            selectedCount: selectedIDs.count,
+            totalCount: largePhotos.count,
+            onSelectAll: { selectedIDs = Set(largePhotos.map(\.id)) },
+            onDeselectAll: { selectedIDs.removeAll() }
+        )
         .sheet(isPresented: $showPaywall) { PaywallView() }
+        .sheet(isPresented: $showTrash) { GlobalTrashView() }
         .onChange(of: thresholdMB) {
             selectedIDs = selectedIDs.filter { id in largePhotos.contains { $0.id == id } }
         }
@@ -134,10 +144,6 @@ struct LargePhotosView: View {
         largePhotos.reduce(0) { $0 + $1.fileSize }
     }
 
-    private var selectedSize: Int64 {
-        largePhotos.filter { selectedIDs.contains($0.id) }.reduce(0) { $0 + $1.fileSize }
-    }
-
     private func toggleSelection(_ id: String) {
         if selectedIDs.contains(id) {
             selectedIDs.remove(id)
@@ -164,13 +170,11 @@ struct LargePhotosView: View {
         let fetchResult = services.photoLibrary.fetchAllAssets(mediaType: .image)
         let items = await services.photoLibrary.buildMediaItems(from: fetchResult)
 
-        // 缓存所有 ≥ 最小阈值的照片，切换阈值时本地过滤
         let minThreshold = Int64(Self.thresholdOptions.last ?? 3) * 1024 * 1024
         allPhotos = items
             .filter { $0.fileSize >= minThreshold }
             .sorted { $0.fileSize > $1.fileSize }
 
-        // 先移除旧的 .largePhoto 组，再添加新的，避免重复
         for group in coordinator.groups(ofType: .largePhoto) {
             coordinator.removeGroup(group)
         }
@@ -180,27 +184,12 @@ struct LargePhotosView: View {
         }
         coordinator.markCategoryScanned(.largePhoto, libraryVersion: version)
     }
-
-    private func deleteSelected() {
-        let toDelete = allPhotos.filter { selectedIDs.contains($0.id) }
-        guard !toDelete.isEmpty else { return }
-
-        let freedSize = toDelete.reduce(Int64(0)) { $0 + $1.fileSize }
-        let assets = toDelete.map(\.asset)
-
-        let _ = services.achievement.recordCleanup(freedSpace: freedSize, deletedCount: toDelete.count)
-        allPhotos.removeAll { selectedIDs.contains($0.id) }
-        selectedIDs.removeAll()
-
-        Task {
-            try? await services.photoLibrary.deleteAssets(assets)
-        }
-    }
 }
 
 private struct LargePhotoRow: View {
     let item: MediaItem
     let isSelected: Bool
+    let isEditing: Bool
     let services: AppServiceContainer
     let onTap: () -> Void
     @State private var image: UIImage?
@@ -237,12 +226,14 @@ private struct LargePhotoRow: View {
 
             Spacer()
 
-            Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                .font(.title2)
-                .foregroundStyle(isSelected ? .red : .secondary)
+            if isEditing {
+                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
+                    .font(.title2)
+                    .foregroundStyle(isSelected ? .red : .secondary)
+            }
         }
         .contentShape(Rectangle())
-        .onTapGesture { onTap() }
+        .onTapGesture { if isEditing { onTap() } }
         .task {
             image = await services.photoLibrary.thumbnail(for: item.asset, size: CGSize(width: 200, height: 200))
         }
