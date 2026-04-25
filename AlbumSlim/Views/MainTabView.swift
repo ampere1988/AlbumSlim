@@ -13,16 +13,16 @@ struct MainTabView: View {
                     .tabItem { Label("浏览", systemImage: "shuffle") }
                     .tag(0)
                 VideoListView()
-                    .tabItem { Label("视频", systemImage: "video.fill") }
+                    .tabItem { Label("视频", systemImage: AppIcons.video) }
                     .tag(1)
                 PhotoCleanerTabView()
                     .tabItem { Label("照片", systemImage: "photo.on.rectangle.angled") }
                     .tag(2)
                 ScreenshotListView()
-                    .tabItem { Label("截图", systemImage: "scissors") }
+                    .tabItem { Label("截图", systemImage: AppIcons.screenshot) }
                     .tag(3)
                 SettingsView()
-                    .tabItem { Label("设置", systemImage: "gearshape.fill") }
+                    .tabItem { Label("设置", systemImage: AppIcons.settings) }
                     .tag(4)
             }
             .safeAreaInset(edge: .top) {
@@ -104,10 +104,10 @@ enum PhotoCleanerCategory: Int, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
-        case .similar: "rectangle.stack.fill"
-        case .waste: "trash"
-        case .burst: "square.stack.3d.up.fill"
-        case .large: "photo.badge.plus"
+        case .similar: AppIcons.similar
+        case .waste:   AppIcons.waste
+        case .burst:   AppIcons.burst
+        case .large:   AppIcons.largePhoto
         }
     }
 }
