@@ -53,7 +53,7 @@ struct TrashView: View {
                 titleVisibility: .visible
             ) {
                 Button("永久删除全部", role: .destructive) {
-                    Task { await services.trash.permanentlyDeleteAll(photoLibrary: services.photoLibrary) }
+                    Task { try? await services.trash.permanentlyDeleteAll(photoLibrary: services.photoLibrary) }
                 }
             }
             .confirmationDialog(
@@ -63,7 +63,7 @@ struct TrashView: View {
             ) {
                 Button("永久删除", role: .destructive) {
                     Task {
-                        await services.trash.permanentlyDelete(selectedIDs, photoLibrary: services.photoLibrary)
+                        try? await services.trash.permanentlyDelete(selectedIDs, photoLibrary: services.photoLibrary)
                         selectedIDs.removeAll()
                         isEditing = false
                     }
@@ -92,7 +92,7 @@ struct TrashView: View {
                             },
                             onPermanentDelete: {
                                 Task {
-                                    await services.trash.permanentlyDelete([item.id], photoLibrary: services.photoLibrary)
+                                    try? await services.trash.permanentlyDelete([item.id], photoLibrary: services.photoLibrary)
                                 }
                             },
                             onTap: {
