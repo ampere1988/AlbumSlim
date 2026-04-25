@@ -18,6 +18,7 @@
 		21548605D409C5712F8A4B8F /* SavedNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A38387ECA687ECFD947A68 /* SavedNotesView.swift */; };
 		2173567B7E7488FF05586BC7 /* BackgroundTaskService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A801972BC9D199E85E0859B /* BackgroundTaskService.swift */; };
 		23F65CC84308DAA86A1EC3CB /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C79998029C673603AD8781 /* DesignSystem.swift */; };
+		2806151EC3D9C9486983121E /* ButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE1F473ECFBC7D1694FE000 /* ButtonStyles.swift */; };
 		2AA0C1E732FA859ECA427DA0 /* SimilarPhotosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E9E06B04C8F8E285C8F5985 /* SimilarPhotosView.swift */; };
 		2CFD18909761C319E59BFBFD /* ShuffleMediaPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608C15FF1F1A7F465DAAB78F /* ShuffleMediaPage.swift */; };
 		31D9B669AE9A1EDBE6608626 /* CleanupGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DEF85CBC76F96E545D1E97C /* CleanupGroup.swift */; };
@@ -194,6 +195,7 @@
 		F66C686CC08437B0FA879091 /* CleanupGroupTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupGroupTests.swift; sourceTree = "<group>"; };
 		F875F651E12872BBA0926BC2 /* QuickCleanViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickCleanViewModel.swift; sourceTree = "<group>"; };
 		FBC5D320592C9766E00115AB /* AsyncSemaphore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AsyncSemaphore.swift; sourceTree = "<group>"; };
+		FDE1F473ECFBC7D1694FE000 /* ButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonStyles.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -369,6 +371,7 @@
 				65155C25BECD1776BF3DF2B2 /* AppIcons.swift */,
 				CE4C9A30E92923E3798F1D22 /* AppStrings.swift */,
 				FBC5D320592C9766E00115AB /* AsyncSemaphore.swift */,
+				FDE1F473ECFBC7D1694FE000 /* ButtonStyles.swift */,
 				39C79998029C673603AD8781 /* DesignSystem.swift */,
 				AC06BC66186D55E657980BD0 /* FileSize+Extensions.swift */,
 				46EA595F874B2839E5BE9E34 /* Haptics.swift */,
@@ -560,6 +563,7 @@
 				7815414F58962420E43D24FB /* BackdropAdapterService.swift in Sources */,
 				2173567B7E7488FF05586BC7 /* BackgroundTaskService.swift in Sources */,
 				944401F7ACDC3ECB99506BA0 /* BurstPhotosView.swift in Sources */,
+				2806151EC3D9C9486983121E /* ButtonStyles.swift in Sources */,
 				4309BBAC59F7F63F23C70E30 /* CleanupCoordinator.swift in Sources */,
 				31D9B669AE9A1EDBE6608626 /* CleanupGroup.swift in Sources */,
 				8D0A66CE26CBD405CF1349D5 /* DashboardViewModel.swift in Sources */,
