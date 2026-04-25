@@ -19,6 +19,7 @@
 		2173567B7E7488FF05586BC7 /* BackgroundTaskService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A801972BC9D199E85E0859B /* BackgroundTaskService.swift */; };
 		23F65CC84308DAA86A1EC3CB /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39C79998029C673603AD8781 /* DesignSystem.swift */; };
 		2806151EC3D9C9486983121E /* ButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE1F473ECFBC7D1694FE000 /* ButtonStyles.swift */; };
+		2A5E0458DEF0925852005586 /* LoadingState.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF6AC8C03515DB0C1F65C748 /* LoadingState.swift */; };
 		2AA0C1E732FA859ECA427DA0 /* SimilarPhotosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E9E06B04C8F8E285C8F5985 /* SimilarPhotosView.swift */; };
 		2CFD18909761C319E59BFBFD /* ShuffleMediaPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608C15FF1F1A7F465DAAB78F /* ShuffleMediaPage.swift */; };
 		31D9B669AE9A1EDBE6608626 /* CleanupGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DEF85CBC76F96E545D1E97C /* CleanupGroup.swift */; };
@@ -92,6 +93,7 @@
 		E1565F6132820483FFC642ED /* OverviewSection.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84BDAB3C1B4C6B0EC7BE9439 /* OverviewSection.swift */; };
 		E1D096E812A66BB0E204D4F0 /* AppServiceContainer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 24672D7CA500AAB94EBCF201 /* AppServiceContainer.swift */; };
 		E2F7967E65FF83987E10D854 /* AlbumSlimApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BB7E80821709C5E5BA55739 /* AlbumSlimApp.swift */; };
+		E81B8E8330F6B29800CDDA7D /* EmptyState.swift in Sources */ = {isa = PBXBuildFile; fileRef = DA77F55E66376546A14787D1 /* EmptyState.swift */; };
 		E81C68D979020D16FAF183B4 /* SubscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9EDE091273DB393B30083A7 /* SubscriptionService.swift */; };
 		EB4890C9AFD51E9B367FFA8A /* StorageRingChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = BB92C5EDCA0ED1CF98B73DEE /* StorageRingChart.swift */; };
 		EC5113BBCBF64A21F93B2A68 /* AnalysisCacheService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A4C5247F157094EEA132FFE /* AnalysisCacheService.swift */; };
@@ -192,8 +194,10 @@
 		CC80D8FAA79E58578CC63748 /* ShuffleFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuffleFeedView.swift; sourceTree = "<group>"; };
 		CE4C9A30E92923E3798F1D22 /* AppStrings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStrings.swift; sourceTree = "<group>"; };
 		CEAFBC976F45C172EF02CA47 /* WastePhotosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WastePhotosView.swift; sourceTree = "<group>"; };
+		CF6AC8C03515DB0C1F65C748 /* LoadingState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoadingState.swift; sourceTree = "<group>"; };
 		D51B791FBB73A7995FF9DB90 /* StorageStatsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageStatsTests.swift; sourceTree = "<group>"; };
 		D5400262DB6A4800E5054A6C /* ReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderService.swift; sourceTree = "<group>"; };
+		DA77F55E66376546A14787D1 /* EmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyState.swift; sourceTree = "<group>"; };
 		DEB1DA8A206EADB7C135B857 /* TrashService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashService.swift; sourceTree = "<group>"; };
 		EA2B04B956CF16DA0FD62C1D /* QuickCleanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickCleanView.swift; sourceTree = "<group>"; };
 		EBD414750361F90610134685 /* ShuffleVideoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuffleVideoView.swift; sourceTree = "<group>"; };
@@ -367,6 +371,8 @@
 			isa = PBXGroup;
 			children = (
 				87B67917D4C1A4514F567B07 /* AppToast.swift */,
+				DA77F55E66376546A14787D1 /* EmptyState.swift */,
+				CF6AC8C03515DB0C1F65C748 /* LoadingState.swift */,
 				763869D357F2A1DACB84C5B1 /* MediaGridView.swift */,
 				22F62567E139C4F423D2D0D5 /* ShareCardView.swift */,
 				9F1447FDD9993E149FC4FDF3 /* SpaceSavedBanner.swift */,
@@ -583,10 +589,12 @@
 				31D9B669AE9A1EDBE6608626 /* CleanupGroup.swift in Sources */,
 				8D0A66CE26CBD405CF1349D5 /* DashboardViewModel.swift in Sources */,
 				23F65CC84308DAA86A1EC3CB /* DesignSystem.swift in Sources */,
+				E81B8E8330F6B29800CDDA7D /* EmptyState.swift in Sources */,
 				5539B6879DC638794A2BB97C /* FileSize+Extensions.swift in Sources */,
 				7E607D61B0355F6526A968E3 /* Haptics.swift in Sources */,
 				89A400351EC88097E87D1E24 /* ImageSimilarityService.swift in Sources */,
 				BE973DE375B029B479D6DD33 /* LargePhotosView.swift in Sources */,
+				2A5E0458DEF0925852005586 /* LoadingState.swift in Sources */,
 				5B19020F1AB2BF52FBA0C63A /* LocationNameService.swift in Sources */,
 				766627A223FA0E96014040DA /* MainTabView.swift in Sources */,
 				D3319AA220C30094E6FDF216 /* MediaGridView.swift in Sources */,
