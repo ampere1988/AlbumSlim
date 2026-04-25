@@ -54,7 +54,9 @@ final class VideoManagerViewModel {
         defer { if isFirstLoad { isLoading = false } }
 
         let fetchResult = services.photoLibrary.fetchAllAssets(mediaType: .video)
-        videos = await services.photoLibrary.buildMediaItems(from: fetchResult)
+        let allVideos = await services.photoLibrary.buildMediaItems(from: fetchResult)
+        let trashedIDs = services.trash.trashedAssetIDs
+        videos = allVideos.filter { !trashedIDs.contains($0.id) }
         lastLibraryVersion = currentVersion
         refreshSortedVideos()
     }
@@ -135,9 +137,16 @@ final class VideoManagerViewModel {
         suggestions.reduce(0) { $0 + $1.estimatedSaving }
     }
 
+    func reload(services: AppServiceContainer) async {
+        lastLibraryVersion = -1
+        await loadVideos(services: services)
+    }
+
     func analyzeSuggestions(services: AppServiceContainer) async {
         isAnalyzingSuggestions = true
         defer { isAnalyzingSuggestions = false }
-        suggestions = await services.videoAnalysis.analyzeVideos(videos)
+        let trashedIDs = services.trash.trashedAssetIDs
+        let rawSuggestions = await services.videoAnalysis.analyzeVideos(videos)
+        suggestions = rawSuggestions.filter { !trashedIDs.contains($0.item.id) }
     }
 }

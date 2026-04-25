@@ -53,6 +53,9 @@ struct ShuffleFeedView: View {
         .onChange(of: services.photoLibrary.libraryVersion) { _, _ in
             Task { await viewModel.refreshAfterLibraryChange(services: services) }
         }
+        .onChange(of: services.trash.trashedItems.count) { _, _ in
+            viewModel.filterTrashedItems(services: services)
+        }
         .sheet(isPresented: $showPaywall) { PaywallView() }
         .sheet(isPresented: $showShareSheet) {
             ActivityViewController(items: shareItems)

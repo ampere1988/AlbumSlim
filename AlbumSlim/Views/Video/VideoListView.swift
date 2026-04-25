@@ -141,6 +141,9 @@ struct VideoListView: View {
                 onDeselectAll: { viewModel.selectedVideos.removeAll() }
             )
             .task { await viewModel.loadVideos(services: services) }
+            .onChange(of: services.trash.trashedItems.count) { _, _ in
+                Task { await viewModel.reload(services: services) }
+            }
             .sheet(isPresented: $showPaywall) { PaywallView() }
             .sheet(isPresented: $showTrash) { GlobalTrashView() }
         }

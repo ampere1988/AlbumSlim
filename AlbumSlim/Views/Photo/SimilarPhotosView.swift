@@ -113,6 +113,9 @@ struct SimilarPhotosView: View {
                 await viewModel.scanSimilarPhotos(services: services)
             }
         }
+        .onChange(of: services.trash.trashedItems.count) { _, _ in
+            Task { await viewModel.reloadSimilar(services: services) }
+        }
     }
 
     private func timeRange(for group: CleanupGroup) -> String? {

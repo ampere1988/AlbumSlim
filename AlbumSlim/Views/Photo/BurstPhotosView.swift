@@ -77,6 +77,9 @@ struct BurstPhotosView: View {
                 await loadBursts()
             }
         }
+        .onChange(of: services.trash.trashedItems.count) { _, _ in
+            Task { await loadBursts() }
+        }
     }
 
     private func loadBursts() async {
@@ -85,7 +88,12 @@ struct BurstPhotosView: View {
         if coordinator.isCategoryFresh(.burst, libraryVersion: version) {
             let cached = coordinator.groups(ofType: .burst)
             if !cached.isEmpty {
-                burstGroups = cached
+                let trashedIDs = services.trash.trashedAssetIDs
+                burstGroups = cached.compactMap { group in
+                    var g = group
+                    g.items = g.items.filter { !trashedIDs.contains($0.id) }
+                    return g.items.count > 1 ? g : nil
+                }
                 return
             }
         }
@@ -103,7 +111,9 @@ struct BurstPhotosView: View {
             }
         }
 
+        let trashedIDs = services.trash.trashedAssetIDs
         burstGroups = groups.values
+            .map { items in items.filter { !trashedIDs.contains($0.id) } }
             .filter { $0.count > 1 }
             .map { items in
                 let best = items.max(by: { $0.fileSize < $1.fileSize })

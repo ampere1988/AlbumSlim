@@ -41,3 +41,4 @@ final class DashboardViewModel {
         stats = services.storageAnalyzer.stats
     }
 }
+// TODO(T20-followup): integrate trash size into stats

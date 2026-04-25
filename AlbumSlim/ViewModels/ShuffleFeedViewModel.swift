@@ -165,8 +165,22 @@ final class ShuffleFeedViewModel {
         let existing = PHAsset.fetchAssets(withLocalIdentifiers: ids, options: nil)
         var aliveIDs: Set<String> = []
         existing.enumerateObjects { asset, _, _ in aliveIDs.insert(asset.localIdentifier) }
-        let removed = items.filter { !aliveIDs.contains($0.asset.localIdentifier) }
-        items.removeAll { !aliveIDs.contains($0.asset.localIdentifier) }
+        let trashedIDs = services.trash.trashedAssetIDs
+        let removed = items.filter { !aliveIDs.contains($0.asset.localIdentifier) || trashedIDs.contains($0.asset.localIdentifier) }
+        items.removeAll { !aliveIDs.contains($0.asset.localIdentifier) || trashedIDs.contains($0.asset.localIdentifier) }
+        for it in removed {
+            indexQueue.remove(fetchIndex: it.fetchIndex)
+            evictAll(for: it.asset.localIdentifier)
+        }
+        if items.count < 5 { appendNext(count: 5) }
+    }
+
+    func filterTrashedItems(services: AppServiceContainer) {
+        let trashedIDs = services.trash.trashedAssetIDs
+        guard !trashedIDs.isEmpty else { return }
+        let removed = items.filter { trashedIDs.contains($0.asset.localIdentifier) }
+        guard !removed.isEmpty else { return }
+        items.removeAll { trashedIDs.contains($0.asset.localIdentifier) }
         for it in removed {
             indexQueue.remove(fetchIndex: it.fetchIndex)
             evictAll(for: it.asset.localIdentifier)

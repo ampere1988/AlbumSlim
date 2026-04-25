@@ -74,13 +74,28 @@ final class PhotoCleanerViewModel {
         selectedForDeletion.removeAll()
     }
 
+    func reloadSimilar(services: AppServiceContainer) async {
+        guard !isScanning else { return }
+        await scanSimilarPhotos(services: services)
+    }
+
+    func reloadWaste(services: AppServiceContainer) async {
+        guard !isScanning else { return }
+        await scanWastePhotos(services: services)
+    }
+
     func scanSimilarPhotos(services: AppServiceContainer) async {
         let coordinator = services.cleanupCoordinator
         let version = services.photoLibrary.libraryVersion
         if coordinator.isCategoryFresh(.similar, libraryVersion: version) {
             let cached = coordinator.groups(ofType: .similar)
             if !cached.isEmpty {
-                similarGroups = cached
+                let trashedIDs = services.trash.trashedAssetIDs
+                similarGroups = cached.compactMap { group in
+                    var g = group
+                    g.items = g.items.filter { !trashedIDs.contains($0.id) }
+                    return g.items.count > 1 ? g : nil
+                }
                 return
             }
         }
@@ -96,7 +111,7 @@ final class PhotoCleanerViewModel {
         }
 
         // 阶段 2：相似度分析（10% ~ 100%）
-        similarGroups = await services.imageSimilarity.findSimilarGroups(
+        let rawSimilarGroups = await services.imageSimilarity.findSimilarGroups(
             from: items,
             using: services.photoLibrary,
             cache: services.analysisCache,
@@ -104,6 +119,13 @@ final class PhotoCleanerViewModel {
                 self?.scanProgress = 0.1 + progress * 0.9
             }
         )
+
+        let trashedIDs = services.trash.trashedAssetIDs
+        similarGroups = rawSimilarGroups.compactMap { group in
+            var g = group
+            g.items = g.items.filter { !trashedIDs.contains($0.id) }
+            return g.items.count > 1 ? g : nil
+        }
 
         coordinator.addGroups(similarGroups)
         coordinator.markCategoryScanned(.similar, libraryVersion: version)
@@ -118,7 +140,8 @@ final class PhotoCleanerViewModel {
             let cached = coordinator.groups(ofType: .waste)
             let cachedItems = cached.flatMap(\.items)
             if !cachedItems.isEmpty {
-                wasteItems = cachedItems
+                let trashedIDs = services.trash.trashedAssetIDs
+                wasteItems = cachedItems.filter { !trashedIDs.contains($0.id) }
                 wasteReasons = coordinator.wasteReasons
                 return
             }
@@ -195,10 +218,11 @@ final class PhotoCleanerViewModel {
             await Task.yield()
         }
 
-        wasteItems = waste
+        let trashedIDs = services.trash.trashedAssetIDs
+        wasteItems = waste.filter { !trashedIDs.contains($0.id) }
         scanProgress = 1.0
 
-        let wasteGroup = CleanupGroup(type: .waste, items: waste, bestItemID: nil)
+        let wasteGroup = CleanupGroup(type: .waste, items: wasteItems, bestItemID: nil)
         coordinator.addGroups([wasteGroup])
         coordinator.markCategoryScanned(.waste, libraryVersion: version)
         services.achievement.recordScan()

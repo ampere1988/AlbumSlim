@@ -23,11 +23,11 @@ final class QuickCleanViewModel {
         if !existing.isEmpty {
             if coordinator.isAllCategoriesFresh(libraryVersion: version) {
                 // 缓存全部有效，直接展示
-                cleanupGroups = existing
+                cleanupGroups = filterTrash(existing, services: services)
                 return
             }
             // 有数据但部分分类过期 → 先展示旧数据，后台增量更新
-            cleanupGroups = existing
+            cleanupGroups = filterTrash(existing, services: services)
             await incrementalScan(services: services)
             return
         }
@@ -48,7 +48,8 @@ final class QuickCleanViewModel {
         defer { isScanning = false }
 
         let coordinator = services.cleanupCoordinator
-        cleanupGroups = await coordinator.smartScan(services: services)
+        let raw = await coordinator.smartScan(services: services)
+        cleanupGroups = filterTrash(raw, services: services)
         scanPhase = coordinator.scanPhase
         scanProgress = 1.0
         hasCompletedScan = true
@@ -61,9 +62,21 @@ final class QuickCleanViewModel {
         defer { isScanning = false }
 
         let coordinator = services.cleanupCoordinator
-        cleanupGroups = await coordinator.incrementalScan(services: services)
+        let raw = await coordinator.incrementalScan(services: services)
+        cleanupGroups = filterTrash(raw, services: services)
         scanPhase = coordinator.scanPhase
         scanProgress = 1.0
         hasCompletedScan = true
+    }
+
+    private func filterTrash(_ groups: [CleanupGroup], services: AppServiceContainer) -> [CleanupGroup] {
+        let trashedIDs = services.trash.trashedAssetIDs
+        guard !trashedIDs.isEmpty else { return groups }
+        return groups.compactMap { group in
+            var g = group
+            g.items = g.items.filter { !trashedIDs.contains($0.id) }
+            let minItems = (g.type == .similar || g.type == .burst) ? 2 : 1
+            return g.items.count >= minItems ? g : nil
+        }
     }
 }

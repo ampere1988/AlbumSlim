@@ -108,6 +108,9 @@ struct WastePhotosView: View {
                 await viewModel.scanWastePhotos(services: services)
             }
         }
+        .onChange(of: services.trash.trashedItems.count) { _, _ in
+            Task { await viewModel.reloadWaste(services: services) }
+        }
     }
 
     @ViewBuilder

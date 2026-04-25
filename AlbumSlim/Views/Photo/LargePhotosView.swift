@@ -114,6 +114,9 @@ struct LargePhotosView: View {
         .onChange(of: thresholdMB) {
             selectedIDs = selectedIDs.filter { id in largePhotos.contains { $0.id == id } }
         }
+        .onChange(of: services.trash.trashedItems.count) { _, _ in
+            Task { await loadAllPhotos() }
+        }
         .task {
             if allPhotos.isEmpty && !isLoading {
                 await loadAllPhotos()
@@ -159,7 +162,8 @@ struct LargePhotosView: View {
             let cached = coordinator.groups(ofType: .largePhoto)
             let cachedItems = cached.flatMap(\.items)
             if !cachedItems.isEmpty {
-                allPhotos = cachedItems.sorted { $0.fileSize > $1.fileSize }
+                let trashedIDs = services.trash.trashedAssetIDs
+                allPhotos = cachedItems.filter { !trashedIDs.contains($0.id) }.sorted { $0.fileSize > $1.fileSize }
                 return
             }
         }
@@ -171,8 +175,9 @@ struct LargePhotosView: View {
         let items = await services.photoLibrary.buildMediaItems(from: fetchResult)
 
         let minThreshold = Int64(Self.thresholdOptions.last ?? 3) * 1024 * 1024
+        let trashedIDs = services.trash.trashedAssetIDs
         allPhotos = items
-            .filter { $0.fileSize >= minThreshold }
+            .filter { $0.fileSize >= minThreshold && !trashedIDs.contains($0.id) }
             .sorted { $0.fileSize > $1.fileSize }
 
         for group in coordinator.groups(ofType: .largePhoto) {
