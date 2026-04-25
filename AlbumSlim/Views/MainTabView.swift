@@ -7,49 +7,53 @@ struct MainTabView: View {
     @State private var photoAuthStatus: PHAuthorizationStatus = PermissionManager.photoLibraryStatus
 
     var body: some View {
-        TabView(selection: $selectedTab) {
-            ShuffleFeedView()
-                .tabItem { Label("浏览", systemImage: "shuffle") }
-                .tag(0)
-            VideoListView()
-                .tabItem { Label("视频", systemImage: "video.fill") }
-                .tag(1)
-            PhotoCleanerTabView()
-                .tabItem { Label("照片", systemImage: "photo.on.rectangle.angled") }
-                .tag(2)
-            ScreenshotListView()
-                .tabItem { Label("截图", systemImage: "scissors") }
-                .tag(3)
-            SettingsView()
-                .tabItem { Label("设置", systemImage: "gearshape.fill") }
-                .tag(4)
-        }
-        .safeAreaInset(edge: .top) {
-            // 浏览 Tab 走沉浸式全屏，不显示权限横幅（由 ShuffleFeedView 自己做 overlay 引导）
-            if selectedTab != 0,
-               photoAuthStatus != .authorized && photoAuthStatus != .limited {
-                permissionBanner
+        ZStack(alignment: .bottom) {
+            TabView(selection: $selectedTab) {
+                ShuffleFeedView()
+                    .tabItem { Label("浏览", systemImage: "shuffle") }
+                    .tag(0)
+                VideoListView()
+                    .tabItem { Label("视频", systemImage: "video.fill") }
+                    .tag(1)
+                PhotoCleanerTabView()
+                    .tabItem { Label("照片", systemImage: "photo.on.rectangle.angled") }
+                    .tag(2)
+                ScreenshotListView()
+                    .tabItem { Label("截图", systemImage: "scissors") }
+                    .tag(3)
+                SettingsView()
+                    .tabItem { Label("设置", systemImage: "gearshape.fill") }
+                    .tag(4)
             }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: .switchTab)) { notification in
-            if let index = notification.userInfo?["index"] as? Int {
-                selectedTab = index
+            .safeAreaInset(edge: .top) {
+                // 浏览 Tab 走沉浸式全屏，不显示权限横幅（由 ShuffleFeedView 自己做 overlay 引导）
+                if selectedTab != 0,
+                   photoAuthStatus != .authorized && photoAuthStatus != .limited {
+                    permissionBanner
+                }
             }
-        }
-        .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
-            photoAuthStatus = PermissionManager.photoLibraryStatus
-        }
-        .onChange(of: selectedTab) { oldValue, newValue in
-            // 离开截图 tab(tag 3)时通知 ScreenshotListView 重置导航栈,
-            // 避免切回来时 detail 页 UIScrollView 残留放大状态
-            if oldValue == 3, newValue != 3 {
-                NotificationCenter.default.post(name: .screenshotTabLeft, object: nil)
+            .onReceive(NotificationCenter.default.publisher(for: .switchTab)) { notification in
+                if let index = notification.userInfo?["index"] as? Int {
+                    selectedTab = index
+                }
             }
-            // 离开浏览 tab(tag 0)时暂停视频/Live Photo 播放,并重置 backdrop 为 light
-            if oldValue == 0, newValue != 0 {
-                NotificationCenter.default.post(name: .shuffleTabLeft, object: nil)
-                services.backdrop.reset()
+            .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
+                photoAuthStatus = PermissionManager.photoLibraryStatus
             }
+            .onChange(of: selectedTab) { oldValue, newValue in
+                // 离开截图 tab(tag 3)时通知 ScreenshotListView 重置导航栈,
+                // 避免切回来时 detail 页 UIScrollView 残留放大状态
+                if oldValue == 3, newValue != 3 {
+                    NotificationCenter.default.post(name: .screenshotTabLeft, object: nil)
+                }
+                // 离开浏览 tab(tag 0)时暂停视频/Live Photo 播放,并重置 backdrop 为 light
+                if oldValue == 0, newValue != 0 {
+                    NotificationCenter.default.post(name: .shuffleTabLeft, object: nil)
+                    services.backdrop.reset()
+                }
+            }
+
+            AppToast(toastCenter: services.toast)
         }
     }
 
