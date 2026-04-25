@@ -127,7 +127,7 @@ struct ScreenshotDetailView: View {
                     Button(role: .destructive) {
                         handleTrashCurrent()
                     } label: {
-                        Label("删除", systemImage: "trash")
+                        Label(AppStrings.moveToTrash, systemImage: AppIcons.trash)
                     }
                     .disabled(isRecognizing)
                 }
@@ -170,7 +170,7 @@ struct ScreenshotDetailView: View {
                 if !Task.isCancelled {
                     isRecognizing = false
                     recognitionFailed = true
-                    services.toast.show(icon: "exclamationmark.triangle.fill", text: "识别失败，请重试", tint: .orange)
+                    services.toast.failure("识别失败，请重试")
                 }
                 return
             }
@@ -179,7 +179,7 @@ struct ScreenshotDetailView: View {
                 if !Task.isCancelled {
                     isRecognizing = false
                     recognitionFailed = true
-                    services.toast.show(icon: "exclamationmark.triangle.fill", text: "识别失败，请重试", tint: .orange)
+                    services.toast.failure("识别失败，请重试")
                 }
                 return
             }

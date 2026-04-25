@@ -32,6 +32,13 @@ enum TrashedMediaType: String, Codable {
     case screenshot
 }
 
+enum TrashChangeKind {
+    case none
+    case insert
+    case restore
+    case permanentDelete
+}
+
 struct TrashedItem: Codable, Identifiable {
     let id: String
     let fileSize: Int64
@@ -48,6 +55,7 @@ struct TrashedItem: Codable, Identifiable {
 @MainActor @Observable
 final class TrashService {
     private(set) var trashedItems: [TrashedItem] = []
+    private(set) var lastChangeKind: TrashChangeKind = .none
 
     var totalSize: Int64 {
         trashedItems.reduce(0) { $0 + $1.fileSize }
@@ -91,6 +99,7 @@ final class TrashService {
         }
         guard !newItems.isEmpty else { return }
         trashedItems.insert(contentsOf: newItems, at: 0)
+        lastChangeKind = .insert
         persist()
     }
 
@@ -98,6 +107,7 @@ final class TrashService {
 
     func restore(_ ids: Set<String>) {
         trashedItems.removeAll { ids.contains($0.id) }
+        lastChangeKind = .restore
         persist()
     }
 
@@ -107,6 +117,7 @@ final class TrashService {
             try await photoLibrary.deleteAssets(assets)
         }
         trashedItems.removeAll { ids.contains($0.id) }
+        lastChangeKind = .permanentDelete
         persist()
     }
 

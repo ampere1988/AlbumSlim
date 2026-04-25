@@ -91,6 +91,7 @@ struct VideoSuggestionsView: View {
             }
         }
         .onChange(of: services.trash.trashedItems.count) { _, _ in
+            if services.trash.lastChangeKind == .permanentDelete { return }
             Task { await viewModel.analyzeSuggestions(services: services) }
         }
         .sheet(isPresented: $showTrash) { GlobalTrashView() }

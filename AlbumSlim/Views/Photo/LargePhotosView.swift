@@ -115,6 +115,7 @@ struct LargePhotosView: View {
             selectedIDs = selectedIDs.filter { id in largePhotos.contains { $0.id == id } }
         }
         .onChange(of: services.trash.trashedItems.count) { _, _ in
+            if services.trash.lastChangeKind == .permanentDelete { return }
             Task { await loadAllPhotos() }
         }
         .task {

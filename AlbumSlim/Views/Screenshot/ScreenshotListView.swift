@@ -91,6 +91,7 @@ struct ScreenshotListView: View {
                 await viewModel.loadScreenshots(services: services)
             }
             .onChange(of: services.trash.trashedItems.count) { _, _ in
+                if services.trash.lastChangeKind == .permanentDelete { return }
                 Task {
                     viewModel.invalidateCache()
                     await viewModel.loadScreenshots(services: services)

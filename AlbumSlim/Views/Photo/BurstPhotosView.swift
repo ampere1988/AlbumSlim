@@ -78,6 +78,7 @@ struct BurstPhotosView: View {
             }
         }
         .onChange(of: services.trash.trashedItems.count) { _, _ in
+            if services.trash.lastChangeKind == .permanentDelete { return }
             Task { await loadBursts() }
         }
     }
