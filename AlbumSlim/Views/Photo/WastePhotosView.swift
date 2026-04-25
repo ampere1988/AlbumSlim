@@ -4,79 +4,53 @@ import Photos
 struct WastePhotosView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var viewModel = PhotoCleanerViewModel()
-    @State private var showDeleteConfirm = false
+    @State private var isEditing = false
     @State private var showPaywall = false
-
-    private var selectedSize: Int64 {
-        viewModel.wasteItems
-            .filter { viewModel.selectedForDeletion.contains($0.id) }
-            .reduce(Int64(0)) { $0 + $1.fileSize }
-    }
+    @State private var showTrash = false
 
     var body: some View {
         Group {
             if viewModel.isScanning {
-                VStack(spacing: 16) {
-                    ProgressView(value: viewModel.scanProgress) {
-                        Text("扫描废片...")
-                    }
-                    Text("\(Int(viewModel.scanProgress * 100))%")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                }
-                .padding()
+                ProgressLoadingState(phase: AppStrings.scanning, progress: viewModel.scanProgress)
             } else if viewModel.wasteItems.isEmpty {
-                ContentUnavailableView {
-                    Label("未发现废片", systemImage: "checkmark.circle")
-                } actions: {
+                EmptyState("废片", systemImage: AppIcons.waste) {
                     Button("开始扫描") {
                         Task { await viewModel.scanWastePhotos(services: services) }
                     }
-                    .buttonStyle(.borderedProminent)
+                    .primaryActionStyle()
                 }
             } else {
-                VStack(spacing: 0) {
-                    List {
-                        SpaceSavedBanner(
-                            count: viewModel.wasteItems.count,
-                            size: viewModel.wasteItems.reduce(0) { $0 + $1.fileSize }
-                        )
-                        .listRowInsets(EdgeInsets())
+                List {
+                    SpaceSavedBanner(
+                        count: viewModel.wasteItems.count,
+                        size: viewModel.wasteItems.reduce(Int64(0)) { $0 + $1.fileSize }
+                    )
+                    .listRowInsets(EdgeInsets())
 
-                        HStack {
-                            Button("全选") {
-                                for item in viewModel.wasteItems {
-                                    viewModel.selectedForDeletion.insert(item.id)
-                                }
-                            }
-                            Button("全不选") {
-                                viewModel.selectedForDeletion.removeAll()
-                            }
-                        }
-                        .font(.footnote)
-
-                        ForEach(viewModel.wasteItems) { item in
-                            HStack(spacing: 12) {
-                                // 勾选框
+                    ForEach(viewModel.wasteItems) { item in
+                        HStack(spacing: 12) {
+                            if isEditing {
                                 Image(systemName: viewModel.selectedForDeletion.contains(item.id) ? "checkmark.circle.fill" : "circle")
                                     .foregroundStyle(viewModel.selectedForDeletion.contains(item.id) ? .blue : .secondary)
                                     .onTapGesture { viewModel.toggleSelection(item.id) }
+                            }
 
-                                AsyncThumbnail(asset: item.asset, services: services)
-                                    .frame(width: 60, height: 60)
-                                    .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
+                            AsyncThumbnail(asset: item.asset, services: services)
+                                .frame(width: 60, height: 60)
+                                .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    if let reason = viewModel.wasteReasons[item.id] {
-                                        reasonTag(reason)
-                                    }
-                                    Text(item.fileSizeText)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                            VStack(alignment: .leading, spacing: 4) {
+                                if let reason = viewModel.wasteReasons[item.id] {
+                                    reasonTag(reason)
                                 }
+                                Text(item.fileSizeText)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
 
-                                Spacer()
+                            Spacer()
 
+                            if !isEditing {
                                 Button("保留") {
                                     viewModel.keepItem(item.id)
                                 }
@@ -85,34 +59,50 @@ struct WastePhotosView: View {
                             }
                         }
                     }
-
-                    if !viewModel.selectedForDeletion.isEmpty {
-                        HStack {
-                            Text("已选 \(viewModel.selectedForDeletion.count) 张")
-                            Spacer()
-                            Button("删除选中", role: .destructive) {
-                                if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                                    showDeleteConfirm = true
-                                } else {
+                }
+                .safeAreaInset(edge: .bottom) {
+                    if isEditing && !viewModel.selectedForDeletion.isEmpty {
+                        ActionBar {
+                            Button(role: .destructive) {
+                                guard services.subscription.isPro else {
+                                    Haptics.proGate()
+                                    services.toast.proRequired()
                                     showPaywall = true
+                                    return
                                 }
-                            }
-                            .buttonStyle(.borderedProminent)
-                        }
-                        .padding()
-                        .background(.bar)
-                        .confirmationDialog("确认删除", isPresented: $showDeleteConfirm) {
-                            Button("删除 \(viewModel.selectedForDeletion.count) 张废片", role: .destructive) {
+                                let count = viewModel.selectedForDeletion.count
                                 Task {
                                     await viewModel.deleteSelected(services: services, source: .waste)
+                                    Haptics.moveToTrash()
+                                    services.toast.movedToTrash(count)
+                                    isEditing = false
                                 }
+                            } label: {
+                                Text("\(AppStrings.moveToTrash) \(AppStrings.items(viewModel.selectedForDeletion.count))")
+                                    .frame(maxWidth: .infinity)
                             }
+                            .primaryActionStyle(destructive: true)
                         }
                     }
                 }
             }
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                TrashToolbarButton(count: services.trash.trashedItems.count) {
+                    showTrash = true
+                }
+            }
+        }
+        .selectionToolbar(
+            isEditing: $isEditing,
+            selectedCount: viewModel.selectedForDeletion.count,
+            totalCount: viewModel.wasteItems.count,
+            onSelectAll: { viewModel.selectedForDeletion = Set(viewModel.wasteItems.map(\.id)) },
+            onDeselectAll: { viewModel.selectedForDeletion.removeAll() }
+        )
         .sheet(isPresented: $showPaywall) { PaywallView() }
+        .sheet(isPresented: $showTrash) { GlobalTrashView() }
         .task {
             if viewModel.wasteItems.isEmpty && !viewModel.isScanning {
                 await viewModel.scanWastePhotos(services: services)
