@@ -30,23 +30,7 @@ struct QuickCleanView: View {
     private var scanningView: some View {
         VStack(spacing: 24) {
             Spacer()
-
-            ProgressView(value: services.cleanupCoordinator.scanProgress) {
-                Text("正在分析您的相册...")
-                    .font(.headline)
-            }
-            .progressViewStyle(.linear)
-            .padding(.horizontal, 40)
-
-            Text(services.cleanupCoordinator.scanPhase.localizedName)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-                .animation(.default, value: services.cleanupCoordinator.scanPhase)
-
-            Text("\(Int(services.cleanupCoordinator.scanProgress * 100))%")
-                .font(.title2.bold().monospacedDigit())
-                .foregroundStyle(.blue)
-
+            ProgressLoadingState(phase: AppStrings.analyzing, progress: services.cleanupCoordinator.scanProgress)
             Spacer()
         }
     }
@@ -54,11 +38,7 @@ struct QuickCleanView: View {
     // MARK: - 空状态
 
     private var emptyStateView: some View {
-        ContentUnavailableView {
-            Label("相册很整洁", systemImage: "sparkles")
-        } description: {
-            Text("未发现需要清理的项目")
-        }
+        EmptyState("可清理项", systemImage: "sparkles", description: "相册很整洁")
     }
 
     // MARK: - 扫描结果总览
@@ -182,12 +162,12 @@ struct QuickCleanView: View {
 
     private func iconForType(_ type: CleanupGroup.GroupType) -> String {
         switch type {
-        case .waste: "xmark.bin.fill"
-        case .similar: "square.on.square"
-        case .burst: "square.stack.3d.up.fill"
-        case .screenshot: "scissors"
-        case .largePhoto: "photo.badge.exclamationmark"
-        case .largeVideo: "video.fill"
+        case .waste: AppIcons.waste
+        case .similar: AppIcons.similar
+        case .burst: AppIcons.burst
+        case .screenshot: AppIcons.screenshot
+        case .largePhoto: AppIcons.largePhoto
+        case .largeVideo: AppIcons.video
         }
     }
 

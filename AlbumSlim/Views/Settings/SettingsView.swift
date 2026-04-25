@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var showClearCacheConfirm = false
     @State private var showPaywall = false
     @State private var showRestartAlert = false
+    @State private var showTrash = false
     @AppStorage("appLanguage") private var appLanguage = "system"
 
     private let privacyPolicyURL = URL(string: "https://chunbingtang.com/privacy.html")!
@@ -18,6 +19,27 @@ struct SettingsView: View {
         NavigationStack {
             Form {
                 subscriptionSection
+
+                Section {
+                    Button {
+                        showTrash = true
+                    } label: {
+                        HStack {
+                            Image(systemName: AppIcons.trash)
+                                .foregroundStyle(.red)
+                            Text("垃圾桶")
+                            Spacer()
+                            if !services.trash.trashedItems.isEmpty {
+                                Text(AppStrings.items(services.trash.trashedItems.count))
+                                    .foregroundStyle(.secondary)
+                            }
+                            Image(systemName: "chevron.right")
+                                .font(.footnote)
+                                .foregroundStyle(.tertiary)
+                        }
+                    }
+                    .foregroundStyle(.primary)
+                }
 
                 OverviewSection()
 
@@ -42,11 +64,14 @@ struct SettingsView: View {
             } message: {
                 Text("请在系统设置中允许闪图发送通知，以便接收清理提醒")
             }
-            .alert("确认清除缓存", isPresented: $showClearCacheConfirm) {
+            .confirmationDialog(
+                "清除缓存？",
+                isPresented: $showClearCacheConfirm,
+                titleVisibility: .visible
+            ) {
                 Button("清除", role: .destructive) {
                     services.analysisCache.clearAllCache()
                 }
-                Button("取消", role: .cancel) {}
             } message: {
                 Text("将清除所有分析缓存数据，下次扫描需要重新分析。此操作不会影响您的照片和视频。")
             }
@@ -57,6 +82,9 @@ struct SettingsView: View {
             }
             .sheet(isPresented: $showPaywall) {
                 PaywallView()
+            }
+            .sheet(isPresented: $showTrash) {
+                GlobalTrashView()
             }
         }
     }

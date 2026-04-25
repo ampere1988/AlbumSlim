@@ -3,7 +3,6 @@ import SwiftUI
 struct SavedNotesView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var showDeleteAllConfirmation = false
-    @State private var copiedToast: String?
 
     var body: some View {
         NavigationStack {
@@ -34,24 +33,6 @@ struct SavedNotesView: View {
                     services.notesExport.deleteAll()
                 }
             }
-            .overlay(alignment: .bottom) {
-                if let toast = copiedToast {
-                    Text(toast)
-                        .font(.subheadline)
-                        .padding(.horizontal, 16)
-                        .padding(.vertical, 10)
-                        .background(.regularMaterial, in: Capsule())
-                        .padding(.bottom, 40)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .onAppear {
-                            Task {
-                                try? await Task.sleep(for: .seconds(1.5))
-                                withAnimation { copiedToast = nil }
-                            }
-                        }
-                }
-            }
-            .animation(.default, value: copiedToast)
         }
     }
 
@@ -59,7 +40,7 @@ struct SavedNotesView: View {
         List {
             ForEach(services.notesExport.notes) { note in
                 NavigationLink {
-                    SavedNoteDetailView(note: note, copiedToast: $copiedToast)
+                    SavedNoteDetailView(note: note)
                 } label: {
                     noteRow(note)
                 }
@@ -73,7 +54,7 @@ struct SavedNotesView: View {
                 .swipeActions(edge: .leading, allowsFullSwipe: true) {
                     Button {
                         UIPasteboard.general.string = note.text
-                        withAnimation { copiedToast = "已复制到剪贴板" }
+                        services.toast.copied()
                     } label: {
                         Label("复制", systemImage: "doc.on.doc")
                     }
@@ -116,7 +97,6 @@ private struct SavedNoteDetailView: View {
     @Environment(AppServiceContainer.self) private var services
     @Environment(\.dismiss) private var dismiss
     let note: SavedNote
-    @Binding var copiedToast: String?
     @State private var showDeleteConfirmation = false
 
     var body: some View {
@@ -148,7 +128,7 @@ private struct SavedNoteDetailView: View {
                 HStack(spacing: 12) {
                     Button {
                         UIPasteboard.general.string = note.text
-                        withAnimation { copiedToast = "已复制到剪贴板" }
+                        services.toast.copied()
                     } label: {
                         Label("复制文字", systemImage: "doc.on.doc")
                             .frame(maxWidth: .infinity)

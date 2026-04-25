@@ -60,16 +60,9 @@ struct OverviewSection: View {
     }
 
     private var loadingRow: some View {
-        VStack(spacing: 16) {
-            ProgressView(value: services.storageAnalyzer.progress) {
-                Text("正在分析相册...")
-            }
-            Text("\(Int(services.storageAnalyzer.progress * 100))%")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 24)
+        ProgressLoadingState(phase: AppStrings.analyzing, progress: services.storageAnalyzer.progress)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 24)
     }
 
     private var totalSizeRow: some View {
