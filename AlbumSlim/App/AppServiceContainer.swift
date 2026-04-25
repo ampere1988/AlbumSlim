@@ -20,6 +20,7 @@ final class AppServiceContainer {
     let trash: TrashService
     let locationName: LocationNameService
     let backdrop: BackdropAdapterService
+    let toast: ToastCenter
 
     private(set) var isReady = false
     private var prepareTask: Task<Void, Never>?
@@ -43,6 +44,7 @@ final class AppServiceContainer {
         self.trash = TrashService()
         self.locationName = LocationNameService()
         self.backdrop = BackdropAdapterService()
+        self.toast = ToastCenter()
     }
 
     /// 异步恢复缓存数据，不阻塞主线程。幂等：并发多次调用共享同一次执行
