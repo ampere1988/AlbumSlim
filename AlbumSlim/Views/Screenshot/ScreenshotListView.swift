@@ -35,18 +35,21 @@ struct ScreenshotListView: View {
         NavigationStack(path: $navigationPath) {
             Group {
                 if viewModel.isLoading {
-                    ProgressView("加载截图...")
+                    LoadingState(AppStrings.loading)
                 } else if viewModel.screenshots.isEmpty {
-                    ContentUnavailableView("没有截图", systemImage: "scissors")
+                    EmptyState("截图", systemImage: AppIcons.screenshot)
                 } else {
                     screenshotGrid
                 }
             }
-            .navigationTitle(viewModel.isEditing
-                ? (viewModel.selectedItems.isEmpty ? "批量删除" : "已选 \(viewModel.selectedItems.count) 项")
-                : "截图"
+            .navigationTitle("截图")
+            .selectionToolbar(
+                isEditing: $viewModel.isEditing,
+                selectedCount: viewModel.selectedItems.count,
+                totalCount: viewModel.filteredScreenshots.count,
+                onSelectAll: { viewModel.selectAll() },
+                onDeselectAll: { viewModel.deselectAll() }
             )
-            .navigationBarTitleDisplayMode(viewModel.isEditing ? .inline : .large)
             .toolbar { toolbarContent }
             .navigationDestination(for: String.self) { screenshotID in
                 ScreenshotDetailView(
@@ -61,7 +64,23 @@ struct ScreenshotListView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 if viewModel.isEditing && !viewModel.selectedItems.isEmpty {
-                    batchActionBar
+                    ActionBar {
+                        Button(role: .destructive) {
+                            if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
+                                let count = viewModel.selectedItems.count
+                                viewModel.trashSelected(services: services)
+                                Haptics.moveToTrash()
+                                services.toast.movedToTrash(count)
+                                viewModel.isEditing = false
+                            } else {
+                                showPaywall = true
+                            }
+                        } label: {
+                            Text("\(AppStrings.moveToTrash) \(AppStrings.items(viewModel.selectedItems.count))")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .primaryActionStyle(destructive: true)
+                    }
                 }
             }
             .task {
@@ -87,10 +106,7 @@ struct ScreenshotListView: View {
                 SavedNotesView()
                     .environment(services)
             }
-            .sheet(isPresented: $showTrash) {
-                TrashView()
-                    .environment(services)
-            }
+            .sheet(isPresented: $showTrash) { GlobalTrashView() }
         }
     }
 
@@ -98,12 +114,8 @@ struct ScreenshotListView: View {
         ScrollView {
             VStack(spacing: 0) {
                 if viewModel.isAnalyzing {
-                    ProgressView(value: viewModel.analysisProgress) {
-                        Text("识别中 \(Int(viewModel.analysisProgress * 100))%")
-                            .font(.caption)
-                    }
-                    .padding(.horizontal)
-                    .padding(.vertical, 8)
+                    ProgressLoadingState(phase: AppStrings.recognizing, progress: viewModel.analysisProgress)
+                        .padding(.vertical, 8)
                 }
 
                 categoryFilterBar
@@ -160,37 +172,20 @@ struct ScreenshotListView: View {
 
     @ToolbarContentBuilder
     private var toolbarContent: some ToolbarContent {
-        ToolbarItem(placement: .topBarLeading) {
-            if viewModel.isEditing {
-                Button(viewModel.selectedItems.count == viewModel.filteredScreenshots.count ? "取消全选" : "全选") {
-                    if viewModel.selectedItems.count == viewModel.filteredScreenshots.count {
-                        viewModel.deselectAll()
-                    } else {
-                        viewModel.selectAll()
-                    }
-                }
-            } else {
-                Button("批量删除") {
-                    viewModel.isEditing = true
+        if !viewModel.isEditing {
+            ToolbarItem(placement: .topBarTrailing) {
+                TrashToolbarButton(count: services.trash.trashedItems.count) {
+                    showTrash = true
                 }
             }
-        }
-
-        ToolbarItemGroup(placement: .topBarTrailing) {
-            if viewModel.isEditing {
-                Button("完成") {
-                    viewModel.isEditing = false
-                    viewModel.deselectAll()
-                }
-            } else {
-                // 识别记录（带 badge）
+            ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showSavedNotes = true
                 } label: {
                     notesButtonLabel
                 }
-
-                // ··· 菜单
+            }
+            ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Section("排序方式") {
                         ForEach(ScreenshotSortOrder.allCases, id: \.self) { order in
@@ -204,11 +199,6 @@ struct ScreenshotListView: View {
                                 }
                             }
                         }
-                    }
-                    Button {
-                        showTrash = true
-                    } label: {
-                        Label("垃圾桶\(services.trash.trashedItems.isEmpty ? "" : " (\(services.trash.trashedItems.count))")", systemImage: "trash")
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle")
@@ -234,34 +224,7 @@ struct ScreenshotListView: View {
         .padding(.trailing, unreadNotesCount > 0 ? 6 : 0)
     }
 
-    private var batchActionBar: some View {
-        let selectedSize = viewModel.screenshots
-            .filter { viewModel.selectedItems.contains($0.id) }
-            .reduce(Int64(0)) { $0 + $1.fileSize }
 
-        return VStack(spacing: 0) {
-            Divider()
-            HStack {
-                Text(ByteCountFormatter.string(fromByteCount: selectedSize, countStyle: .file))
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                Spacer()
-                Button("移入垃圾桶", role: .destructive) {
-                    if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                        viewModel.trashSelected(services: services)
-                        viewModel.isEditing = false
-                    } else {
-                        showPaywall = true
-                    }
-                }
-                .buttonStyle(.bordered)
-                .tint(.red)
-                .disabled(viewModel.selectedItems.isEmpty)
-            }
-            .padding()
-        }
-        .background(.ultraThinMaterial)
-    }
 }
 
 // MARK: - iOS 18+ Zoom 过渡

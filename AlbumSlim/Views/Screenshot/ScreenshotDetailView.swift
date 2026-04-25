@@ -11,13 +11,11 @@ struct ScreenshotDetailView: View {
 
     @State private var screenshots: [MediaItem]
     @State private var scrolledID: String?
-    @State private var showDeleteConfirmation = false
     @State private var isZoomedIn = false
     @State private var showOCRPanel = false
     @State private var isRecognizing = false
     @State private var recognitionFailed = false
     @State private var savedItemIDs: Set<String> = []
-    @State private var showSaveFlyIn = false
     @State private var recognitionTask: Task<Void, Never>?
 
     init(screenshots: [MediaItem], currentID: String, viewModel: ScreenshotViewModel, onTrash: @escaping (String) -> Void) {
@@ -84,7 +82,7 @@ struct ScreenshotDetailView: View {
                                     screenshotDate: item.creationDate
                                 )
                                 savedItemIDs.insert(item.id)
-                                triggerSaveFlyIn()
+                                services.toast.saved()
                             }
                         },
                         onRetry: {
@@ -101,27 +99,6 @@ struct ScreenshotDetailView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
 
-            if showSaveFlyIn {
-                VStack {
-                    HStack {
-                        Spacer()
-                        Label("已保存", systemImage: "checkmark.circle.fill")
-                            .font(.caption.bold())
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(.green, in: Capsule())
-                            .padding(.top, 60)
-                            .padding(.trailing, 16)
-                    }
-                    Spacer()
-                }
-                .transition(.asymmetric(
-                    insertion: .move(edge: .bottom).combined(with: .opacity),
-                    removal: .opacity
-                ))
-                .ignoresSafeArea()
-            }
         }
         .background(Color.black.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
@@ -148,17 +125,12 @@ struct ScreenshotDetailView: View {
                     Spacer()
 
                     Button(role: .destructive) {
-                        showDeleteConfirmation = true
+                        handleTrashCurrent()
                     } label: {
                         Label("删除", systemImage: "trash")
                     }
                     .disabled(isRecognizing)
                 }
-            }
-        }
-        .confirmationDialog("移入垃圾桶？此截图将保留在相册，可从垃圾桶恢复。", isPresented: $showDeleteConfirmation, titleVisibility: .visible) {
-            Button("移入垃圾桶", role: .destructive) {
-                handleTrashCurrent()
             }
         }
         .onChange(of: scrolledID) { _, _ in
@@ -198,6 +170,7 @@ struct ScreenshotDetailView: View {
                 if !Task.isCancelled {
                     isRecognizing = false
                     recognitionFailed = true
+                    services.toast.show(icon: "exclamationmark.triangle.fill", text: "识别失败，请重试", tint: .orange)
                 }
                 return
             }
@@ -206,6 +179,7 @@ struct ScreenshotDetailView: View {
                 if !Task.isCancelled {
                     isRecognizing = false
                     recognitionFailed = true
+                    services.toast.show(icon: "exclamationmark.triangle.fill", text: "识别失败，请重试", tint: .orange)
                 }
                 return
             }
@@ -218,13 +192,17 @@ struct ScreenshotDetailView: View {
     private func handleTrashCurrent() {
         guard let item = currentItem else { return }
         recognitionTask?.cancel()
-        viewModel.trashScreenshot(item, services: services)
         let deletedIndex = currentIndex
         if showOCRPanel {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showOCRPanel = false }
         }
         isRecognizing = false
         recognitionFailed = false
+        let assets = services.trash.fetchAssets(for: [item.id])
+        services.trash.moveToTrash(assets: assets, source: .screenshot, mediaType: .screenshot)
+        Haptics.moveToTrash()
+        services.toast.movedToTrash(1)
+        onTrash(item.id)
         if screenshots.count <= 1 {
             screenshots.removeAll()
             dismiss()
@@ -235,15 +213,8 @@ struct ScreenshotDetailView: View {
         screenshots.remove(at: deletedIndex)
     }
 
-    private func triggerSaveFlyIn() {
-        withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) { showSaveFlyIn = true }
-        Task {
-            try? await Task.sleep(for: .seconds(1.2))
-            withAnimation(.easeOut(duration: 0.3)) { showSaveFlyIn = false }
-        }
-    }
-
 }
+
 
 private struct ScreenshotDetailPage: View {
     @Environment(AppServiceContainer.self) private var services

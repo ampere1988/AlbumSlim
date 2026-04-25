@@ -49,7 +49,7 @@ final class ScreenshotViewModel {
     }
 
     func loadScreenshots(services: AppServiceContainer) async {
-        let trashedIDs = Set(services.trash.trashedItems.map(\.id))
+        let trashedIDs = services.trash.trashedAssetIDs
         let currentVersion = services.photoLibrary.libraryVersion
         guard lastLibraryVersion != currentVersion || screenshots.isEmpty else { return }
 
@@ -105,7 +105,8 @@ final class ScreenshotViewModel {
     func trashSelected(services: AppServiceContainer) {
         let items = screenshots.filter { selectedItems.contains($0.id) }
         guard !items.isEmpty else { return }
-        services.trash.trash(items)
+        let assets = services.trash.fetchAssets(for: Set(items.map(\.id)))
+        services.trash.moveToTrash(assets: assets, source: .screenshot, mediaType: .screenshot)
         let ids = Set(items.map(\.id))
         screenshots.removeAll { ids.contains($0.id) }
         for id in ids { ocrResults.removeValue(forKey: id) }
@@ -114,7 +115,8 @@ final class ScreenshotViewModel {
     }
 
     func trashScreenshot(_ item: MediaItem, services: AppServiceContainer) {
-        services.trash.trash([item])
+        let assets = services.trash.fetchAssets(for: [item.id])
+        services.trash.moveToTrash(assets: assets, source: .screenshot, mediaType: .screenshot)
         screenshots.removeAll { $0.id == item.id }
         ocrResults.removeValue(forKey: item.id)
         selectedItems.remove(item.id)
