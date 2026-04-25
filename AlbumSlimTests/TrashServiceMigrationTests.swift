@@ -47,4 +47,28 @@ struct TrashServiceMigrationTests {
         let service = TrashService()
         #expect(service.trashedItems.isEmpty)
     }
+
+    @Test("旧 key 中数据损坏时仍标记迁移完成且 trashedItems 为空")
+    func migrateCorruptLegacyData() throws {
+        resetUserDefaults()
+        // 写入无法解码为 [LegacyItem] 的损坏数据
+        UserDefaults.standard.set("not a valid json".data(using: .utf8)!, forKey: "trashedScreenshotItems")
+
+        let service = TrashService()
+
+        #expect(service.trashedItems.isEmpty)
+        #expect(UserDefaults.standard.bool(forKey: "trashItemsMigrated_v2"))
+        #expect(UserDefaults.standard.data(forKey: "trashedScreenshotItems") == nil)
+    }
+
+    @Test("无遗留数据时也正确标记迁移完成")
+    func migrateNoLegacyData() throws {
+        resetUserDefaults()
+        // 不写入任何 legacy 数据
+
+        let service = TrashService()
+
+        #expect(service.trashedItems.isEmpty)
+        #expect(UserDefaults.standard.bool(forKey: "trashItemsMigrated_v2"))
+    }
 }

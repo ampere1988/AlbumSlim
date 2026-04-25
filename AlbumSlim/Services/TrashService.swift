@@ -132,14 +132,13 @@ final class TrashService {
     }
 
     func permanentlyDeleteAll(photoLibrary: PhotoLibraryService) async throws {
-        let ids = Set(trashedItems.map(\.id))
-        try await permanentlyDelete(ids, photoLibrary: photoLibrary)
+        try await permanentlyDelete(trashedAssetIDs, photoLibrary: photoLibrary)
     }
 
     // MARK: - 查询
 
     func contains(_ assetID: String) -> Bool {
-        trashedAssetIDs.contains(assetID)
+        trashedItems.contains { $0.id == assetID }
     }
 
     func fetchAssets(for ids: Set<String>) -> [PHAsset] {
@@ -180,11 +179,16 @@ final class TrashService {
     private func migrateLegacyIfNeeded() {
         let defaults = UserDefaults.standard
         guard !defaults.bool(forKey: Self.migrationFlag) else { return }
-        defer {
+
+        let markMigrated = {
             defaults.set(true, forKey: Self.migrationFlag)
             defaults.removeObject(forKey: Self.legacyKey)
         }
-        guard let data = defaults.data(forKey: Self.legacyKey) else { return }
+
+        guard let data = defaults.data(forKey: Self.legacyKey) else {
+            markMigrated()
+            return
+        }
 
         struct LegacyItem: Codable {
             let id: String
@@ -192,7 +196,16 @@ final class TrashService {
             let creationDate: Date?
             let trashedDate: Date
         }
-        guard let legacy = try? JSONDecoder().decode([LegacyItem].self, from: data), !legacy.isEmpty else { return }
+        guard let legacy = try? JSONDecoder().decode([LegacyItem].self, from: data) else {
+            // 损坏数据无法恢复，标记完成不再重试
+            markMigrated()
+            return
+        }
+
+        if legacy.isEmpty {
+            markMigrated()
+            return
+        }
 
         let migrated = legacy.map { item in
             TrashedItem(
@@ -204,9 +217,13 @@ final class TrashService {
                 mediaType: .screenshot
             )
         }
-        if let encoded = try? JSONEncoder().encode(migrated) {
-            defaults.set(encoded, forKey: Self.storageKeyV2)
+
+        guard let encoded = try? JSONEncoder().encode(migrated) else {
+            // encode 失败：不清理 legacy key、不设 flag，下次启动重试
+            return
         }
+        defaults.set(encoded, forKey: Self.storageKeyV2)
+        markMigrated()
     }
 }
 
