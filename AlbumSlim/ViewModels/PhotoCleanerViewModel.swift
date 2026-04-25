@@ -54,25 +54,16 @@ final class PhotoCleanerViewModel {
         }
     }
 
-    @discardableResult
-    func deleteSelected(services: AppServiceContainer) async -> Int64 {
+    func deleteSelected(services: AppServiceContainer, source: TrashSource) async {
         let allItems = similarGroups.flatMap(\.items) + wasteItems
         let toDelete = allItems.filter { selectedForDeletion.contains($0.id) }
-        guard !toDelete.isEmpty else { return 0 }
+        guard !toDelete.isEmpty else { return }
 
-        let freedSize = toDelete.reduce(Int64(0)) { $0 + $1.fileSize }
-        let assets = toDelete.map(\.asset)
         let deletedIDs = selectedForDeletion
+        let assets = toDelete.map(\.asset)
 
-        do {
-            try await services.photoLibrary.deleteAssets(assets)
-        } catch {
-            errorMessage = String(localized: "删除失败：\(error.localizedDescription)")
-            return 0
-        }
+        services.trash.moveToTrash(assets: assets, source: source, mediaType: .photo)
 
-        // 删除成功后再更新 UI
-        let _ = services.achievement.recordCleanup(freedSpace: freedSize, deletedCount: toDelete.count)
         similarGroups = similarGroups.compactMap { group in
             var g = group
             g.items.removeAll { deletedIDs.contains($0.id) }
@@ -81,8 +72,6 @@ final class PhotoCleanerViewModel {
         wasteItems.removeAll { deletedIDs.contains($0.id) }
         for id in deletedIDs { wasteReasons.removeValue(forKey: id) }
         selectedForDeletion.removeAll()
-
-        return freedSize
     }
 
     func scanSimilarPhotos(services: AppServiceContainer) async {

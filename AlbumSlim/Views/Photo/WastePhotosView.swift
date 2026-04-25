@@ -104,7 +104,7 @@ struct WastePhotosView: View {
                         .confirmationDialog("确认删除", isPresented: $showDeleteConfirm) {
                             Button("删除 \(viewModel.selectedForDeletion.count) 张废片", role: .destructive) {
                                 Task {
-                                    await viewModel.deleteSelected(services: services)
+                                    await viewModel.deleteSelected(services: services, source: .waste)
                                 }
                             }
                         }
