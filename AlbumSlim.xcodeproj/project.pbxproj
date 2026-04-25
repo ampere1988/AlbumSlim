@@ -50,6 +50,7 @@
 		766627A223FA0E96014040DA /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A1E21DFB256416C24692E40 /* MainTabView.swift */; };
 		7815414F58962420E43D24FB /* BackdropAdapterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EB1ACE83DDDB28F3A0A8687 /* BackdropAdapterService.swift */; };
 		7A305B0E693186A4A475A3F9 /* StorageAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C68C07709C3006187C872DA /* StorageAnalyzer.swift */; };
+		7E607D61B0355F6526A968E3 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46EA595F874B2839E5BE9E34 /* Haptics.swift */; };
 		83BBD1C855F181B0A0D10052 /* ShuffleIndexQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5445A7BCBD0B7EBAEDC71079 /* ShuffleIndexQueue.swift */; };
 		8542C412311A958DF71A74CC /* ShareCardGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE7CB5272F042217583FD9D2 /* ShareCardGenerator.swift */; };
 		89A400351EC88097E87D1E24 /* ImageSimilarityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3159A367BD548864D9B8A3E /* ImageSimilarityService.swift */; };
@@ -133,6 +134,7 @@
 		434491C41AD68A00EFADE887 /* VideoManagerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoManagerViewModel.swift; sourceTree = "<group>"; };
 		4357D7A7CCFCE2506C657CA9 /* ProFeatureGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProFeatureGate.swift; sourceTree = "<group>"; };
 		44A2E63276E56A4BF20C022F /* ScreenshotListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotListView.swift; sourceTree = "<group>"; };
+		46EA595F874B2839E5BE9E34 /* Haptics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Haptics.swift; sourceTree = "<group>"; };
 		4BD14F16732ED358EF17A663 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		4D5EF719DE201681FFE2A94C /* AchievementService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementService.swift; sourceTree = "<group>"; };
 		52675B656C5D16CF24F61999 /* MediaItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaItem.swift; sourceTree = "<group>"; };
@@ -369,6 +371,7 @@
 				FBC5D320592C9766E00115AB /* AsyncSemaphore.swift */,
 				39C79998029C673603AD8781 /* DesignSystem.swift */,
 				AC06BC66186D55E657980BD0 /* FileSize+Extensions.swift */,
+				46EA595F874B2839E5BE9E34 /* Haptics.swift */,
 				A188D7B80D61FA1E8F8C3532 /* PermissionManager.swift */,
 				4357D7A7CCFCE2506C657CA9 /* ProFeatureGate.swift */,
 				01B3DAB2CDA8AA28B4DB388D /* ReviewPromptManager.swift */,
@@ -562,6 +565,7 @@
 				8D0A66CE26CBD405CF1349D5 /* DashboardViewModel.swift in Sources */,
 				23F65CC84308DAA86A1EC3CB /* DesignSystem.swift in Sources */,
 				5539B6879DC638794A2BB97C /* FileSize+Extensions.swift in Sources */,
+				7E607D61B0355F6526A968E3 /* Haptics.swift in Sources */,
 				89A400351EC88097E87D1E24 /* ImageSimilarityService.swift in Sources */,
 				BE973DE375B029B479D6DD33 /* LargePhotosView.swift in Sources */,
 				5B19020F1AB2BF52FBA0C63A /* LocationNameService.swift in Sources */,
