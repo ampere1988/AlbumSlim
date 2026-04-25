@@ -36,6 +36,7 @@
 		4A1CD9FAEE90BD47CCFF1530 /* TrashView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6E312A77F0A4F5F78C41D6FC /* TrashView.swift */; };
 		4C78296DE76E4DBBC3A8EE0E /* ScanProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39ED70F86DE055F155159538 /* ScanProgress.swift */; };
 		4C87053F591C6238F0C9BF53 /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CFD894333B69341192564C9 /* AppConstants.swift */; };
+		4EDE1F7536A522906B9EC41F /* AppStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE4C9A30E92923E3798F1D22 /* AppStrings.swift */; };
 		4F3A699DEEDB9337DCAAB7F3 /* ShufflePhotoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B0989E1312179B00D56119DA /* ShufflePhotoView.swift */; };
 		5539B6879DC638794A2BB97C /* FileSize+Extensions.swift in Sources */ = {isa = PBXBuildFile; fileRef = AC06BC66186D55E657980BD0 /* FileSize+Extensions.swift */; };
 		566181684A8A88DF8FA88FCB /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 405D5FFCAFB7BF331FD314FA /* PrivacyInfo.xcprivacy */; };
@@ -178,6 +179,7 @@
 		C18622997683AFA6E27D52EB /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		C9EDE091273DB393B30083A7 /* SubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionService.swift; sourceTree = "<group>"; };
 		CC80D8FAA79E58578CC63748 /* ShuffleFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuffleFeedView.swift; sourceTree = "<group>"; };
+		CE4C9A30E92923E3798F1D22 /* AppStrings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStrings.swift; sourceTree = "<group>"; };
 		CEAFBC976F45C172EF02CA47 /* WastePhotosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WastePhotosView.swift; sourceTree = "<group>"; };
 		D51B791FBB73A7995FF9DB90 /* StorageStatsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageStatsTests.swift; sourceTree = "<group>"; };
 		D5400262DB6A4800E5054A6C /* ReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderService.swift; sourceTree = "<group>"; };
@@ -363,6 +365,7 @@
 			isa = PBXGroup;
 			children = (
 				65155C25BECD1776BF3DF2B2 /* AppIcons.swift */,
+				CE4C9A30E92923E3798F1D22 /* AppStrings.swift */,
 				FBC5D320592C9766E00115AB /* AsyncSemaphore.swift */,
 				39C79998029C673603AD8781 /* DesignSystem.swift */,
 				AC06BC66186D55E657980BD0 /* FileSize+Extensions.swift */,
@@ -549,6 +552,7 @@
 				4C87053F591C6238F0C9BF53 /* AppConstants.swift in Sources */,
 				481C650F2A3CB43F596D400A /* AppIcons.swift in Sources */,
 				E1D096E812A66BB0E204D4F0 /* AppServiceContainer.swift in Sources */,
+				4EDE1F7536A522906B9EC41F /* AppStrings.swift in Sources */,
 				8BC25CC4AFAF157AFBE51FC4 /* AsyncSemaphore.swift in Sources */,
 				7815414F58962420E43D24FB /* BackdropAdapterService.swift in Sources */,
 				2173567B7E7488FF05586BC7 /* BackgroundTaskService.swift in Sources */,
