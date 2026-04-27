@@ -151,7 +151,7 @@ final class CleanupCoordinator {
     }
 
     /// 执行删除，分批进行避免卡死
-    func executeCleanup(groups: [CleanupGroup]) async throws -> Int64 {
+    func executeCleanup(groups: [CleanupGroup], photoLibrary: PhotoLibraryService) async throws -> Int64 {
         var freedSize: Int64 = 0
 
         // 收集所有要删除的 asset
@@ -177,9 +177,9 @@ final class CleanupCoordinator {
             let batchAssets = batch.map(\.asset)
             let batchSize = batch.reduce(Int64(0)) { $0 + $1.size }
 
-            try await PHPhotoLibrary.shared().performChanges {
-                PHAssetChangeRequest.deleteAssets(batchAssets as NSFastEnumeration)
-            }
+            // 走 photoLibrary.deleteAssets（已经标 nonisolated），避免 @MainActor 类的
+            // performChanges 闭包隐式隔离到主线程触发 _dispatch_assert_queue_fail
+            try await photoLibrary.deleteAssets(batchAssets)
             freedSize += batchSize
         }
 
