@@ -142,7 +142,7 @@
 		39ED70F86DE055F155159538 /* ScanProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScanProgress.swift; sourceTree = "<group>"; };
 		3A4C5247F157094EEA132FFE /* AnalysisCacheService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisCacheService.swift; sourceTree = "<group>"; };
 		3DA9D51AD7B82500381DEBD0 /* OCRService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRService.swift; sourceTree = "<group>"; };
-		405D5FFCAFB7BF331FD314FA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		405D5FFCAFB7BF331FD314FA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		40B5A45D3ACFA11C18388A01 /* PhotoCleanerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhotoCleanerViewModel.swift; sourceTree = "<group>"; };
 		4288FF7BBA1B7B7100EE8E4A /* ScreenshotDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotDetailView.swift; sourceTree = "<group>"; };
 		434491C41AD68A00EFADE887 /* VideoManagerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoManagerViewModel.swift; sourceTree = "<group>"; };
@@ -154,7 +154,7 @@
 		5179543CDC744084337B5D8D /* ShuffleFeedViewModelMemoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuffleFeedViewModelMemoryTests.swift; sourceTree = "<group>"; };
 		52675B656C5D16CF24F61999 /* MediaItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaItem.swift; sourceTree = "<group>"; };
 		52B155DB63764DE06B63F472 /* VideoAnalysisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoAnalysisService.swift; sourceTree = "<group>"; };
-		541E8E6B837A9412B93A0E1F /* Products.storekit */ = {isa = PBXFileReference; path = Products.storekit; sourceTree = "<group>"; };
+		541E8E6B837A9412B93A0E1F /* Products.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = Products.storekit; sourceTree = "<group>"; };
 		5445A7BCBD0B7EBAEDC71079 /* ShuffleIndexQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuffleIndexQueue.swift; sourceTree = "<group>"; };
 		58FA2B4E355B3CB1FC1F6DD1 /* TrashServiceMigrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashServiceMigrationTests.swift; sourceTree = "<group>"; };
 		608C15FF1F1A7F465DAAB78F /* ShuffleMediaPage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuffleMediaPage.swift; sourceTree = "<group>"; };
@@ -187,7 +187,7 @@
 		B0989E1312179B00D56119DA /* ShufflePhotoView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShufflePhotoView.swift; sourceTree = "<group>"; };
 		B179657B7267FF4E1C3F378A /* VideoCompressionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoCompressionService.swift; sourceTree = "<group>"; };
 		B1A38387ECA687ECFD947A68 /* SavedNotesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedNotesView.swift; sourceTree = "<group>"; };
-		B294812E1280EBCE073C5BB2 /* AlbumSlim.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = AlbumSlim.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B294812E1280EBCE073C5BB2 /* AlbumSlim.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AlbumSlim.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		B2EF62402EE90693BB3FACE4 /* ShuffleDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuffleDetailSheet.swift; sourceTree = "<group>"; };
 		B3159A367BD548864D9B8A3E /* ImageSimilarityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageSimilarityService.swift; sourceTree = "<group>"; };
 		B449A6EA8783D0129574825D /* VideoCompressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoCompressView.swift; sourceTree = "<group>"; };
@@ -700,6 +700,7 @@
 				CODE_SIGN_ENTITLEMENTS = AlbumSlim/AlbumSlim.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AlbumSlim/Info.plist;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;
@@ -805,6 +806,7 @@
 				CODE_SIGN_ENTITLEMENTS = AlbumSlim/AlbumSlim.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 5;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = AlbumSlim/Info.plist;
 				INFOPLIST_GENERATION_MODE = GeneratedFile;

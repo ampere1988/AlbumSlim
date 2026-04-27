@@ -15,7 +15,8 @@
       "mcp__XcodeBuildMCP__discover_projs(*)",
       "mcp__XcodeBuildMCP__session_set_defaults(*)",
       "mcp__XcodeBuildMCP__build_run_sim(*)",
-      "mcp__XcodeBuildMCP__launch_app_sim(*)"
+      "mcp__XcodeBuildMCP__launch_app_sim(*)",
+      "mcp__XcodeBuildMCP__test_sim(*)"
     ]
   }
 }
