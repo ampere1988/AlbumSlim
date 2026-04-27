@@ -27,11 +27,16 @@ enum AppConstants {
     }
 
     enum Shuffle {
-        /// 高清图目标像素尺寸（屏幕 points × scale）
+        /// 高清图目标像素尺寸：iPad Pro 12.9" 全屏 = 1024×1366 pt × 2x = 2048×2732 px，
+        /// 单张位图占用 ~22 MB，缓存 3 张 + 同时解码 6 张会触发 jetsam。
+        /// 这里把 point 维度上限锁到 1600，用户视觉上无感（屏幕本身做下采样）。
         @MainActor static var fullImageTargetSize: CGSize {
             let scale = UIScreen.main.scale
             let bounds = UIScreen.main.bounds.size
-            return CGSize(width: bounds.width * scale, height: bounds.height * scale)
+            let pointCap: CGFloat = 1600
+            let cappedWidth = min(bounds.width, pointCap)
+            let cappedHeight = min(bounds.height, pointCap)
+            return CGSize(width: cappedWidth * scale, height: cappedHeight * scale)
         }
         /// 预加载/占位用的 thumbnail 尺寸（本地缓存易命中、内存占用小）
         static let thumbnailSize = CGSize(width: 1200, height: 1200)
@@ -43,5 +48,7 @@ enum AppConstants {
         static let fullImageCacheCapacity = 3
         /// 分享导出图的尺寸
         static let shareImageSize = CGSize(width: 1600, height: 1600)
+        /// 全图请求并发上限（独立于 thumbnail，避免 iPad 上 6 路并发解码瞬时占用 130+ MB）
+        static let fullImageSemaphoreLimit = 2
     }
 }

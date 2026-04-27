@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0029995758583EFA5230348A /* AppConstantsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A2B35EB3EFC4F3E2F03251C /* AppConstantsTests.swift */; };
 		0479097D63DDCB01B34278C5 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = 361DB7BF6430418A9AA876E2 /* Localizable.xcstrings */; };
 		09583EA9E3261721BE8AC95F /* Products.storekit in Resources */ = {isa = PBXBuildFile; fileRef = 541E8E6B837A9412B93A0E1F /* Products.storekit */; };
 		0ED444FD32F3FDD30A9E4900 /* VideoManagerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 434491C41AD68A00EFADE887 /* VideoManagerViewModel.swift */; };
@@ -119,6 +120,7 @@
 		04DE8BC8E1E1297F5C1AC339 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		0799EE468F7982E834481E07 /* AIAnalysisEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AIAnalysisEngine.swift; sourceTree = "<group>"; };
 		0A1E21DFB256416C24692E40 /* MainTabView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainTabView.swift; sourceTree = "<group>"; };
+		0A2B35EB3EFC4F3E2F03251C /* AppConstantsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstantsTests.swift; sourceTree = "<group>"; };
 		0C68C07709C3006187C872DA /* StorageAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageAnalyzer.swift; sourceTree = "<group>"; };
 		0E0AD69A843FF08E74267D24 /* BurstPhotosView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BurstPhotosView.swift; sourceTree = "<group>"; };
 		0E6CBA6FC3564CD63C2226FC /* AchievementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AchievementView.swift; sourceTree = "<group>"; };
@@ -465,6 +467,7 @@
 			isa = PBXGroup;
 			children = (
 				29C3CCF983E19BEA4092DED4 /* AnalysisResultTests.swift */,
+				0A2B35EB3EFC4F3E2F03251C /* AppConstantsTests.swift */,
 				842819C73550B214DBA1A282 /* CleanupCoordinatorTests.swift */,
 				F66C686CC08437B0FA879091 /* CleanupGroupTests.swift */,
 				D51B791FBB73A7995FF9DB90 /* StorageStatsTests.swift */,
@@ -574,6 +577,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E0CA53F1D129ED8780A2471E /* AnalysisResultTests.swift in Sources */,
+				0029995758583EFA5230348A /* AppConstantsTests.swift in Sources */,
 				C9C27FD5645D4B7C40E2E9EB /* CleanupCoordinatorTests.swift in Sources */,
 				D67710FA6C38A90BAF700F29 /* CleanupGroupTests.swift in Sources */,
 				37C4A351FF5CF3B2FCE34947 /* StorageStatsTests.swift in Sources */,
