@@ -3,22 +3,22 @@ import Foundation
 /// 全局文案常量，统一术语
 enum AppStrings {
     // 动作
-    static let select = "选择"
-    static let done = "完成"
-    static let selectAll = "全选"
-    static let deselectAll = "取消全选"
-    static let cancel = "取消"
-    static let restore = "恢复"
-    static let moveToTrash = "移到垃圾桶"
-    static let permanentlyDelete = "永久删除"
-    static let emptyTrash = "全部清空"
+    static let select = String(localized: "选择")
+    static let done = String(localized: "完成")
+    static let selectAll = String(localized: "全选")
+    static let deselectAll = String(localized: "取消全选")
+    static let cancel = String(localized: "取消")
+    static let restore = String(localized: "恢复")
+    static let moveToTrash = String(localized: "移到垃圾桶")
+    static let permanentlyDelete = String(localized: "永久删除")
+    static let emptyTrash = String(localized: "全部清空")
 
     // 加载文案
-    static let loading = "加载中…"
-    static let scanning = "扫描中…"
-    static let analyzing = "分析中…"
-    static let compressing = "压缩中…"
-    static let recognizing = "识别中…"
+    static let loading = String(localized: "加载中…")
+    static let scanning = String(localized: "扫描中…")
+    static let analyzing = String(localized: "分析中…")
+    static let compressing = String(localized: "压缩中…")
+    static let recognizing = String(localized: "识别中…")
 
     // 计数 / 数量格式
     static func selected(_ count: Int) -> String { "已选 \(count) 项" }

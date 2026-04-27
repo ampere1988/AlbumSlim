@@ -28,18 +28,38 @@
         }
       }
     },
-    "%@ MB" : {
-
-    },
-    "%@ 张截图 · %@ 尚未释放" : {
+    "%@ %@" : {
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "new",
-            "value" : "%1$@ 张截图 · %2$@ 尚未释放"
+            "value" : "%1$@ %2$@"
           }
         }
       }
+    },
+    "%@ %@ · %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@ · %3$@"
+          }
+        }
+      }
+    },
+    "%@ %@%%" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ %2$@%%"
+          }
+        }
+      }
+    },
+    "%@ MB" : {
+
     },
     "%@ 条建议" : {
       "localizations" : {
@@ -68,8 +88,15 @@
     "%@ 项" : {
 
     },
-    "%@%%" : {
-
+    "%@ 项 · %@" : {
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$@ 项 · %2$@"
+          }
+        }
+      }
     },
     "%lld 次" : {
       "extractionState" : "stale",
@@ -179,7 +206,14 @@
 
     },
     "上下滑动切换" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Swipe to switch"
+          }
+        }
+      }
     },
     "上次扫描结果" : {
       "extractionState" : "stale",
@@ -435,6 +469,17 @@
         }
       }
     },
+    "分析中…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Analyzing…"
+          }
+        }
+      }
+    },
     "分析缓存仅存储在本地，删除 App 即彻底清除所有数据" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -501,16 +546,6 @@
         }
       }
     },
-    "删除 %@ 张 · 释放 %@" : {
-      "localizations" : {
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "new",
-            "value" : "删除 %1$@ 张 · 释放 %2$@"
-          }
-        }
-      }
-    },
     "删除 %lld 张，只保留最佳" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -544,10 +579,8 @@
         }
       }
     },
-    "删除后 30 天内可在系统相册「最近删除」中恢复" : {
-
-    },
     "删除后可在\"最近删除\"中恢复" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -558,6 +591,7 @@
       }
     },
     "删除后视频将移至「最近删除」相簿" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -666,6 +700,17 @@
         }
       }
     },
+    "加载中…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loading…"
+          }
+        }
+      }
+    },
     "加载截图..." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -700,6 +745,7 @@
       }
     },
     "升级 Pro 查看更多相似组" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -719,12 +765,27 @@
         }
       }
     },
+    "压缩 %@" : {
+
+    },
     "压缩中..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Compressing..."
+          }
+        }
+      }
+    },
+    "压缩中…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compressing…"
           }
         }
       }
@@ -935,6 +996,16 @@
         }
       }
     },
+    "垃圾桶" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trash"
+          }
+        }
+      }
+    },
     "处理中..." : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1001,6 +1072,17 @@
         }
       }
     },
+    "存储概览" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Storage Overview"
+          }
+        }
+      }
+    },
     "完成" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1044,9 +1126,6 @@
           }
         }
       }
-    },
-    "将删除 %@ 个视频，此操作可在\"最近删除\"中撤回" : {
-
     },
     "将删除 %lld 个视频，此操作可在\"最近删除\"中撤回" : {
       "extractionState" : "stale",
@@ -1098,6 +1177,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Saved %lld OCR records"
+          }
+        }
+      }
+    },
+    "已删除项目" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Items Deleted"
           }
         }
       }
@@ -1167,12 +1257,6 @@
           }
         }
       }
-    },
-    "已选 %@ 个" : {
-
-    },
-    "已选 %@ 张" : {
-
     },
     "已选 %lld 个" : {
       "extractionState" : "stale",
@@ -1290,6 +1374,7 @@
       }
     },
     "您的视频库状态良好" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1419,6 +1504,17 @@
         }
       }
     },
+    "扫描中…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scanning…"
+          }
+        }
+      }
+    },
     "扫描完成" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -1431,6 +1527,7 @@
       }
     },
     "扫描废片..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1441,6 +1538,7 @@
       }
     },
     "扫描相似照片..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1790,6 +1888,7 @@
       }
     },
     "未发现需要清理的项目" : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1947,6 +2046,7 @@
 
     },
     "正在分析您的相册..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -1957,6 +2057,7 @@
       }
     },
     "正在分析相册..." : {
+      "extractionState" : "stale",
       "localizations" : {
         "en" : {
           "stringUnit" : {
@@ -2057,12 +2158,6 @@
         }
       }
     },
-    "没有超过 %@ MB 的照片" : {
-
-    },
-    "没有超过 %@ MB 的照片，试试降低阈值" : {
-
-    },
     "没有超过 %lld MB 的照片" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2092,6 +2187,17 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Legal"
+          }
+        }
+      }
+    },
+    "浏览" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Browse"
           }
         }
       }
@@ -2531,9 +2637,6 @@
         }
       }
     },
-    "移入垃圾桶的截图将显示在这里" : {
-
-    },
     "稍后" : {
       "extractionState" : "stale",
       "localizations" : {
@@ -2817,8 +2920,16 @@
         }
       }
     },
-    "识别中 %@%%" : {
-
+    "识别中…" : {
+      "extractionState" : "stale",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recognizing…"
+          }
+        }
+      }
     },
     "识别内容" : {
       "extractionState" : "stale",

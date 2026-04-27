@@ -9,7 +9,11 @@ struct StorageRingChart: View {
     }
 
     private var colorMap: [String: Color] {
-        ["视频": .blue, "照片": .green, "截图": .orange]
+        [
+            String(localized: "视频"): .blue,
+            String(localized: "照片"): .green,
+            String(localized: "截图"): .orange,
+        ]
     }
 
     var body: some View {
@@ -25,9 +29,9 @@ struct StorageRingChart: View {
                     .cornerRadius(4)
                 }
                 .chartForegroundStyleScale([
-                    "视频": Color.blue,
-                    "照片": Color.green,
-                    "截图": Color.orange,
+                    String(localized: "视频"): Color.blue,
+                    String(localized: "照片"): Color.green,
+                    String(localized: "截图"): Color.orange,
                 ])
                 .chartLegend(position: .bottom)
             } else {

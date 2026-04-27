@@ -17,9 +17,9 @@ struct StorageStats: Codable {
 
     var categories: [(name: String, size: Int64, count: Int)] {
         [
-            ("视频", videoSize, totalVideoCount),
-            ("照片", photoSize, totalPhotoCount),
-            ("截图", screenshotSize, totalScreenshotCount),
+            (String(localized: "视频"), videoSize, totalVideoCount),
+            (String(localized: "照片"), photoSize, totalPhotoCount),
+            (String(localized: "截图"), screenshotSize, totalScreenshotCount),
         ]
     }
 
