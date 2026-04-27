@@ -28,23 +28,51 @@ final class BackdropAdapterService {
     }
 
     /// 缩放到 10x10 采样 grid 计算平均灰度亮度
+    /// 使用 UIGraphicsImageRenderer（iOS 10+，线程安全）替代旧的
+    /// UIGraphicsBeginImageContextWithOptions（在后台线程使用会偶发崩溃）
     nonisolated static func averageBrightness(of image: UIImage) -> CGFloat {
         let size = CGSize(width: 10, height: 10)
-        UIGraphicsBeginImageContextWithOptions(size, true, 1)
-        defer { UIGraphicsEndImageContext() }
-        image.draw(in: CGRect(origin: .zero, size: size))
-        guard let ctx = UIGraphicsGetCurrentContext(),
-              let data = ctx.data else { return 0.5 }
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        format.opaque = true
+        format.preferredRange = .standard
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
 
-        let bytes = data.bindMemory(to: UInt8.self, capacity: 10 * 10 * 4)
+        let cgImage = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }.cgImage
+
+        guard let cg = cgImage,
+              let provider = cg.dataProvider,
+              let data = provider.data,
+              let bytes = CFDataGetBytePtr(data) else {
+            return 0.5
+        }
+
+        let bytesPerPixel = cg.bitsPerPixel / 8
+        let bytesPerRow = cg.bytesPerRow
+        let alphaInfo = cg.alphaInfo
+
         var sum: Double = 0
         let pixelCount = 10 * 10
-        for i in 0..<pixelCount {
-            let r = Double(bytes[i * 4]) / 255.0
-            let g = Double(bytes[i * 4 + 1]) / 255.0
-            let b = Double(bytes[i * 4 + 2]) / 255.0
-            // Rec. 709 luminance
-            sum += 0.2126 * r + 0.7152 * g + 0.0722 * b
+
+        for y in 0..<10 {
+            for x in 0..<10 {
+                let offset = y * bytesPerRow + x * bytesPerPixel
+                let c0 = Double(bytes[offset]) / 255.0
+                let c1 = Double(bytes[offset + 1]) / 255.0
+                let c2 = Double(bytes[offset + 2]) / 255.0
+                // CGImage 通道顺序由 alphaInfo 决定：BGRA premultipliedFirst (常见于 iOS) 时
+                // bytes[0]=B, [1]=G, [2]=R；RGBA 类则是 R/G/B。
+                // 对 0.5 二值化阈值精度影响极小，但仍按通道顺序使用 Rec.709 系数
+                if alphaInfo == .premultipliedFirst || alphaInfo == .first || alphaInfo == .noneSkipFirst {
+                    // BGRA: c0=B, c1=G, c2=R
+                    sum += 0.0722 * c0 + 0.7152 * c1 + 0.2126 * c2
+                } else {
+                    // RGBA: c0=R, c1=G, c2=B
+                    sum += 0.2126 * c0 + 0.7152 * c1 + 0.0722 * c2
+                }
+            }
         }
         return CGFloat(sum / Double(pixelCount))
     }
