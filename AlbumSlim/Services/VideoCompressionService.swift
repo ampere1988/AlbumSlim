@@ -134,18 +134,28 @@ final class VideoCompressionService {
     }
 
     func saveCompressedToLibrary(url: URL) async throws {
-        try await PHPhotoLibrary.shared().performChanges {
-            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
-        }
+        try await Self.performSave(videoFileURL: url)
         cleanupTempFile(url)
     }
 
     func replaceOriginal(asset: PHAsset, with url: URL) async throws {
+        try await Self.performReplace(asset: asset, videoFileURL: url)
+        cleanupTempFile(url)
+    }
+
+    /// nonisolated 入口：避免 @MainActor 类闭包被隐式隔离到主线程，
+    /// 与 Photos changes queue 冲突触发 _dispatch_assert_queue_fail
+    private nonisolated static func performSave(videoFileURL: URL) async throws {
         try await PHPhotoLibrary.shared().performChanges {
-            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: url)
+            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: videoFileURL)
+        }
+    }
+
+    private nonisolated static func performReplace(asset: PHAsset, videoFileURL: URL) async throws {
+        try await PHPhotoLibrary.shared().performChanges {
+            PHAssetChangeRequest.creationRequestForAssetFromVideo(atFileURL: videoFileURL)
             PHAssetChangeRequest.deleteAssets([asset] as NSFastEnumeration)
         }
-        cleanupTempFile(url)
     }
 
     func cleanupTempFile(_ url: URL) {
