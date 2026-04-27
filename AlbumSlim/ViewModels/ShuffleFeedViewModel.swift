@@ -1,6 +1,7 @@
 import Foundation
 import Photos
 import SwiftUI
+import UIKit
 
 @MainActor @Observable
 final class ShuffleFeedViewModel {
@@ -27,6 +28,49 @@ final class ShuffleFeedViewModel {
     private var fullImageCache: [String: UIImage] = [:]
     private var fullImageCacheOrder: [String] = []
     private var fullImagePrefetchTasks: [String: Task<Void, Never>] = [:]
+
+    private var memoryWarningObserver: NSObjectProtocol?
+
+    init() {
+        memoryWarningObserver = NotificationCenter.default.addObserver(
+            forName: UIApplication.didReceiveMemoryWarningNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor [weak self] in
+                self?.evictAllCaches()
+            }
+        }
+    }
+
+    deinit {
+        MainActor.assumeIsolated {
+            if let memoryWarningObserver {
+                NotificationCenter.default.removeObserver(memoryWarningObserver)
+            }
+        }
+    }
+
+    func evictAllCaches() {
+        for task in prefetchTasks.values { task.cancel() }
+        prefetchTasks.removeAll()
+        for task in fullImagePrefetchTasks.values { task.cancel() }
+        fullImagePrefetchTasks.removeAll()
+        thumbnailCache.removeAll()
+        thumbnailCacheOrder.removeAll()
+        fullImageCache.removeAll()
+        fullImageCacheOrder.removeAll()
+    }
+
+#if DEBUG
+    func injectThumbnailForTesting(_ image: UIImage, id: String) {
+        storeThumbnail(image, for: id)
+    }
+
+    func injectFullImageForTesting(_ image: UIImage, id: String) {
+        storeFullImage(image, for: id)
+    }
+#endif
 
     func markLivePlayed(_ assetID: String) { playedLiveIds.insert(assetID) }
     func cachedThumbnail(for assetID: String) -> UIImage? { thumbnailCache[assetID] }
