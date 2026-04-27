@@ -11,6 +11,8 @@ final class PhotoLibraryService: NSObject {
     private(set) var libraryVersion: Int = 0
 
     private let thumbnailSemaphore = AsyncSemaphore(limit: 6)
+    /// 全图 / Live Photo 解码独立限流，避免 iPad 上瞬时 6 路 22MB 解码触发 jetsam
+    private let fullImageSemaphore = AsyncSemaphore(limit: AppConstants.Shuffle.fullImageSemaphoreLimit)
     private let prefetchManager = PHCachingImageManager()
 
     func startPrefetchingImages(for assets: [PHAsset], targetSize: CGSize) {
@@ -150,8 +152,8 @@ final class PhotoLibraryService: NSObject {
         size: CGSize,
         onProgress: @escaping @Sendable @MainActor (Double) -> Void = { _ in }
     ) async -> UIImage? {
-        await thumbnailSemaphore.wait()
-        defer { thumbnailSemaphore.signal() }
+        await fullImageSemaphore.wait()
+        defer { fullImageSemaphore.signal() }
 
         let requestIDBox = PHRequestIDBox()
         return await withTaskCancellationHandler {
@@ -189,8 +191,8 @@ final class PhotoLibraryService: NSObject {
     // MARK: - Live Photo（用于沉浸式浏览播放）
 
     func loadLivePhoto(for asset: PHAsset, targetSize: CGSize) async -> PHLivePhoto? {
-        await thumbnailSemaphore.wait()
-        defer { thumbnailSemaphore.signal() }
+        await fullImageSemaphore.wait()
+        defer { fullImageSemaphore.signal() }
 
         let requestIDBox = PHRequestIDBox()
         return await withTaskCancellationHandler {
