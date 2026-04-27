@@ -243,7 +243,9 @@ final class PhotoLibraryService: NSObject {
 
     // MARK: - 收藏
 
-    func toggleFavorite(_ asset: PHAsset) async throws {
+    /// `nonisolated` 关键：@MainActor 类的 performChanges 闭包会被隐式隔离到主线程，
+    /// 与 Photos 框架要求闭包在自己的 changes queue 上执行冲突，触发 _dispatch_assert_queue_fail
+    nonisolated func toggleFavorite(_ asset: PHAsset) async throws {
         let target = !asset.isFavorite
         try await PHPhotoLibrary.shared().performChanges {
             let request = PHAssetChangeRequest(for: asset)
