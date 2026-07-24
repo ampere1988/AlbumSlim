@@ -186,7 +186,15 @@ struct SettingsView: View {
             Picker("语言", selection: $appLanguage) {
                 Text("跟随系统").tag("system")
                 Text("简体中文").tag("zh-Hans")
+                Text("繁體中文").tag("zh-Hant")
                 Text("English").tag("en")
+                Text("日本語").tag("ja")
+                Text("한국어").tag("ko")
+                Text("Español").tag("es")
+                Text("Français").tag("fr")
+                Text("Deutsch").tag("de")
+                Text("Português (Brasil)").tag("pt-BR")
+                Text("Русский").tag("ru")
             }
             .onChange(of: appLanguage) { _, newValue in
                 if newValue == "system" {

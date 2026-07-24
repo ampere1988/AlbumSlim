@@ -8,7 +8,15 @@ options:
   developmentLanguage: zh-Hans
   knownRegions:
     - zh-Hans
+    - zh-Hant
     - en
+    - ja
+    - ko
+    - es
+    - fr
+    - de
+    - pt-BR
+    - ru
 
 settings:
   base:
