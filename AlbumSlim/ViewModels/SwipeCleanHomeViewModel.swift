@@ -4,6 +4,8 @@ import Photos
 @MainActor @Observable
 final class SwipeCleanHomeViewModel {
     private(set) var buckets: [SwipeCleanBucket] = []
+    /// 第三方 App 相册堆，与月份堆分开展示
+    private(set) var appBuckets: [SwipeCleanBucket] = []
     private(set) var isLoading = false
 
     /// 少于这个数量的月份不单独成堆，避免入口页碎片化
@@ -65,6 +67,36 @@ final class SwipeCleanHomeViewModel {
                 return false
             }
             return (ly, lm) > (ry, rm)
+        }
+
+        await loadAppBuckets(services: services)
+    }
+
+    private func loadAppBuckets(services: AppServiceContainer) async {
+        await services.sourceAlbum.loadAlbums(photoLibrary: services.photoLibrary)
+        appBuckets = services.sourceAlbum.albums.map { album in
+            SwipeCleanBucket(
+                id: "album-\(album.id)",
+                kind: .sourceAlbum(localIdentifier: album.id),
+                title: album.app.displayName,
+                assetIDs: album.assetIDs,
+                totalSize: album.totalSize
+            )
+        }
+    }
+
+    /// 第三方相册对应的图标，未知时回退到通用图标
+    func iconName(for bucket: SwipeCleanBucket) -> String {
+        switch bucket.kind {
+        case .month:
+            return "calendar"
+        case .sourceAlbum:
+            return SourceApp.known.first { $0.displayName == bucket.title }?.iconName
+                ?? "square.stack.3d.up"
+        case .screenshots:
+            return "camera.viewfinder"
+        case .videos:
+            return "video"
         }
     }
 
