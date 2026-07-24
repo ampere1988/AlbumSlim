@@ -9,6 +9,7 @@ enum TrashSource: String, Codable, CaseIterable {
     case video
     case screenshot
     case shuffle
+    case swipeClean
     case other
 
     var label: String {
@@ -20,6 +21,7 @@ enum TrashSource: String, Codable, CaseIterable {
         case .video:      return "视频"
         case .screenshot: return "截图"
         case .shuffle:    return "浏览"
+        case .swipeClean: return "逐张清理"
         case .other:      return "其他"
         }
     }

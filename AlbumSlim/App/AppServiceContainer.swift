@@ -20,6 +20,7 @@ final class AppServiceContainer {
     let trash: TrashService
     let locationName: LocationNameService
     let backdrop: BackdropAdapterService
+    let swipeProgress: SwipeCleanProgressStore
     let toast: ToastCenter
 
     private(set) var isReady = false
@@ -44,6 +45,7 @@ final class AppServiceContainer {
         self.trash = TrashService()
         self.locationName = LocationNameService()
         self.backdrop = BackdropAdapterService()
+        self.swipeProgress = SwipeCleanProgressStore()
         self.toast = ToastCenter()
     }
 
