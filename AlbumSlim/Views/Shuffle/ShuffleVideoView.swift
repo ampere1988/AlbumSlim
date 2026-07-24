@@ -38,7 +38,14 @@ struct ShuffleVideoView: View {
             isLoading = true
         }
         .onReceive(NotificationCenter.default.publisher(for: .shuffleTabLeft)) { _ in
-            controller.pause()
+            // tab 离开时不仅暂停，还释放 PlayerItem，避免在非可见 tab 上累积 AVPlayer 资源
+            controller.unload()
+            isLoading = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .shuffleTabReturned)) { _ in
+            // 切回 tab 时 isActive 不变、task(id:) 不会重跑，需显式重新加载
+            guard isActive else { return }
+            Task { await activate() }
         }
     }
 
@@ -127,4 +134,6 @@ final class PlayerContainerView: UIView {
 extension Notification.Name {
     /// 用户切离浏览 tab(tag 0) 时发送，用于暂停视频/Live Photo 播放
     static let shuffleTabLeft = Notification.Name("shuffleTabLeft")
+    /// 用户切回浏览 tab(tag 0) 时发送，用于重新加载被卸载的视频/Live Photo
+    static let shuffleTabReturned = Notification.Name("shuffleTabReturned")
 }

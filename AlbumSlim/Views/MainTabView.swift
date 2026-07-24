@@ -51,6 +51,10 @@ struct MainTabView: View {
                     NotificationCenter.default.post(name: .shuffleTabLeft, object: nil)
                     services.backdrop.reset()
                 }
+                // 切回浏览 tab 时通知重新加载被 unload 的视频/Live Photo
+                if oldValue != 0, newValue == 0 {
+                    NotificationCenter.default.post(name: .shuffleTabReturned, object: nil)
+                }
             }
 
             AppToast(toastCenter: services.toast)

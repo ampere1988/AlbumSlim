@@ -20,8 +20,7 @@ struct ShuffleFeedView: View {
     @State private var detailItem: ShuffleItem?
 
     private var activeItem: ShuffleItem? {
-        guard let scrolledID else { return viewModel.items.first }
-        return viewModel.items.first(where: { $0.id == scrolledID })
+        viewModel.item(for: scrolledID)
     }
 
     var body: some View {

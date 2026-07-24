@@ -41,8 +41,9 @@ struct ShufflePhotoView: View {
                 await load()
                 await services.backdrop.sample(image: displayImage)
             } else {
-                displayImage = nil
-                hasFullImage = false
+                // 注意：仅重置 zoom 状态与下载进度。displayImage 不主动清空 ——
+                // SwiftUI 复用 cell 时清空会让回滑/分页跳动期间出现一闪而过的黑屏；
+                // 真正的内存释放由 LazyVStack 销毁 cell 时触发，由内存警告触发 evictAllCaches
                 downloadProgress = 0
                 onZoomStateChanged(false)
             }

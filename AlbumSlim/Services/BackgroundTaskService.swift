@@ -56,8 +56,11 @@ final class BackgroundTaskService {
         // 安排下一次
         scheduleProcessingTask()
 
+        // expirationHandler 由系统在后台队列调用，hop 回 MainActor 再访问隔离状态
         task.expirationHandler = { [weak self] in
-            self?.analyzeTask?.cancel()
+            Task { @MainActor [weak self] in
+                self?.analyzeTask?.cancel()
+            }
         }
 
         analyzeTask = Task {

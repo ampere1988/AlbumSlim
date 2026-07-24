@@ -59,6 +59,9 @@ targets:
           - UIInterfaceOrientationPortraitUpsideDown
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
+        # 关闭 iPad 分屏（Slide Over / Split View），避免 GeometryReader + LazyVStack
+        # paging 在分屏尺寸突变下锚点错乱；保留横屏
+        UIRequiresFullScreen: true
     dependencies: []
 
   AlbumSlimTests:

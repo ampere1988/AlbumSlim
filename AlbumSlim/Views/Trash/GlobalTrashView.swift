@@ -196,6 +196,7 @@ private struct TrashRow: View {
 }
 
 private struct ThumbnailView: View {
+    @Environment(AppServiceContainer.self) private var services
     let localIdentifier: String
     let mediaType: TrashedMediaType
 
@@ -217,13 +218,10 @@ private struct ThumbnailView: View {
     private func load() async {
         let result = PHAsset.fetchAssets(withLocalIdentifiers: [localIdentifier], options: nil)
         guard let asset = result.firstObject else { return }
-        let manager = PHImageManager.default()
-        let options = PHImageRequestOptions()
-        options.isSynchronous = false
-        options.deliveryMode = .opportunistic
-        let target = CGSize(width: 168, height: 168)
-        manager.requestImage(for: asset, targetSize: target, contentMode: .aspectFill, options: options) { img, _ in
-            Task { @MainActor in self.image = img }
-        }
+        // 走 PhotoLibraryService 统一的 semaphore 限流入口，
+        // 避免垃圾桶列表快速滚动时并发解码不受控触发 jetsam
+        image = await services.photoLibrary.thumbnail(
+            for: asset, size: CGSize(width: 168, height: 168), contentMode: .aspectFill
+        )
     }
 }

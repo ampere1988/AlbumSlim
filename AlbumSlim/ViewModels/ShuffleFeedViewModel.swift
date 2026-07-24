@@ -29,7 +29,9 @@ final class ShuffleFeedViewModel {
     private var fullImageCacheOrder: [String] = []
     private var fullImagePrefetchTasks: [String: Task<Void, Never>] = [:]
 
-    private var memoryWarningObserver: NSObjectProtocol?
+    // nonisolated(unsafe)：仅 init 写入一次、deinit 读取一次，无并发竞争；
+    // 这样 deinit 无需 MainActor.assumeIsolated（非主线程释放时会 fatal error）
+    private nonisolated(unsafe) var memoryWarningObserver: NSObjectProtocol?
 
     init() {
         memoryWarningObserver = NotificationCenter.default.addObserver(
@@ -44,10 +46,10 @@ final class ShuffleFeedViewModel {
     }
 
     deinit {
-        MainActor.assumeIsolated {
-            if let memoryWarningObserver {
-                NotificationCenter.default.removeObserver(memoryWarningObserver)
-            }
+        // NotificationCenter.removeObserver 线程安全，直接调用；
+        // 不用 MainActor.assumeIsolated —— 若实例在非主线程被 ARC 释放会 fatal error
+        if let memoryWarningObserver {
+            NotificationCenter.default.removeObserver(memoryWarningObserver)
         }
     }
 
@@ -76,6 +78,21 @@ final class ShuffleFeedViewModel {
     func cachedThumbnail(for assetID: String) -> UIImage? { thumbnailCache[assetID] }
     func cachedFullImage(for assetID: String) -> UIImage? { fullImageCache[assetID] }
 
+    /// O(1) 查询：scrolledID 拿到后用这个，避免 ShuffleFeedView.body 里
+    /// items.first(where:) 在 80 个 items 时每帧 O(N) 遍历
+    func item(for id: ShuffleItem.ID?) -> ShuffleItem? {
+        guard let id else { return items.first }
+        guard let idx = itemIndexByID[id], idx < items.count else { return nil }
+        return items[idx]
+    }
+
+    /// id → items index 的索引，items 变化时同步重建
+    private var itemIndexByID: [ShuffleItem.ID: Int] = [:]
+
+    private func rebuildItemIndex() {
+        itemIndexByID = Dictionary(uniqueKeysWithValues: items.enumerated().map { ($0.element.id, $0.offset) })
+    }
+
     func bootstrap(services: AppServiceContainer) async {
         // 幂等：已初始化完成则直接返回，避免切 tab 回来时清空 items 导致 scrolledID 失效
         if fetchResult != nil, !items.isEmpty { return }
@@ -98,7 +115,7 @@ final class ShuffleFeedViewModel {
     /// 维护 thumbnail 预热窗口（prev 1 + next 2）+ 下一张全图 PHCachingImageManager 热身 + 当前/下一张 UIImage 内存预加载
     func updatePrefetchWindow(around currentID: ShuffleItem.ID?, services: AppServiceContainer) {
         guard let currentID,
-              let currentIdx = items.firstIndex(where: { $0.id == currentID }) else { return }
+              let currentIdx = itemIndexByID[currentID] else { return }
 
         // --- thumbnail 预热 ---
         var desiredAssets: [String: PHAsset] = [:]
@@ -181,7 +198,7 @@ final class ShuffleFeedViewModel {
 
     func onPageAppeared(itemID: ShuffleItem.ID?) {
         guard let itemID else { return }
-        guard let currentIdx = items.firstIndex(where: { $0.id == itemID }) else { return }
+        guard let currentIdx = itemIndexByID[itemID] else { return }
         let remainingAhead = items.count - 1 - currentIdx
         if remainingAhead < 3 { appendNext(count: 3) }
         if items.count > maxItemCount {
@@ -190,25 +207,34 @@ final class ShuffleFeedViewModel {
                 let dropped = items[0..<dropCount]
                 items.removeFirst(dropCount)
                 for it in dropped { evictAll(for: it.asset.localIdentifier) }
+                rebuildItemIndex()
             }
         }
     }
 
     func remove(itemID: ShuffleItem.ID) {
-        guard let idx = items.firstIndex(where: { $0.id == itemID }) else { return }
+        guard let idx = itemIndexByID[itemID] else { return }
         let removed = items[idx]
         items.remove(at: idx)
         indexQueue.remove(fetchIndex: removed.fetchIndex)
         evictAll(for: removed.asset.localIdentifier)
+        rebuildItemIndex()
         if items.count < 5 { appendNext(count: 5) }
     }
 
     func refreshAfterLibraryChange(services: AppServiceContainer) async {
         let ids = items.map { $0.asset.localIdentifier }
         guard !ids.isEmpty else { return }
-        let existing = PHAsset.fetchAssets(withLocalIdentifiers: ids, options: nil)
-        var aliveIDs: Set<String> = []
-        existing.enumerateObjects { asset, _, _ in aliveIDs.insert(asset.localIdentifier) }
+        // PHAsset.fetchAssets 是同步阻塞调用 ——
+        // 大相册或 PHChange 触发频繁时，在主线程做会出现明显卡顿。
+        // 移到 utility 线程后再回主线程 mutate items
+        let aliveIDs = await Task.detached(priority: .utility) { () -> Set<String> in
+            let existing = PHAsset.fetchAssets(withLocalIdentifiers: ids, options: nil)
+            var alive: Set<String> = []
+            existing.enumerateObjects { asset, _, _ in alive.insert(asset.localIdentifier) }
+            return alive
+        }.value
+
         let trashedIDs = services.trash.trashedAssetIDs
         let removed = items.filter { !aliveIDs.contains($0.asset.localIdentifier) || trashedIDs.contains($0.asset.localIdentifier) }
         items.removeAll { !aliveIDs.contains($0.asset.localIdentifier) || trashedIDs.contains($0.asset.localIdentifier) }
@@ -216,6 +242,7 @@ final class ShuffleFeedViewModel {
             indexQueue.remove(fetchIndex: it.fetchIndex)
             evictAll(for: it.asset.localIdentifier)
         }
+        rebuildItemIndex()
         if items.count < 5 { appendNext(count: 5) }
     }
 
@@ -229,6 +256,7 @@ final class ShuffleFeedViewModel {
             indexQueue.remove(fetchIndex: it.fetchIndex)
             evictAll(for: it.asset.localIdentifier)
         }
+        rebuildItemIndex()
         if items.count < 5 { appendNext(count: 5) }
     }
 
@@ -244,6 +272,7 @@ final class ShuffleFeedViewModel {
             let asset = fetchResult.object(at: fetchIndex)
             items.append(ShuffleItem(asset: asset, fetchIndex: fetchIndex))
         }
+        rebuildItemIndex()
     }
 
     private func storeThumbnail(_ image: UIImage, for id: String) {

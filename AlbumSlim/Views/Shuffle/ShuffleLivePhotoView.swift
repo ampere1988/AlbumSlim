@@ -52,7 +52,15 @@ struct ShuffleLivePhotoView: View {
             }
         }
         .onReceive(NotificationCenter.default.publisher(for: .shuffleTabLeft)) { _ in
+            // tab 离开时释放 PHLivePhoto 强引用，避免持续占用解码后的位图内存
+            livePhoto = nil
+            isLoading = true
             playTrigger = 0
+        }
+        .onReceive(NotificationCenter.default.publisher(for: .shuffleTabReturned)) { _ in
+            // 切回 tab 时 isActive 不变、task(id:) 不会重跑，需显式重新加载
+            guard isActive else { return }
+            Task { await activate() }
         }
     }
 
