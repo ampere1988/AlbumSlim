@@ -22,6 +22,7 @@ final class AppServiceContainer {
     let backdrop: BackdropAdapterService
     let swipeProgress: SwipeCleanProgressStore
     let toast: ToastCenter
+    let sourceAlbum: SourceAlbumService
 
     private(set) var isReady = false
     private var prepareTask: Task<Void, Never>?
@@ -47,6 +48,7 @@ final class AppServiceContainer {
         self.backdrop = BackdropAdapterService()
         self.swipeProgress = SwipeCleanProgressStore()
         self.toast = ToastCenter()
+        self.sourceAlbum = SourceAlbumService()
     }
 
     /// 异步恢复缓存数据，不阻塞主线程。幂等：并发多次调用共享同一次执行
