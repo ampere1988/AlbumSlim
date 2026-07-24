@@ -6,6 +6,7 @@ struct MainTabView: View {
     @State private var selectedTab = 0
     @State private var photoAuthStatus: PHAuthorizationStatus = PermissionManager.photoLibraryStatus
     @State private var showQuickClean = false
+    @AppStorage("limitedBannerDismissed") private var limitedBannerDismissed = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -31,6 +32,8 @@ struct MainTabView: View {
                 if selectedTab != 0,
                    photoAuthStatus != .authorized && photoAuthStatus != .limited {
                     permissionBanner
+                } else if selectedTab != 0, photoAuthStatus == .limited, !limitedBannerDismissed {
+                    limitedBanner
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .switchTab)) { notification in
@@ -101,6 +104,39 @@ struct MainTabView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(.thinMaterial)
+    }
+
+    private var limitedBanner: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "photo.badge.plus")
+                .foregroundStyle(.blue)
+            Text(String(localized: "仅可访问部分照片，扫描结果可能不完整"))
+                .font(.caption)
+                .foregroundStyle(.secondary)
+            Spacer()
+            Button(String(localized: "选择更多")) {
+                presentLimitedLibraryPicker()
+            }
+            .font(.footnote.bold())
+            .controlSize(.small)
+            Button {
+                limitedBannerDismissed = true
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.caption2.bold())
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(.thinMaterial)
+    }
+
+    private func presentLimitedLibraryPicker() {
+        guard let scene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
+            let root = scene.windows.first(where: \.isKeyWindow)?.rootViewController else { return }
+        PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: root)
     }
 }
 

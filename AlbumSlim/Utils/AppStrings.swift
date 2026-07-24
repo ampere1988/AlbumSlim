@@ -49,6 +49,6 @@ enum AppStrings {
 
     // 永久删除确认
     static func confirmPermanentDeleteTitle(_ count: Int) -> String { "永久删除 \(count) 项？" }
-    static let confirmPermanentDeleteMessage = "此操作无法撤销，相册中将同时移除这些项"
-    static let confirmEmptyTrashMessage = "此操作无法撤销，垃圾桶中所有项目都会被永久删除"
+    static let confirmPermanentDeleteMessage = "照片将移入系统相册的「最近删除」，30 天内仍可在系统相册中找回"
+    static let confirmEmptyTrashMessage = "照片将移入系统相册的「最近删除」，30 天内仍可在系统相册中找回"
 }
