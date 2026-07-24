@@ -51,4 +51,25 @@ final class BestPhotoAnalyzerTests: XCTestCase {
         let score = analyzer.faceScore(for: image.cgImage!)
         XCTAssertEqual(score, 0.5, accuracy: 0.001)
     }
+
+    func testPickBestChoosesHighestScore() {
+        let best = BestPhotoAnalyzer.pickBest(from: [
+            (id: "a", score: 0.4, fileSize: 9_000_000),
+            (id: "b", score: 0.8, fileSize: 1_000),
+        ])
+        // 分数压倒文件大小——这正是相对旧逻辑的改进点
+        XCTAssertEqual(best, "b")
+    }
+
+    func testPickBestBreaksTieByFileSize() {
+        let best = BestPhotoAnalyzer.pickBest(from: [
+            (id: "a", score: 0.5, fileSize: 100),
+            (id: "b", score: 0.5, fileSize: 999),
+        ])
+        XCTAssertEqual(best, "b")
+    }
+
+    func testPickBestOnEmptyReturnsNil() {
+        XCTAssertNil(BestPhotoAnalyzer.pickBest(from: []))
+    }
 }

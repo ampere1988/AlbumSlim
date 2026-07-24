@@ -78,6 +78,18 @@ final class BestPhotoAnalyzer: @unchecked Sendable {
         return total / Float(faces.count)
     }
 
+    // MARK: - 择优
+
+    /// 从候选中选出最佳。同分时取文件更大者（保留旧行为作为 tiebreaker）。
+    static func pickBest(from candidates: [(id: String, score: Float, fileSize: Int64)]) -> String? {
+        candidates.max { lhs, rhs in
+            if abs(lhs.score - rhs.score) < 0.0001 {
+                return lhs.fileSize < rhs.fileSize
+            }
+            return lhs.score < rhs.score
+        }?.id
+    }
+
     // MARK: - 行为信号
 
     static func behaviorScore(for asset: PHAsset) -> Float {

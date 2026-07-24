@@ -15,10 +15,11 @@ final class ImageSimilarityService: Sendable {
 
         // 复用同一个 engine 实例，避免循环内每组重复创建
         let engine = AIAnalysisEngine()
+        let analyzer = BestPhotoAnalyzer()
 
         for group in timeGroups {
             let base = processedItems
-            let similar = await findSimilarInGroup(group, engine: engine, using: photoLibrary, cache: cache) { itemsDone in
+            let similar = await findSimilarInGroup(group, engine: engine, analyzer: analyzer, using: photoLibrary, cache: cache) { itemsDone in
                 onProgress(Double(base + itemsDone) / Double(totalItems))
             }
             allGroups.append(contentsOf: similar)
@@ -69,7 +70,7 @@ final class ImageSimilarityService: Sendable {
         return result
     }
 
-    private func findSimilarInGroup(_ items: [MediaItem], engine: AIAnalysisEngine, using photoLibrary: PhotoLibraryService, cache: AnalysisCacheService, onItemProgress: (@MainActor @Sendable (Int) -> Void)? = nil) async -> [CleanupGroup] {
+    private func findSimilarInGroup(_ items: [MediaItem], engine: AIAnalysisEngine, analyzer: BestPhotoAnalyzer, using photoLibrary: PhotoLibraryService, cache: AnalysisCacheService, onItemProgress: (@MainActor @Sendable (Int) -> Void)? = nil) async -> [CleanupGroup] {
         let size = CGSize(width: 300, height: 300)
 
         var featurePrints: [(item: MediaItem, fp: VNFeaturePrintObservation)] = []
@@ -133,11 +134,42 @@ final class ImageSimilarityService: Sendable {
 
             if similarItems.count > 1 {
                 visited.insert(featurePrints[i].item.id)
-                let best = similarItems.max(by: { $0.fileSize < $1.fileSize })
-                groups.append(CleanupGroup(type: .similar, items: similarItems, bestItemID: best?.id))
+                let bestID = await bestItemID(in: similarItems, engine: engine, analyzer: analyzer, using: photoLibrary)
+                groups.append(CleanupGroup(type: .similar, items: similarItems, bestItemID: bestID))
             }
         }
 
         return groups
+    }
+
+    /// 对一组相似照片逐张打分，返回最该保留的那张的 id。
+    /// 只在组内（通常 2–5 张）执行，不影响全库扫描耗时。
+    private func bestItemID(in items: [MediaItem], engine: AIAnalysisEngine, analyzer: BestPhotoAnalyzer, using photoLibrary: PhotoLibraryService) async -> String? {
+        let size = CGSize(width: 300, height: 300)
+        var candidates: [(id: String, score: Float, fileSize: Int64)] = []
+
+        for item in items {
+            guard let image = await photoLibrary.thumbnail(for: item.asset, size: size),
+                  let cgImage = image.cgImage else {
+                // 取不到图时退化为纯行为信号，不让该张直接出局
+                let fallback = PhotoSignals(
+                    technical: 0,
+                    face: 0.5,
+                    behavior: BestPhotoAnalyzer.behaviorScore(for: item.asset)
+                )
+                candidates.append((id: item.id, score: BestPhotoAnalyzer.compositeScore(fallback), fileSize: item.fileSize))
+                continue
+            }
+            let signals = autoreleasepool {
+                analyzer.signals(for: cgImage, asset: item.asset, engine: engine)
+            }
+            candidates.append((
+                id: item.id,
+                score: BestPhotoAnalyzer.compositeScore(signals),
+                fileSize: item.fileSize
+            ))
+        }
+
+        return BestPhotoAnalyzer.pickBest(from: candidates)
     }
 }
