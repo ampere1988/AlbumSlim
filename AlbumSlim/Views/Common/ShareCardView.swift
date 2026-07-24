@@ -4,6 +4,9 @@ struct ShareCardContent: View {
     let freedSpace: Int64
     let totalFreed: Int64
     let cleanupCount: Int
+    /// 累计模式：用于"成就总览"等无"本次清理"上下文的场景。
+    /// 主标题文案改为"累计释放"，并隐藏下方与主标题重复的累计释放小字统计。
+    var isCumulative: Bool = false
 
     var body: some View {
         ZStack {
@@ -25,7 +28,7 @@ struct ShareCardContent: View {
                     .foregroundStyle(.white)
 
                 VStack(spacing: 8) {
-                    Text("本次释放")
+                    Text(isCumulative ? String(localized: "累计释放") : String(localized: "本次释放"))
                         .font(.subheadline)
                         .foregroundStyle(.white.opacity(0.8))
                     Text(freedSpace.formattedFileSize)
@@ -38,13 +41,15 @@ struct ShareCardContent: View {
                     .padding(.horizontal, 40)
 
                 HStack(spacing: 32) {
-                    VStack(spacing: 4) {
-                        Text(totalFreed.formattedFileSize)
-                            .font(.headline)
-                            .foregroundStyle(.white)
-                        Text("累计释放")
-                            .font(.caption)
-                            .foregroundStyle(.white.opacity(0.7))
+                    if !isCumulative {
+                        VStack(spacing: 4) {
+                            Text(totalFreed.formattedFileSize)
+                                .font(.headline)
+                                .foregroundStyle(.white)
+                            Text("累计释放")
+                                .font(.caption)
+                                .foregroundStyle(.white.opacity(0.7))
+                        }
                     }
                     VStack(spacing: 4) {
                         Text("\(cleanupCount)")

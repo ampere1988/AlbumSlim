@@ -34,7 +34,8 @@ struct AchievementView: View {
         guard let image = ShareCardGenerator.generateShareImage(
             freedSpace: totalFreed,
             totalFreed: totalFreed,
-            cleanupCount: cleanupCount
+            cleanupCount: cleanupCount,
+            isCumulative: true
         ) else { return }
         shareImage = image
         showShareSheet = true
