@@ -55,7 +55,7 @@ final class SwipeCleanViewModel {
         index = 0
         history = []
         trashedSizeInSession = 0
-        thumbnails = [:]
+        cancelAllTasks()
 
         let pendingIDs = services.swipeProgress.pendingIDs(
             from: bucket.assetIDs,
@@ -71,14 +71,26 @@ final class SwipeCleanViewModel {
         let byID = Dictionary(uniqueKeysWithValues: fetched.map { ($0.localIdentifier, $0) })
         let ordered = pendingIDs.compactMap { byID[$0] }
 
-        items = ordered.map { asset in
-            MediaItem(
-                id: asset.localIdentifier,
-                asset: asset,
-                fileSize: services.photoLibrary.fileSize(for: asset),
-                creationDate: asset.creationDate
-            )
+        let batchSize = AppConstants.Analysis.batchSize
+        var newItems: [MediaItem] = []
+        newItems.reserveCapacity(ordered.count)
+        var offset = 0
+        while offset < ordered.count {
+            let end = min(offset + batchSize, ordered.count)
+            for asset in ordered[offset..<end] {
+                newItems.append(
+                    MediaItem(
+                        id: asset.localIdentifier,
+                        asset: asset,
+                        fileSize: services.photoLibrary.fileSize(for: asset),
+                        creationDate: asset.creationDate
+                    )
+                )
+            }
+            offset = end
+            await Task.yield()
         }
+        items = newItems
 
         prefetchThumbnails(services: services)
     }
@@ -112,6 +124,7 @@ final class SwipeCleanViewModel {
         history.append(HistoryEntry(item: item, decision: decision, reclaimedSize: reclaimed))
         index += 1
         thumbnails.removeValue(forKey: item.id)
+        thumbnailTasks.removeValue(forKey: item.id)?.cancel()
         prefetchThumbnails(services: services)
         Haptics.light()
     }
