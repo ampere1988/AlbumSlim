@@ -36,6 +36,23 @@
         }
       }
     },
+    "NSContactsUsageDescription" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AlbumSlim needs access to your contacts to find duplicates. All processing is done locally on your device and nothing is uploaded."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "闪图需要访问通讯录来找出重复联系人，所有处理均在本地完成，不会上传任何信息。"
+          }
+        }
+      }
+    },
     "NSPhotoLibraryAddUsageDescription" : {
       "extractionState" : "manual",
       "localizations" : {
