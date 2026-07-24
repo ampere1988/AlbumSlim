@@ -80,6 +80,50 @@ final class ContactCleanupServiceTests: XCTestCase {
         XCTAssertEqual(groups.first?.reason, .samePhone)
     }
 
+    // MARK: - 传递性分组
+
+    func testTransitivePhoneOverlapMergesIntoOneGroup() {
+        // A 持有 P1、P2；B 只有 P1；C 只有 P2。A-B、A-C 各自共享一个号码，
+        // 三者必须传递归入同一组，不能因为字典遍历顺序把 C 甩出去。
+        let a = contact("A", name: "A", phones: ["11100000001", "22200000002"])
+        let b = contact("B", name: "B", phones: ["11100000001"])
+        let c = contact("C", name: "C", phones: ["22200000002"])
+        let groups = ContactCleanupService.findDuplicates(in: [a, b, c])
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups.first?.reason, .samePhone)
+        XCTAssertEqual(Set(groups.first?.contacts.map(\.id) ?? []), ["A", "B", "C"])
+    }
+
+    func testTransitivePhoneGroupingIsOrderIndependent() {
+        // 同样的三个联系人，换一个输入顺序，分组结果必须完全一致（成员集合与 group id）。
+        let a = contact("A", name: "A", phones: ["11100000001", "22200000002"])
+        let b = contact("B", name: "B", phones: ["11100000001"])
+        let c = contact("C", name: "C", phones: ["22200000002"])
+        let order1 = ContactCleanupService.findDuplicates(in: [a, b, c])
+        let order2 = ContactCleanupService.findDuplicates(in: [c, a, b])
+        XCTAssertEqual(order1.count, 1)
+        XCTAssertEqual(order2.count, 1)
+        XCTAssertEqual(
+            Set(order1.first?.contacts.map(\.id) ?? []),
+            Set(order2.first?.contacts.map(\.id) ?? [])
+        )
+        XCTAssertEqual(order1.first?.id, order2.first?.id)
+    }
+
+    func testContactBridgingTwoClustersMergesThemIntoOneGroup() {
+        // D-E 共享号码 P3，F-G 共享号码 P4，两簇原本无关；H 同时持有 P3 和 P4，把它们桥接成一组，
+        // 而不是让其中一簇因为“已被认领”被丢弃。
+        let d = contact("D", name: "D", phones: ["33300000003"])
+        let e = contact("E", name: "E", phones: ["33300000003"])
+        let f = contact("F", name: "F", phones: ["44400000004"])
+        let g = contact("G", name: "G", phones: ["44400000004"])
+        let h = contact("H", name: "H", phones: ["33300000003", "44400000004"])
+        let groups = ContactCleanupService.findDuplicates(in: [d, e, f, g, h])
+        XCTAssertEqual(groups.count, 1)
+        XCTAssertEqual(groups.first?.reason, .samePhone)
+        XCTAssertEqual(Set(groups.first?.contacts.map(\.id) ?? []), ["D", "E", "F", "G", "H"])
+    }
+
     // MARK: - 主记录选择
 
     func testPrimaryPrefersContactWithMostInformation() {
