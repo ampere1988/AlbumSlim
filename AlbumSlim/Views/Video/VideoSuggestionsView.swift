@@ -58,13 +58,15 @@ struct VideoSuggestionsView: View {
                                 let assets = viewModel.suggestions
                                     .filter { selectedIDs.contains($0.id) }
                                     .map(\.item.asset)
-                                let count = assets.count
                                 viewModel.suggestions.removeAll { selectedIDs.contains($0.id) }
                                 selectedIDs.removeAll()
                                 isEditing = false
-                                services.trash.moveToTrash(assets: assets, source: .video, mediaType: .video)
+                                let batch = services.trash.moveToTrash(assets: assets, source: .video, mediaType: .video)
                                 Haptics.moveToTrash()
-                                services.toast.movedToTrash(count)
+                                services.toast.movedToTrash(batch.ids.count, freed: batch.totalSize) { [weak services] in
+                                    services?.trash.restore(batch.ids)
+                                    services?.toast.restored(batch.ids.count)
+                                }
                             } label: {
                                 Text("\(AppStrings.moveToTrash) \(AppStrings.items(selectedIDs.count))")
                                     .frame(maxWidth: .infinity)

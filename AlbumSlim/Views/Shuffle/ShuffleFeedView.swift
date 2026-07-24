@@ -205,15 +205,16 @@ struct ShuffleFeedView: View {
             showPaywall = true
             return
         }
-        let size = services.photoLibrary.fileSize(for: item.asset)
-        services.trash.moveToTrash(
+        let batch = services.trash.moveToTrash(
             assets: [item.asset],
             source: .shuffle,
             mediaType: trashMediaType(for: item)
         )
         Haptics.moveToTrash()
-        services.toast.movedToTrash(1)
-        services.achievement.recordCleanup(freedSpace: size, deletedCount: 1)
+        services.toast.movedToTrash(batch.ids.count, freed: batch.totalSize) { [weak services] in
+            services?.trash.restore(batch.ids)
+            services?.toast.restored(batch.ids.count)
+        }
         viewModel.remove(itemID: item.id)
     }
 

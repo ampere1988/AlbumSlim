@@ -74,14 +74,14 @@ struct LargePhotosView: View {
                                     showPaywall = true
                                     return
                                 }
-                                let count = selectedIDs.count
                                 let toDelete = largePhotos.filter { selectedIDs.contains($0.id) }
                                 let assets = toDelete.map(\.asset)
-                                let freedSize = toDelete.reduce(Int64(0)) { $0 + $1.fileSize }
-                                let _ = services.achievement.recordCleanup(freedSpace: freedSize, deletedCount: count)
-                                services.trash.moveToTrash(assets: assets, source: .largePhoto, mediaType: .photo)
+                                let batch = services.trash.moveToTrash(assets: assets, source: .largePhoto, mediaType: .photo)
                                 Haptics.moveToTrash()
-                                services.toast.movedToTrash(count)
+                                services.toast.movedToTrash(batch.ids.count, freed: batch.totalSize) { [weak services] in
+                                    services?.trash.restore(batch.ids)
+                                    services?.toast.restored(batch.ids.count)
+                                }
                                 allPhotos.removeAll { selectedIDs.contains($0.id) }
                                 selectedIDs.removeAll()
                                 isEditing = false

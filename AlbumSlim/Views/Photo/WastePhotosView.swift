@@ -70,11 +70,13 @@ struct WastePhotosView: View {
                                     showPaywall = true
                                     return
                                 }
-                                let count = viewModel.selectedForDeletion.count
                                 Task {
-                                    await viewModel.deleteSelected(services: services, source: .waste)
+                                    let batch = await viewModel.deleteSelected(services: services, source: .waste)
                                     Haptics.moveToTrash()
-                                    services.toast.movedToTrash(count)
+                                    services.toast.movedToTrash(batch.ids.count, freed: batch.totalSize) { [weak services] in
+                                        services?.trash.restore(batch.ids)
+                                        services?.toast.restored(batch.ids.count)
+                                    }
                                     isEditing = false
                                 }
                             } label: {

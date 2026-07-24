@@ -82,9 +82,12 @@ struct VideoCompressView: View {
                 Section {
                     Button(role: .destructive) {
                         if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                            services.trash.moveToTrash(assets: [item.asset], source: .video, mediaType: .video)
+                            let batch = services.trash.moveToTrash(assets: [item.asset], source: .video, mediaType: .video)
                             Haptics.moveToTrash()
-                            services.toast.movedToTrash(1)
+                            services.toast.movedToTrash(batch.ids.count, freed: batch.totalSize) { [weak services] in
+                                services?.trash.restore(batch.ids)
+                                services?.toast.restored(batch.ids.count)
+                            }
                             dismiss()
                         } else {
                             Haptics.proGate()

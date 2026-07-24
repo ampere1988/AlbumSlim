@@ -71,11 +71,13 @@ struct SimilarPhotosView: View {
                                     showPaywall = true
                                     return
                                 }
-                                let count = viewModel.selectedForDeletion.count
                                 Task {
-                                    await viewModel.deleteSelected(services: services, source: .similar)
+                                    let batch = await viewModel.deleteSelected(services: services, source: .similar)
                                     Haptics.moveToTrash()
-                                    services.toast.movedToTrash(count)
+                                    services.toast.movedToTrash(batch.ids.count, freed: batch.totalSize) { [weak services] in
+                                        services?.trash.restore(batch.ids)
+                                        services?.toast.restored(batch.ids.count)
+                                    }
                                     isEditing = false
                                 }
                             } label: {

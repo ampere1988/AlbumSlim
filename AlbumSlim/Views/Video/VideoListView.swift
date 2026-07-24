@@ -38,10 +38,12 @@ struct VideoListView: View {
                                 .swipeActions(edge: .trailing) {
                                     Button(AppStrings.moveToTrash, role: .destructive) {
                                         if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                                            let count = 1
-                                            viewModel.deleteVideo(video, services: services)
+                                            let batch = viewModel.deleteVideo(video, services: services)
                                             Haptics.moveToTrash()
-                                            services.toast.movedToTrash(count)
+                                            services.toast.movedToTrash(batch.ids.count, freed: batch.totalSize) { [weak services] in
+                                                services?.trash.restore(batch.ids)
+                                                services?.toast.restored(batch.ids.count)
+                                            }
                                         } else {
                                             Haptics.proGate()
                                             services.toast.proRequired()
@@ -81,10 +83,12 @@ struct VideoListView: View {
 
                                 Button(role: .destructive) {
                                     if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                                        let count = viewModel.selectedVideos.count
-                                        viewModel.deleteSelected(services: services)
+                                        let batch = viewModel.deleteSelected(services: services)
                                         Haptics.moveToTrash()
-                                        services.toast.movedToTrash(count)
+                                        services.toast.movedToTrash(batch.ids.count, freed: batch.totalSize) { [weak services] in
+                                            services?.trash.restore(batch.ids)
+                                            services?.toast.restored(batch.ids.count)
+                                        }
                                         isEditing = false
                                     } else {
                                         Haptics.proGate()

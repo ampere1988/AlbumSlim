@@ -110,23 +110,25 @@ final class VideoManagerViewModel {
         await loadVideos(services: services)
     }
 
-    func deleteVideo(_ item: MediaItem, services: AppServiceContainer) {
+    @discardableResult
+    func deleteVideo(_ item: MediaItem, services: AppServiceContainer) -> (ids: Set<String>, totalSize: Int64) {
         videos.removeAll { $0.id == item.id }
         refreshSortedVideos()
-        services.trash.moveToTrash(assets: [item.asset], source: .video, mediaType: .video)
+        return services.trash.moveToTrash(assets: [item.asset], source: .video, mediaType: .video)
     }
 
-    func deleteSelected(services: AppServiceContainer) {
+    @discardableResult
+    func deleteSelected(services: AppServiceContainer) -> (ids: Set<String>, totalSize: Int64) {
         let idsToDelete = selectedVideos
         let assets = videos.filter { idsToDelete.contains($0.id) }.map(\.asset)
-        guard !assets.isEmpty else { return }
+        guard !assets.isEmpty else { return ([], 0) }
 
         videos.removeAll { idsToDelete.contains($0.id) }
         refreshSortedVideos()
         selectedVideos.removeAll()
         isEditing = false
 
-        services.trash.moveToTrash(assets: assets, source: .video, mediaType: .video)
+        return services.trash.moveToTrash(assets: assets, source: .video, mediaType: .video)
     }
 
     func estimatedSize(for item: MediaItem, services: AppServiceContainer) -> Int64 {

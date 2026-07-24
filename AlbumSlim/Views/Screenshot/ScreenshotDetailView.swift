@@ -211,9 +211,12 @@ struct ScreenshotDetailView: View {
         isRecognizing = false
         recognitionFailed = false
         let assets = services.trash.fetchAssets(for: [item.id])
-        services.trash.moveToTrash(assets: assets, source: .screenshot, mediaType: .screenshot)
+        let batch = services.trash.moveToTrash(assets: assets, source: .screenshot, mediaType: .screenshot)
         Haptics.moveToTrash()
-        services.toast.movedToTrash(1)
+        services.toast.movedToTrash(batch.ids.count, freed: batch.totalSize) { [weak services] in
+            services?.trash.restore(batch.ids)
+            services?.toast.restored(batch.ids.count)
+        }
         onTrash(item.id)
         if screenshots.count <= 1 {
             screenshots.removeAll()

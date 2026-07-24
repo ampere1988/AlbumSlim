@@ -102,25 +102,29 @@ final class ScreenshotViewModel {
         selectedItems.removeAll()
     }
 
-    func trashSelected(services: AppServiceContainer) {
+    @discardableResult
+    func trashSelected(services: AppServiceContainer) -> (ids: Set<String>, totalSize: Int64) {
         let items = screenshots.filter { selectedItems.contains($0.id) }
-        guard !items.isEmpty else { return }
+        guard !items.isEmpty else { return ([], 0) }
         let assets = services.trash.fetchAssets(for: Set(items.map(\.id)))
-        services.trash.moveToTrash(assets: assets, source: .screenshot, mediaType: .screenshot)
+        let batch = services.trash.moveToTrash(assets: assets, source: .screenshot, mediaType: .screenshot)
         let ids = Set(items.map(\.id))
         screenshots.removeAll { ids.contains($0.id) }
         for id in ids { ocrResults.removeValue(forKey: id) }
         selectedItems.removeAll()
         refreshFilteredScreenshots()
+        return batch
     }
 
-    func trashScreenshot(_ item: MediaItem, services: AppServiceContainer) {
+    @discardableResult
+    func trashScreenshot(_ item: MediaItem, services: AppServiceContainer) -> (ids: Set<String>, totalSize: Int64) {
         let assets = services.trash.fetchAssets(for: [item.id])
-        services.trash.moveToTrash(assets: assets, source: .screenshot, mediaType: .screenshot)
+        let batch = services.trash.moveToTrash(assets: assets, source: .screenshot, mediaType: .screenshot)
         screenshots.removeAll { $0.id == item.id }
         ocrResults.removeValue(forKey: item.id)
         selectedItems.remove(item.id)
         refreshFilteredScreenshots()
+        return batch
     }
 
     func removeScreenshotFromUI(_ id: String) {

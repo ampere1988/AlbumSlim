@@ -67,10 +67,12 @@ struct ScreenshotListView: View {
                     ActionBar {
                         Button(role: .destructive) {
                             if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                                let count = viewModel.selectedItems.count
-                                viewModel.trashSelected(services: services)
+                                let batch = viewModel.trashSelected(services: services)
                                 Haptics.moveToTrash()
-                                services.toast.movedToTrash(count)
+                                services.toast.movedToTrash(batch.ids.count, freed: batch.totalSize) { [weak services] in
+                                    services?.trash.restore(batch.ids)
+                                    services?.toast.restored(batch.ids.count)
+                                }
                                 viewModel.isEditing = false
                             } else {
                                 showPaywall = true

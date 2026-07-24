@@ -131,9 +131,12 @@ struct BurstPhotosView: View {
         let assets = toDelete.map(\.asset)
         burstGroups.removeAll { $0.id == id }
 
-        services.trash.moveToTrash(assets: assets, source: .burst, mediaType: .photo)
+        let batch = services.trash.moveToTrash(assets: assets, source: .burst, mediaType: .photo)
         Haptics.moveToTrash()
-        services.toast.movedToTrash(assets.count)
+        services.toast.movedToTrash(batch.ids.count, freed: batch.totalSize) { [weak services] in
+            services?.trash.restore(batch.ids)
+            services?.toast.restored(batch.ids.count)
+        }
     }
 }
 

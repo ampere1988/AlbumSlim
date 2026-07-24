@@ -54,15 +54,16 @@ final class PhotoCleanerViewModel {
         }
     }
 
-    func deleteSelected(services: AppServiceContainer, source: TrashSource) async {
+    @discardableResult
+    func deleteSelected(services: AppServiceContainer, source: TrashSource) async -> (ids: Set<String>, totalSize: Int64) {
         let allItems = similarGroups.flatMap(\.items) + wasteItems
         let toDelete = allItems.filter { selectedForDeletion.contains($0.id) }
-        guard !toDelete.isEmpty else { return }
+        guard !toDelete.isEmpty else { return ([], 0) }
 
         let deletedIDs = selectedForDeletion
         let assets = toDelete.map(\.asset)
 
-        services.trash.moveToTrash(assets: assets, source: source, mediaType: .photo)
+        let batch = services.trash.moveToTrash(assets: assets, source: source, mediaType: .photo)
 
         similarGroups = similarGroups.compactMap { group in
             var g = group
@@ -72,6 +73,7 @@ final class PhotoCleanerViewModel {
         wasteItems.removeAll { deletedIDs.contains($0.id) }
         for id in deletedIDs { wasteReasons.removeValue(forKey: id) }
         selectedForDeletion.removeAll()
+        return batch
     }
 
     func reloadSimilar(services: AppServiceContainer) async {
