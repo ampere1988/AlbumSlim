@@ -75,12 +75,17 @@ struct GlobalTrashView: View {
                         let toDelete = selectedIDs
                         let freed = selectedSize
                         Task {
-                            try? await services.trash.permanentlyDelete(toDelete, photoLibrary: services.photoLibrary)
+                            do {
+                                try await services.trash.permanentlyDelete(toDelete, photoLibrary: services.photoLibrary)
+                            } catch {
+                                return
+                            }
                             await MainActor.run {
                                 Haptics.permanentDelete()
                                 services.toast.permanentlyDeleted(toDelete.count, freed: freed)
                                 selectedIDs.removeAll()
                                 if items.isEmpty { isEditing = false }
+                                recordCleanupAndCelebrate(freedBytes: freed, deletedCount: toDelete.count)
                             }
                         }
                     }
@@ -96,10 +101,15 @@ struct GlobalTrashView: View {
                         let totalCount = items.count
                         let freed = services.trash.totalSize
                         Task {
-                            try? await services.trash.permanentlyDeleteAll(photoLibrary: services.photoLibrary)
+                            do {
+                                try await services.trash.permanentlyDeleteAll(photoLibrary: services.photoLibrary)
+                            } catch {
+                                return
+                            }
                             await MainActor.run {
                                 Haptics.permanentDelete()
                                 services.toast.permanentlyDeleted(totalCount, freed: freed)
+                                recordCleanupAndCelebrate(freedBytes: freed, deletedCount: totalCount)
                             }
                         }
                     }
@@ -108,6 +118,20 @@ struct GlobalTrashView: View {
                 }
                 .task { services.trash.reconcileWithLibrary() }
         }
+    }
+
+    @MainActor
+    private func recordCleanupAndCelebrate(freedBytes: Int64, deletedCount: Int) {
+        let unlocked = services.achievement.recordCleanup(freedSpace: freedBytes, deletedCount: deletedCount)
+        for achievement in unlocked {
+            services.toast.show(
+                icon: achievement.icon,
+                text: String(localized: "解锁成就:\(achievement.title)"),
+                tint: .yellow,
+                duration: 2.5
+            )
+        }
+        ReviewPromptManager.requestReviewIfAppropriate()
     }
 
     @ViewBuilder
@@ -142,10 +166,16 @@ struct GlobalTrashView: View {
                                 services.toast.restored(1)
                             }
                             Button(AppStrings.permanentlyDelete, systemImage: AppIcons.trashFill, role: .destructive) {
+                                let freed = item.fileSize
                                 Task {
-                                    try? await services.trash.permanentlyDelete([item.id], photoLibrary: services.photoLibrary)
+                                    do {
+                                        try await services.trash.permanentlyDelete([item.id], photoLibrary: services.photoLibrary)
+                                    } catch {
+                                        return
+                                    }
                                     Haptics.permanentDelete()
-                                    services.toast.permanentlyDeleted(1, freed: item.fileSize)
+                                    services.toast.permanentlyDeleted(1, freed: freed)
+                                    recordCleanupAndCelebrate(freedBytes: freed, deletedCount: 1)
                                 }
                             }
                         }

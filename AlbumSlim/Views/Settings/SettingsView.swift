@@ -135,6 +135,12 @@ struct SettingsView: View {
                 StatCard(icon: "video.circle.fill", color: .purple, value: "\(achievement.totalCompressedCount)", label: String(localized: "视频压缩"))
             }
             .listRowInsets(EdgeInsets(top: 12, leading: 16, bottom: 12, trailing: 16))
+
+            NavigationLink {
+                AchievementView()
+            } label: {
+                Label(String(localized: "清理成就"), systemImage: "trophy.fill")
+            }
         }
     }
 

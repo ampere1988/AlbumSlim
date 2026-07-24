@@ -2,6 +2,8 @@ import SwiftUI
 
 struct AchievementView: View {
     @Environment(AppServiceContainer.self) private var services
+    @State private var shareImage: UIImage?
+    @State private var showShareSheet = false
 
     var body: some View {
         List {
@@ -10,6 +12,32 @@ struct AchievementView: View {
         }
         .navigationTitle("清理成就")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    shareAchievements()
+                } label: {
+                    Image(systemName: "square.and.arrow.up")
+                }
+            }
+        }
+        .sheet(isPresented: $showShareSheet) {
+            if let shareImage {
+                ActivityShareSheet(items: [shareImage])
+            }
+        }
+    }
+
+    private func shareAchievements() {
+        let totalFreed = services.achievement.totalFreedSpace
+        let cleanupCount = services.achievement.totalCleanupCount
+        guard let image = ShareCardGenerator.generateShareImage(
+            freedSpace: totalFreed,
+            totalFreed: totalFreed,
+            cleanupCount: cleanupCount
+        ) else { return }
+        shareImage = image
+        showShareSheet = true
     }
 
     // MARK: - 统计卡片
@@ -92,4 +120,16 @@ struct AchievementView: View {
         .padding(.vertical, 4)
         .opacity(unlocked ? 1.0 : 0.6)
     }
+}
+
+// MARK: - UIActivityViewController SwiftUI 包装
+
+private struct ActivityShareSheet: UIViewControllerRepresentable {
+    let items: [Any]
+
+    func makeUIViewController(context: Context) -> UIActivityViewController {
+        UIActivityViewController(activityItems: items, applicationActivities: nil)
+    }
+
+    func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
 }
