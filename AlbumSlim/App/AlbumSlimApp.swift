@@ -1,6 +1,7 @@
 import SwiftUI
 import SwiftData
 import AVFoundation
+import UserNotifications
 
 @main
 struct AlbumSlimApp: App {
@@ -11,6 +12,7 @@ struct AlbumSlimApp: App {
     init() {
         Self.configureAudioSession()
         services.backgroundTask.registerBackgroundTasks(services: services)
+        UNUserNotificationCenter.current().delegate = NotificationDelegate.shared
     }
 
     /// 配置音频会话为 .ambient + .mixWithOthers：

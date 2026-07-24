@@ -5,6 +5,7 @@ struct MainTabView: View {
     @Environment(AppServiceContainer.self) private var services
     @State private var selectedTab = 0
     @State private var photoAuthStatus: PHAuthorizationStatus = PermissionManager.photoLibraryStatus
+    @State private var showQuickClean = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -36,6 +37,20 @@ struct MainTabView: View {
                 if let index = notification.userInfo?["index"] as? Int {
                     selectedTab = index
                 }
+            }
+            .onReceive(NotificationCenter.default.publisher(for: .openQuickClean)) { _ in
+                showQuickClean = true
+            }
+            .task {
+                // 冷启动场景：通知点击触发的 delegate 回调先于本视图订阅完成，
+                // 直接 post 的通知会丢失，因此改为消费 UserDefaults 标记兜底。
+                if UserDefaults.standard.bool(forKey: NotificationDelegate.pendingOpenQuickCleanKey) {
+                    UserDefaults.standard.set(false, forKey: NotificationDelegate.pendingOpenQuickCleanKey)
+                    showQuickClean = true
+                }
+            }
+            .sheet(isPresented: $showQuickClean) {
+                NavigationStack { QuickCleanView() }
             }
             .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
                 photoAuthStatus = PermissionManager.photoLibraryStatus

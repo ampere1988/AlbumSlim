@@ -66,7 +66,11 @@ final class ReminderService {
 
         let content = UNMutableNotificationContent()
         content.title = String(localized: "该清理相册了")
-        content.body = String(localized: "您的相册可能积累了不少新照片，来看看有哪些可以清理吧")
+        if let savable = StorageStats.loadCached()?.estimatedSavable, savable > 50 * 1024 * 1024 {
+            content.body = String(localized: "闪图预估可为你释放约 \(savable.formattedFileSize)，点开看看吧")
+        } else {
+            content.body = String(localized: "您的相册可能积累了不少新照片，来看看有哪些可以清理吧")
+        }
         content.sound = .default
 
         var dateComponents = DateComponents()

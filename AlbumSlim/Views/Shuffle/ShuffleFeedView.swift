@@ -11,6 +11,8 @@ struct ShuffleFeedView: View {
     @State private var showHint = false
     /// 当前媒体（照片 / Live Photo）是否处于缩放状态，用于暂停外层分页滚动
     @State private var mediaZoomActive = false
+    /// 顶部"发现可清理"导流胶囊，点击后本次会话内隐藏
+    @State private var showCleanupCapsule = true
 
     // Sheets & Alerts
     @State private var showPaywall = false
@@ -33,6 +35,7 @@ struct ShuffleFeedView: View {
                 } else {
                     feedScroll(size: geo.size)
                     overlay
+                    cleanupCapsule(topInset: geo.safeAreaInsets.top)
                     if showHint { swipeHint }
                 }
             }
@@ -130,6 +133,33 @@ struct ShuffleFeedView: View {
                 .padding(.bottom, 140)
             }
             .id(active.id)
+        }
+    }
+
+    // MARK: - 顶部导流胶囊
+
+    @ViewBuilder
+    private func cleanupCapsule(topInset: CGFloat) -> some View {
+        if showCleanupCapsule,
+           viewModel.authStatus == .authorized || viewModel.authStatus == .limited,
+           !viewModel.items.isEmpty,
+           let savable = StorageStats.loadCached()?.estimatedSavable, savable > 100 * 1024 * 1024 {
+            VStack {
+                Button {
+                    showCleanupCapsule = false
+                    NotificationCenter.default.post(name: .openQuickClean, object: nil)
+                } label: {
+                    Label(String(localized: "发现约 \(savable.formattedFileSize) 可清理"), systemImage: "sparkles")
+                        .font(.footnote.bold())
+                        .padding(.horizontal, 12).padding(.vertical, 6)
+                        .background(.ultraThinMaterial, in: Capsule())
+                }
+                .foregroundStyle(.white)
+                .buttonStyle(.plain)
+                .padding(.top, topInset + 8)
+                Spacer()
+            }
+            .transition(.opacity)
         }
     }
 

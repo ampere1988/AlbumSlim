@@ -15,6 +15,7 @@
 		12047E67A32897DDC29462B9 /* ShuffleVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBD414750361F90610134685 /* ShuffleVideoView.swift */; };
 		147BD6073E1E4C36B0447881 /* ScreenshotListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44A2E63276E56A4BF20C022F /* ScreenshotListView.swift */; };
 		1C70BECB044BC8F97D87FC64 /* SavedNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 368545C3C186E127DB89EC4C /* SavedNote.swift */; };
+		1D5D620B1F5B4E6B74174AB1 /* NotificationDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1A0A02E9595664F4A995C9 /* NotificationDelegate.swift */; };
 		1EE04521FED290D0C07FE6DB /* SpaceSavedBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F1447FDD9993E149FC4FDF3 /* SpaceSavedBanner.swift */; };
 		21548605D409C5712F8A4B8F /* SavedNotesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B1A38387ECA687ECFD947A68 /* SavedNotesView.swift */; };
 		2173567B7E7488FF05586BC7 /* BackgroundTaskService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A801972BC9D199E85E0859B /* BackgroundTaskService.swift */; };
@@ -172,6 +173,7 @@
 		84BDAB3C1B4C6B0EC7BE9439 /* OverviewSection.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OverviewSection.swift; sourceTree = "<group>"; };
 		87B67917D4C1A4514F567B07 /* AppToast.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppToast.swift; sourceTree = "<group>"; };
 		8847460DC0921674C0B20D47 /* VideoSuggestionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VideoSuggestionsView.swift; sourceTree = "<group>"; };
+		8D1A0A02E9595664F4A995C9 /* NotificationDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationDelegate.swift; sourceTree = "<group>"; };
 		95F92D35CEA648B795C7EEA9 /* StorageStats.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageStats.swift; sourceTree = "<group>"; };
 		9CFD894333B69341192564C9 /* AppConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppConstants.swift; sourceTree = "<group>"; };
 		9E7AE50E4E641D180511264C /* GlobalTrashView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlobalTrashView.swift; sourceTree = "<group>"; };
@@ -261,6 +263,7 @@
 				2BB7E80821709C5E5BA55739 /* AlbumSlimApp.swift */,
 				9CFD894333B69341192564C9 /* AppConstants.swift */,
 				24672D7CA500AAB94EBCF201 /* AppServiceContainer.swift */,
+				8D1A0A02E9595664F4A995C9 /* NotificationDelegate.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -627,6 +630,7 @@
 				D3319AA220C30094E6FDF216 /* MediaGridView.swift in Sources */,
 				92768C459F0BB63A161AD6BF /* MediaItem.swift in Sources */,
 				A6EFC8BE2ED9A9E69CADB997 /* NotesExportService.swift in Sources */,
+				1D5D620B1F5B4E6B74174AB1 /* NotificationDelegate.swift in Sources */,
 				C5E75A63F0B5F5C3BD6A60DD /* OCRService.swift in Sources */,
 				ADFF6F46B351B315ED5A3E34 /* OnboardingView.swift in Sources */,
 				E1565F6132820483FFC642ED /* OverviewSection.swift in Sources */,
