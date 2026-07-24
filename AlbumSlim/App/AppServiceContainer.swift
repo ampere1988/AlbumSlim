@@ -23,6 +23,7 @@ final class AppServiceContainer {
     let swipeProgress: SwipeCleanProgressStore
     let toast: ToastCenter
     let sourceAlbum: SourceAlbumService
+    let contactCleanup: ContactCleanupService
 
     private(set) var isReady = false
     private var prepareTask: Task<Void, Never>?
@@ -49,6 +50,7 @@ final class AppServiceContainer {
         self.swipeProgress = SwipeCleanProgressStore()
         self.toast = ToastCenter()
         self.sourceAlbum = SourceAlbumService()
+        self.contactCleanup = ContactCleanupService()
     }
 
     /// 异步恢复缓存数据，不阻塞主线程。幂等：并发多次调用共享同一次执行
