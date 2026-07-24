@@ -74,7 +74,17 @@ final class SourceAlbumService {
             with: .album, subtype: .albumRegular, options: nil
         )
 
-        var found: [SourceAlbum] = []
+        // 第一步（主线程，仅做轻量的 Photos 框架枚举）：
+        // 匹配标题、收集 assetID 列表和对应的 PHFetchResult，fileSize 汇总留到后台线程再做。
+        struct PendingAlbum {
+            let id: String
+            let app: SourceApp
+            let title: String
+            let assetIDs: [String]
+            let assetsResult: PHFetchResult<PHAsset>
+        }
+
+        var pending: [PendingAlbum] = []
         collections.enumerateObjects { collection, _, _ in
             guard let title = collection.localizedTitle,
                   let app = SourceApp.match(albumTitle: title) else { return }
@@ -85,21 +95,56 @@ final class SourceAlbumService {
             guard assetsResult.count > 0 else { return }
 
             var ids: [String] = []
-            var size: Int64 = 0
             ids.reserveCapacity(assetsResult.count)
             assetsResult.enumerateObjects { asset, _, _ in
                 ids.append(asset.localIdentifier)
-                size += photoLibrary.fileSize(for: asset)
             }
 
-            found.append(SourceAlbum(
+            pending.append(PendingAlbum(
                 id: collection.localIdentifier,
                 app: app,
                 title: title,
                 assetIDs: ids,
-                totalSize: size
+                assetsResult: assetsResult
             ))
         }
+
+        guard !pending.isEmpty else {
+            albums = []
+            return
+        }
+
+        // 第二步：把 fileSize 汇总（微信/QQ 等相册常有数千项）挪到后台线程，
+        // 用 autoreleasepool 分批，做法与 StorageAnalyzer.performScan 一致。
+        let found: [SourceAlbum] = await Task.detached(priority: .utility) { () -> [SourceAlbum] in
+            var result: [SourceAlbum] = []
+            result.reserveCapacity(pending.count)
+
+            for item in pending {
+                var size: Int64 = 0
+                let total = item.assetsResult.count
+                let batchSize = 500
+                for batchStart in stride(from: 0, to: total, by: batchSize) {
+                    let batchEnd = min(batchStart + batchSize, total)
+                    autoreleasepool {
+                        for i in batchStart..<batchEnd {
+                            let asset = item.assetsResult.object(at: i)
+                            size += photoLibrary.fileSize(for: asset)
+                        }
+                    }
+                }
+
+                result.append(SourceAlbum(
+                    id: item.id,
+                    app: item.app,
+                    title: item.title,
+                    assetIDs: item.assetIDs,
+                    totalSize: size
+                ))
+            }
+
+            return result
+        }.value
 
         // 占空间大的排前面
         albums = found.sorted { $0.totalSize > $1.totalSize }
