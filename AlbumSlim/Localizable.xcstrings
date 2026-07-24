@@ -4004,6 +4004,50 @@
           }
         }
       }
+    },
+    "已暂停扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan Paused"
+          }
+        }
+      }
+    },
+    "扫描进度已保存，可随时继续" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scan progress is saved, you can resume anytime"
+          }
+        }
+      }
+    },
+    "继续扫描" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Resume Scan"
+          }
+        }
+      }
+    },
+    "删除失败，请重试" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete failed. Try again"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

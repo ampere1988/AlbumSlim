@@ -8,6 +8,8 @@ struct QuickCleanView: View {
         Group {
             if viewModel.isScanning {
                 scanningView
+            } else if viewModel.wasCancelled && viewModel.cleanupGroups.isEmpty {
+                pausedStateView
             } else if viewModel.cleanupGroups.isEmpty {
                 emptyStateView
             } else {
@@ -46,6 +48,31 @@ struct QuickCleanView: View {
 
     private var emptyStateView: some View {
         EmptyState("可清理项", systemImage: "sparkles", description: "相册很整洁")
+    }
+
+    // MARK: - 已暂停（用户取消扫描）
+
+    private var pausedStateView: some View {
+        VStack(spacing: 16) {
+            Spacer()
+            Image(systemName: "pause.circle")
+                .font(.system(size: 48))
+                .foregroundStyle(.secondary)
+            Text(String(localized: "已暂停扫描"))
+                .font(.title3.bold())
+            Text(String(localized: "扫描进度已保存，可随时继续"))
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+            Button {
+                Task { await viewModel.loadOrScan(services: services) }
+            } label: {
+                Label(String(localized: "继续扫描"), systemImage: "arrow.clockwise")
+            }
+            .buttonStyle(.borderedProminent)
+            .padding(.top, 8)
+            Spacer()
+        }
+        .padding()
     }
 
     // MARK: - 扫描结果总览

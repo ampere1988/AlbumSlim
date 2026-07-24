@@ -78,6 +78,7 @@ struct GlobalTrashView: View {
                             do {
                                 try await services.trash.permanentlyDelete(toDelete, photoLibrary: services.photoLibrary)
                             } catch {
+                                handlePermanentDeleteFailure(error)
                                 return
                             }
                             await MainActor.run {
@@ -104,6 +105,7 @@ struct GlobalTrashView: View {
                             do {
                                 try await services.trash.permanentlyDeleteAll(photoLibrary: services.photoLibrary)
                             } catch {
+                                handlePermanentDeleteFailure(error)
                                 return
                             }
                             await MainActor.run {
@@ -118,6 +120,15 @@ struct GlobalTrashView: View {
                 }
                 .task { services.trash.reconcileWithLibrary() }
         }
+    }
+
+    /// 区分用户在系统确认弹窗中点了"不允许"（视为取消，无需提示）与真实删除失败（需要 toast 提示）
+    @MainActor
+    private func handlePermanentDeleteFailure(_ error: Error) {
+        if let phError = error as? PHPhotosError, phError.code == .userCancelled {
+            return
+        }
+        services.toast.failure(String(localized: "删除失败，请重试"))
     }
 
     @MainActor
@@ -171,6 +182,7 @@ struct GlobalTrashView: View {
                                     do {
                                         try await services.trash.permanentlyDelete([item.id], photoLibrary: services.photoLibrary)
                                     } catch {
+                                        handlePermanentDeleteFailure(error)
                                         return
                                     }
                                     Haptics.permanentDelete()

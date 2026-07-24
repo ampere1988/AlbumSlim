@@ -47,7 +47,7 @@ final class ToastCenter {
         displayTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(duration * 1_000_000_000))
             guard !Task.isCancelled else { return }
-            await self?.advance()
+            self?.advance()
         }
     }
 

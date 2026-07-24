@@ -7,6 +7,8 @@ final class QuickCleanViewModel {
     var scanPhase: CleanupCoordinator.ScanPhase = .done
     var cleanupGroups: [CleanupGroup] = []
     var hasCompletedScan = false
+    /// 用户主动取消了扫描（区别于"尚未扫描过"），驱动页面展示"已暂停扫描"而非误导性空状态
+    var wasCancelled = false
 
     /// 当前扫描 Task 引用，用于支持取消
     private var scanTask: Task<[CleanupGroup], Never>?
@@ -17,12 +19,15 @@ final class QuickCleanViewModel {
 
     /// 取消当前扫描：底层 ScanProgress 已在检查点持久化，再次进入可续传
     func cancelScan() {
+        wasCancelled = true
         scanTask?.cancel()
     }
 
     /// 进入页面时调用：优先从 coordinator 恢复，仅在必要时扫描
+    /// 同时用作"继续扫描"按钮的入口，会清除 wasCancelled 并复用续传逻辑
     func loadOrScan(services: AppServiceContainer) async {
         guard !isScanning else { return }
+        wasCancelled = false
         let coordinator = services.cleanupCoordinator
         let version = services.photoLibrary.libraryVersion
 
@@ -52,6 +57,7 @@ final class QuickCleanViewModel {
     private func fullScan(services: AppServiceContainer) async {
         guard !isScanning else { return }
         isScanning = true
+        wasCancelled = false
         scanProgress = 0
         defer { isScanning = false; scanTask = nil }
 
@@ -70,6 +76,7 @@ final class QuickCleanViewModel {
     private func incrementalScan(services: AppServiceContainer) async {
         guard !isScanning else { return }
         isScanning = true
+        wasCancelled = false
         scanProgress = 0
         defer { isScanning = false; scanTask = nil }
 
