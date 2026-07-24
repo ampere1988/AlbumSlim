@@ -9,6 +9,14 @@ final class ContactCleanupService {
     private(set) var totalContactCount = 0
     var errorMessage: String?
 
+    /// 存储型、可观察的授权状态。必须是存储属性（而非 computed）才能让 SwiftUI 的
+    /// Observation 在其变化时使依赖它的视图失效——计算属性即便内部读取系统状态，
+    /// 也不会被 Observation 追踪，会导致视图卡在授权前的界面上无法自动刷新。
+    private(set) var authorizationStatus: CNAuthorizationStatus = CNContactStore.authorizationStatus(for: .contacts)
+
+    /// 正在合并中的分组 id 集合，用于阻止同一分组被并发/重复合并
+    private(set) var mergingGroupIDs: Set<String> = []
+
     private let store = CNContactStore()
 
     // MARK: - 权限
@@ -16,15 +24,21 @@ final class ContactCleanupService {
     /// 只在用户主动进入联系人模块时调用，绝不在启动或引导流程里请求
     func requestAccess() async -> Bool {
         do {
-            return try await store.requestAccess(for: .contacts)
+            let granted = try await store.requestAccess(for: .contacts)
+            refreshAuthorizationStatus()
+            return granted
         } catch {
             errorMessage = error.localizedDescription
+            refreshAuthorizationStatus()
             return false
         }
     }
 
-    var authorizationStatus: CNAuthorizationStatus {
-        CNContactStore.authorizationStatus(for: .contacts)
+    /// 纯读取系统当前授权状态，不会触发系统权限弹窗。
+    /// 供视图在 onAppear / scenePhase 变为 active 时调用，以便及时感知
+    /// 用户在系统设置里手动更改的权限。
+    func refreshAuthorizationStatus() {
+        authorizationStatus = CNContactStore.authorizationStatus(for: .contacts)
     }
 
     // MARK: - 扫描
@@ -200,6 +214,14 @@ final class ContactCleanupService {
     /// 注：不读取/合并 `note`——该字段在现代 iOS 上需要 `com.apple.developer.contacts.notes`
     /// 专属 entitlement，本应用未申请，读取会直接抛异常，故整段跳过。
     func merge(group: ContactDuplicateGroup) async throws {
+        guard !mergingGroupIDs.contains(group.id) else {
+            throw NSError(domain: "ContactCleanup", code: 2, userInfo: [
+                NSLocalizedDescriptionKey: String(localized: "该分组正在合并中")
+            ])
+        }
+        mergingGroupIDs.insert(group.id)
+        defer { mergingGroupIDs.remove(group.id) }
+
         let keys: [CNKeyDescriptor] = [
             CNContactIdentifierKey as CNKeyDescriptor,
             CNContactGivenNameKey as CNKeyDescriptor,

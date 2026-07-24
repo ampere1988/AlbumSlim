@@ -3,6 +3,7 @@ import Contacts
 
 struct ContactCleanupView: View {
     @Environment(AppServiceContainer.self) private var services
+    @Environment(\.scenePhase) private var scenePhase
     @State private var pendingMerge: ContactDuplicateGroup?
     @State private var showPaywall = false
 
@@ -21,6 +22,13 @@ struct ContactCleanupView: View {
         }
         .navigationTitle(String(localized: "重复联系人"))
         .navigationBarTitleDisplayMode(.inline)
+        // 仅做纯读取的状态刷新，绝不在这里触发系统权限弹窗（那只能来自用户主动点击）
+        .onAppear { service.refreshAuthorizationStatus() }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                service.refreshAuthorizationStatus()
+            }
+        }
         .sheet(isPresented: $showPaywall) {
             PaywallView()
         }
@@ -99,14 +107,23 @@ struct ContactCleanupView: View {
                         ForEach(group.contacts) { contact in
                             contactRow(contact, isPrimary: contact.id == group.primaryID)
                         }
+                        let isMerging = service.mergingGroupIDs.contains(group.id)
                         Button {
                             requestMerge(group)
                         } label: {
-                            Label(
-                                String(localized: "合并为 1 条（删除 \(group.removableCount) 条）"),
-                                systemImage: "arrow.triangle.merge"
-                            )
+                            if isMerging {
+                                HStack {
+                                    ProgressView()
+                                    Text(String(localized: "合并中…"))
+                                }
+                            } else {
+                                Label(
+                                    String(localized: "合并为 1 条（删除 \(group.removableCount) 条）"),
+                                    systemImage: "arrow.triangle.merge"
+                                )
+                            }
                         }
+                        .disabled(isMerging)
                     } header: {
                         Text(group.reason.label)
                     }
@@ -141,6 +158,8 @@ struct ContactCleanupView: View {
     // MARK: - 动作
 
     private func requestMerge(_ group: ContactDuplicateGroup) {
+        // 已在合并中的分组不再重复弹出确认（防止双击/重复确认触发并发合并）
+        guard !service.mergingGroupIDs.contains(group.id) else { return }
         // 合并是清理操作，门控口径与其它模块一致
         guard ProFeatureGate.canClean(isPro: services.subscription.isPro) else {
             showPaywall = true
