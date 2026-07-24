@@ -143,31 +143,38 @@ final class ImageSimilarityService: Sendable {
     }
 
     /// 对一组相似照片逐张打分，返回最该保留的那张的 id。
-    /// 只在组内（通常 2–5 张）执行，不影响全库扫描耗时。
+    /// 组大小不固定：时间窗口分组最大可达 200 张，连拍场景也可能产生数十张的簇，
+    /// 因此与 findSimilarInGroup 一致，按 batchSize 分批并在批间 yield，避免长时间占用 CPU。
     private func bestItemID(in items: [MediaItem], engine: AIAnalysisEngine, analyzer: BestPhotoAnalyzer, using photoLibrary: PhotoLibraryService) async -> String? {
         let size = CGSize(width: 300, height: 300)
         var candidates: [(id: String, score: Float, fileSize: Int64)] = []
 
-        for item in items {
-            guard let image = await photoLibrary.thumbnail(for: item.asset, size: size),
-                  let cgImage = image.cgImage else {
-                // 取不到图时退化为纯行为信号，不让该张直接出局
-                let fallback = PhotoSignals(
-                    technical: 0,
-                    face: 0.5,
-                    behavior: BestPhotoAnalyzer.behaviorScore(for: item.asset)
-                )
-                candidates.append((id: item.id, score: BestPhotoAnalyzer.compositeScore(fallback), fileSize: item.fileSize))
-                continue
+        let batchSize = AppConstants.Analysis.batchSize
+        for batchStart in stride(from: 0, to: items.count, by: batchSize) {
+            let batchEnd = min(batchStart + batchSize, items.count)
+            let batch = items[batchStart..<batchEnd]
+            for item in batch {
+                guard let image = await photoLibrary.thumbnail(for: item.asset, size: size),
+                      let cgImage = image.cgImage else {
+                    // 取不到图时退化为纯行为信号，不让该张直接出局
+                    let fallback = PhotoSignals(
+                        technical: 0,
+                        face: 0.5,
+                        behavior: BestPhotoAnalyzer.behaviorScore(for: item.asset)
+                    )
+                    candidates.append((id: item.id, score: BestPhotoAnalyzer.compositeScore(fallback), fileSize: item.fileSize))
+                    continue
+                }
+                let signals = autoreleasepool {
+                    analyzer.signals(for: cgImage, asset: item.asset, engine: engine)
+                }
+                candidates.append((
+                    id: item.id,
+                    score: BestPhotoAnalyzer.compositeScore(signals),
+                    fileSize: item.fileSize
+                ))
             }
-            let signals = autoreleasepool {
-                analyzer.signals(for: cgImage, asset: item.asset, engine: engine)
-            }
-            candidates.append((
-                id: item.id,
-                score: BestPhotoAnalyzer.compositeScore(signals),
-                fileSize: item.fileSize
-            ))
+            await Task.yield()
         }
 
         return BestPhotoAnalyzer.pickBest(from: candidates)
