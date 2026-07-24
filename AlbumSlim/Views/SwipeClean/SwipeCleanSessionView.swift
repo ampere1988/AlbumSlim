@@ -8,6 +8,7 @@ struct SwipeCleanSessionView: View {
     @State private var viewModel = SwipeCleanViewModel()
     @State private var dragOffset: CGSize = .zero
     @State private var showPaywall = false
+    @State private var isCommitting = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -92,6 +93,7 @@ struct SwipeCleanSessionView: View {
                         isTop: true
                     )
                     .gesture(dragGesture)
+                    .allowsHitTesting(!isCommitting)
                     .id(current.id)
                 }
             }
@@ -104,9 +106,11 @@ struct SwipeCleanSessionView: View {
     private var dragGesture: some Gesture {
         DragGesture()
             .onChanged { value in
+                guard !isCommitting else { return }
                 dragOffset = value.translation
             }
             .onEnded { value in
+                guard !isCommitting else { return }
                 let width = value.translation.width
                 if width < -SwipeCard.decisionThreshold {
                     commit(.trash)
@@ -125,7 +129,9 @@ struct SwipeCleanSessionView: View {
     private var actionBar: some View {
         HStack(spacing: 40) {
             circleButton(icon: "trash.fill", tint: .red) { commit(.trash) }
+                .disabled(isCommitting)
             circleButton(icon: "checkmark", tint: .green) { commit(.keep) }
+                .disabled(isCommitting)
         }
         .padding(.bottom, 28)
     }
@@ -174,6 +180,9 @@ struct SwipeCleanSessionView: View {
     // MARK: - 决策落地
 
     private func commit(_ decision: SwipeDecision) {
+        // 重入保护：动画/延迟推进期间（220ms 窗口）忽略后续点击或拖拽，避免误判到下一张卡片
+        guard !isCommitting else { return }
+
         // 门控时点与 ShuffleFeedView.swift:233 保持一致：拦在移入垃圾桶这一步
         if decision == .trash,
            !ProFeatureGate.canClean(isPro: services.subscription.isPro) {
@@ -183,6 +192,8 @@ struct SwipeCleanSessionView: View {
             }
             return
         }
+
+        isCommitting = true
 
         // 先把卡片甩出屏幕，再推进队列，避免下一张闪现在旧位置
         withAnimation(.easeOut(duration: 0.22)) {
@@ -194,6 +205,7 @@ struct SwipeCleanSessionView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
             viewModel.decide(decision, services: services)
             dragOffset = .zero
+            isCommitting = false
         }
     }
 }
