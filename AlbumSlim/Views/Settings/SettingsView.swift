@@ -110,7 +110,14 @@ struct SettingsView: View {
             }
 
             Button("恢复购买") {
-                Task { await services.subscription.restorePurchases() }
+                Task {
+                    let restored = await services.subscription.restorePurchases()
+                    if restored {
+                        services.toast.show(icon: AppIcons.checkmarkCircleFill, text: String(localized: "已恢复 Pro 权益"), tint: .green)
+                    } else {
+                        services.toast.failure(String(localized: "未找到可恢复的购买"))
+                    }
+                }
             }
         }
     }

@@ -4,6 +4,7 @@ import StoreKit
 struct PaywallView: View {
     @Environment(AppServiceContainer.self) private var services
     @Environment(\.dismiss) private var dismiss
+    @State private var restoreResultMessage: String?
 
     private var subscription: SubscriptionService { services.subscription }
 
@@ -36,6 +37,14 @@ struct PaywallView: View {
                 Button("确定") {}
             } message: {
                 Text(subscription.purchaseError ?? "")
+            }
+            .alert("恢复购买", isPresented: .init(
+                get: { restoreResultMessage != nil },
+                set: { if !$0 { restoreResultMessage = nil } }
+            )) {
+                Button("确定") {}
+            } message: {
+                Text(restoreResultMessage ?? "")
             }
         }
     }
@@ -130,7 +139,12 @@ struct PaywallView: View {
     private var footerSection: some View {
         VStack(spacing: 8) {
             Button("恢复购买") {
-                Task { await subscription.restorePurchases() }
+                Task {
+                    let restored = await subscription.restorePurchases()
+                    restoreResultMessage = restored
+                        ? String(localized: "已恢复 Pro 权益")
+                        : String(localized: "未找到可恢复的购买")
+                }
             }
             .font(.footnote)
 

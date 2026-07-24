@@ -4,7 +4,7 @@ import StoreKit
 final class SubscriptionService {
     static let productID = "com.hao.doushan.pro.lifetime"
 
-    var isPro: Bool = false
+    var isPro: Bool = UserDefaults.standard.bool(forKey: "cachedIsPro")
     var product: Product?
     var purchaseError: String?
     var isLoading = false
@@ -52,11 +52,13 @@ final class SubscriptionService {
         }
     }
 
-    func restorePurchases() async {
+    @discardableResult
+    func restorePurchases() async -> Bool {
         isLoading = true
         defer { isLoading = false }
         try? await AppStore.sync()
         await checkSubscriptionStatus()
+        return isPro
     }
 
     func checkSubscriptionStatus() async {
@@ -69,6 +71,7 @@ final class SubscriptionService {
             }
         }
         isPro = hasPro
+        UserDefaults.standard.set(hasPro, forKey: "cachedIsPro")
     }
 
     func listenForTransactions() -> Task<Void, Never> {
