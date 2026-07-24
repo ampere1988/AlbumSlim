@@ -38,4 +38,13 @@ struct TrashServiceFilterTests {
         service.restore(["a"])
         #expect(service.trashedAssetIDs == Set(["b"]))
     }
+
+    @Test("moveToTrash 返回批次 id 与体积信息")
+    func moveToTrashReturnsBatchInfo() {
+        resetUserDefaults()
+        let service = TrashService()
+        let result = service.moveToTrash(assets: [], source: .waste, mediaType: .photo)
+        #expect(result.ids.isEmpty)
+        #expect(result.totalSize == 0)
+    }
 }

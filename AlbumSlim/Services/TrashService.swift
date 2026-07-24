@@ -82,7 +82,9 @@ final class TrashService {
     // MARK: - 软删除
 
     /// 通用入口：传入 PHAsset 列表 + 来源模块 + 媒体类型
-    func moveToTrash(assets: [PHAsset], source: TrashSource, mediaType: TrashedMediaType) {
+    /// 返回本次实际新增的 asset id 集合与其总体积，供调用方展示"可释放体积"及撤销
+    @discardableResult
+    func moveToTrash(assets: [PHAsset], source: TrashSource, mediaType: TrashedMediaType) -> (ids: Set<String>, totalSize: Int64) {
         let now = Date()
         let existingIDs = trashedAssetIDs
         let newItems: [TrashedItem] = assets.compactMap { asset in
@@ -97,10 +99,11 @@ final class TrashService {
                 mediaType: mediaType
             )
         }
-        guard !newItems.isEmpty else { return }
+        guard !newItems.isEmpty else { return ([], 0) }
         trashedItems.insert(contentsOf: newItems, at: 0)
         lastChangeKind = .insert
         persist()
+        return (Set(newItems.map(\.id)), newItems.reduce(0) { $0 + $1.fileSize })
     }
 
     // MARK: - 恢复 / 永久删除

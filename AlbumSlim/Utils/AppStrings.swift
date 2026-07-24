@@ -28,7 +28,11 @@ enum AppStrings {
     }
 
     // Toast 反馈
-    static func movedToTrash(_ count: Int) -> String { "已移到垃圾桶 \(count) 项" }
+    static func movedToTrash(_ count: Int, freed: Int64) -> String {
+        freed > 0
+            ? "已移到垃圾桶 \(count) 项 · 可释放 \(freed.formattedFileSize)"
+            : "已移到垃圾桶 \(count) 项"
+    }
     static func restored(_ count: Int) -> String { "已恢复 \(count) 项" }
     static func permanentlyDeleted(_ count: Int, freed: Int64) -> String {
         "已永久删除 \(count) 项，释放 " + ByteCountFormatter.string(fromByteCount: freed, countStyle: .file)

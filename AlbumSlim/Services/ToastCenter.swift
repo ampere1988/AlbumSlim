@@ -5,6 +5,10 @@ struct ToastMessage: Identifiable, Equatable {
     let icon: String
     let text: String
     let tint: Color
+    var actionLabel: String? = nil
+    var action: (() -> Void)? = nil
+
+    static func == (lhs: Self, rhs: Self) -> Bool { lhs.id == rhs.id }
 }
 
 @MainActor @Observable
@@ -15,8 +19,15 @@ final class ToastCenter {
     private var displayTask: Task<Void, Never>?
     private static let maxQueueSize = 3
 
-    func show(icon: String, text: String, tint: Color = .primary, duration: TimeInterval = 1.5) {
-        let message = ToastMessage(icon: icon, text: text, tint: tint)
+    func show(
+        icon: String,
+        text: String,
+        tint: Color = .primary,
+        duration: TimeInterval = 1.5,
+        actionLabel: String? = nil,
+        action: (() -> Void)? = nil
+    ) {
+        let message = ToastMessage(icon: icon, text: text, tint: tint, actionLabel: actionLabel, action: action)
 
         if current == nil {
             // 没有正在显示的 toast，直接展示
@@ -50,9 +61,21 @@ final class ToastCenter {
         }
     }
 
+    /// 立即结束当前 toast（例如用户点击了内联操作按钮后）
+    func dismissCurrent() {
+        displayTask?.cancel()
+        advance()
+    }
+
     // 高层语义封装
-    func movedToTrash(_ count: Int) {
-        show(icon: AppIcons.trash, text: AppStrings.movedToTrash(count))
+    func movedToTrash(_ count: Int, freed: Int64, onUndo: @escaping () -> Void) {
+        show(
+            icon: AppIcons.trash,
+            text: AppStrings.movedToTrash(count, freed: freed),
+            duration: 3.5,
+            actionLabel: String(localized: "撤销"),
+            action: onUndo
+        )
     }
 
     func restored(_ count: Int) {
