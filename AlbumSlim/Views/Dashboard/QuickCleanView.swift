@@ -30,7 +30,14 @@ struct QuickCleanView: View {
     private var scanningView: some View {
         VStack(spacing: 24) {
             Spacer()
-            ProgressLoadingState(phase: AppStrings.analyzing, progress: services.cleanupCoordinator.scanProgress)
+            ProgressLoadingState(
+                phase: services.cleanupCoordinator.scanPhase.localizedName,
+                progress: services.cleanupCoordinator.scanProgress
+            )
+            Button(AppStrings.cancel) {
+                viewModel.cancelScan()
+            }
+            .buttonStyle(.bordered)
             Spacer()
         }
     }

@@ -478,6 +478,9 @@ final class CleanupCoordinator {
         // Phase 1: 分析（写缓存，支持断点续传）
         await backgroundAnalyze(services: services)
 
+        // 取消时不继续组装结果 / 标记分类已扫描，避免产生不完整的缓存状态
+        guard !Task.isCancelled else { return pendingGroups }
+
         // Phase 2: 组装结果（读缓存，构建 CleanupGroup）
         scanPhase = .building
         scanProgress = 0
@@ -506,6 +509,8 @@ final class CleanupCoordinator {
         let needsAnalyze = staleTypes.contains(.waste) || staleTypes.contains(.similar)
         if needsAnalyze {
             await backgroundAnalyze(services: services)
+            // 取消时不继续组装结果 / 标记分类已扫描，避免产生不完整的缓存状态
+            guard !Task.isCancelled else { return pendingGroups }
         }
 
         scanPhase = .building
