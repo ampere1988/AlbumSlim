@@ -27,6 +27,7 @@
 		2AA0C1E732FA859ECA427DA0 /* SimilarPhotosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E9E06B04C8F8E285C8F5985 /* SimilarPhotosView.swift */; };
 		2CFD18909761C319E59BFBFD /* ShuffleMediaPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608C15FF1F1A7F465DAAB78F /* ShuffleMediaPage.swift */; };
 		31D9B669AE9A1EDBE6608626 /* CleanupGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DEF85CBC76F96E545D1E97C /* CleanupGroup.swift */; };
+		32E401B02601BB048D593C14 /* SwipeCleanSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22F5D1187A80778EEF0FA125 /* SwipeCleanSessionView.swift */; };
 		3608F5A7335BC941F63F606A /* PhotoCleanerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40B5A45D3ACFA11C18388A01 /* PhotoCleanerViewModel.swift */; };
 		37C4A351FF5CF3B2FCE34947 /* StorageStatsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D51B791FBB73A7995FF9DB90 /* StorageStatsTests.swift */; };
 		3B3E2916278A6DFD6264A7A8 /* QuickCleanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EA2B04B956CF16DA0FD62C1D /* QuickCleanView.swift */; };
@@ -59,6 +60,7 @@
 		7815414F58962420E43D24FB /* BackdropAdapterService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EB1ACE83DDDB28F3A0A8687 /* BackdropAdapterService.swift */; };
 		7A305B0E693186A4A475A3F9 /* StorageAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C68C07709C3006187C872DA /* StorageAnalyzer.swift */; };
 		7E607D61B0355F6526A968E3 /* Haptics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46EA595F874B2839E5BE9E34 /* Haptics.swift */; };
+		7F00E4DE10A4629F9E638C45 /* SwipeCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6C35D9C51804CCDB2AF33AE2 /* SwipeCard.swift */; };
 		7FC13EE087521B4E01A47AF9 /* SwipeCleanProgressStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2374BBD91592D967B67061 /* SwipeCleanProgressStore.swift */; };
 		82D21D867273E5AE784460A4 /* SwipeCleanViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8791C2759DD56207E3E362E /* SwipeCleanViewModel.swift */; };
 		83BBD1C855F181B0A0D10052 /* ShuffleIndexQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5445A7BCBD0B7EBAEDC71079 /* ShuffleIndexQueue.swift */; };
@@ -138,6 +140,7 @@
 		168632FBA643967FF8F4CBF7 /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
 		1A8F1256F58BBF87D2E2191C /* NotesExportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotesExportService.swift; sourceTree = "<group>"; };
 		20FDBC784FC929F76EBBD5B0 /* ScreenshotViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotViewModel.swift; sourceTree = "<group>"; };
+		22F5D1187A80778EEF0FA125 /* SwipeCleanSessionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeCleanSessionView.swift; sourceTree = "<group>"; };
 		22F62567E139C4F423D2D0D5 /* ShareCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardView.swift; sourceTree = "<group>"; };
 		24672D7CA500AAB94EBCF201 /* AppServiceContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppServiceContainer.swift; sourceTree = "<group>"; };
 		29C3CCF983E19BEA4092DED4 /* AnalysisResultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisResultTests.swift; sourceTree = "<group>"; };
@@ -176,6 +179,7 @@
 		6990E330ED5218EFDA2BD7E8 /* ShuffleItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShuffleItem.swift; sourceTree = "<group>"; };
 		6A413310BD17014EBFF172E7 /* SwipeCleanBucket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeCleanBucket.swift; sourceTree = "<group>"; };
 		6A801972BC9D199E85E0859B /* BackgroundTaskService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskService.swift; sourceTree = "<group>"; };
+		6C35D9C51804CCDB2AF33AE2 /* SwipeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeCard.swift; sourceTree = "<group>"; };
 		7437DA87FFEAF2EB5E654BE7 /* TrashServiceFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashServiceFilterTests.swift; sourceTree = "<group>"; };
 		763869D357F2A1DACB84C5B1 /* MediaGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaGridView.swift; sourceTree = "<group>"; };
 		7FDACB976E6244E859C31A0C /* AnalysisResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisResult.swift; sourceTree = "<group>"; };
@@ -381,10 +385,20 @@
 				96E704652546DB87077DFD25 /* Screenshot */,
 				91A537543DFB6BFDE519BB01 /* Settings */,
 				9AE96A05F620A89D9A82AF05 /* Shuffle */,
+				A620184102B40A096B3FE7E5 /* SwipeClean */,
 				89F253F4B2DF101489751373 /* Trash */,
 				EEF406AC09CAE0571D496A8F /* Video */,
 			);
 			path = Views;
+			sourceTree = "<group>";
+		};
+		A620184102B40A096B3FE7E5 /* SwipeClean */ = {
+			isa = PBXGroup;
+			children = (
+				6C35D9C51804CCDB2AF33AE2 /* SwipeCard.swift */,
+				22F5D1187A80778EEF0FA125 /* SwipeCleanSessionView.swift */,
+			);
+			path = SwipeClean;
 			sourceTree = "<group>";
 		};
 		B25B1BB363A1EB9EFB255A1D /* Products */ = {
@@ -703,8 +717,10 @@
 				EB4890C9AFD51E9B367FFA8A /* StorageRingChart.swift in Sources */,
 				DDFC5F8F07C4C9317BC11B5F /* StorageStats.swift in Sources */,
 				E81C68D979020D16FAF183B4 /* SubscriptionService.swift in Sources */,
+				7F00E4DE10A4629F9E638C45 /* SwipeCard.swift in Sources */,
 				F87D5BD33E9F01486A093645 /* SwipeCleanBucket.swift in Sources */,
 				7FC13EE087521B4E01A47AF9 /* SwipeCleanProgressStore.swift in Sources */,
+				32E401B02601BB048D593C14 /* SwipeCleanSessionView.swift in Sources */,
 				82D21D867273E5AE784460A4 /* SwipeCleanViewModel.swift in Sources */,
 				CC2CF210EA3C91B5C9FDB43C /* ToastCenter.swift in Sources */,
 				B19A90C2AD2CEAA8A9CCE74F /* TrashService.swift in Sources */,
