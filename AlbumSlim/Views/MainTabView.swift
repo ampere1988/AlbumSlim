@@ -39,6 +39,9 @@ struct MainTabView: View {
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .openQuickClean)) { _ in
+                // 前台/热启动路径：post 已被直接收到，同步清掉冷启动兜底标记，
+                // 避免残留 true 导致下次任意原因的冷启动误弹 sheet。
+                UserDefaults.standard.set(false, forKey: NotificationDelegate.pendingOpenQuickCleanKey)
                 showQuickClean = true
             }
             .task {
