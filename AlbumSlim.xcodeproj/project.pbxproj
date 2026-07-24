@@ -27,6 +27,7 @@
 		2AA0C1E732FA859ECA427DA0 /* SimilarPhotosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E9E06B04C8F8E285C8F5985 /* SimilarPhotosView.swift */; };
 		2CFD18909761C319E59BFBFD /* ShuffleMediaPage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 608C15FF1F1A7F465DAAB78F /* ShuffleMediaPage.swift */; };
 		31D9B669AE9A1EDBE6608626 /* CleanupGroup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DEF85CBC76F96E545D1E97C /* CleanupGroup.swift */; };
+		32CA56BAB5CA37D3EA3D0758 /* SwipeCleanHomeViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2A631393F8CCEF23B003CA06 /* SwipeCleanHomeViewModel.swift */; };
 		32E401B02601BB048D593C14 /* SwipeCleanSessionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 22F5D1187A80778EEF0FA125 /* SwipeCleanSessionView.swift */; };
 		3608F5A7335BC941F63F606A /* PhotoCleanerViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40B5A45D3ACFA11C18388A01 /* PhotoCleanerViewModel.swift */; };
 		37C4A351FF5CF3B2FCE34947 /* StorageStatsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D51B791FBB73A7995FF9DB90 /* StorageStatsTests.swift */; };
@@ -38,6 +39,7 @@
 		41208AE104B17B6732EEE16C /* ShuffleDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2EF62402EE90693BB3FACE4 /* ShuffleDetailSheet.swift */; };
 		412B67359A45D3B0B4A36A58 /* VideoCompressView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B449A6EA8783D0129574825D /* VideoCompressView.swift */; };
 		420AF12F2DDE34EBE4457032 /* AnalysisResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FDACB976E6244E859C31A0C /* AnalysisResult.swift */; };
+		42A330780CA6F3739F74D3A3 /* SwipeCleanHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314E70B7F1CE6F61105AA8A7 /* SwipeCleanHomeView.swift */; };
 		4309BBAC59F7F63F23C70E30 /* CleanupCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 611ADBFEAFCB00D031ED1F62 /* CleanupCoordinator.swift */; };
 		481C650F2A3CB43F596D400A /* AppIcons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65155C25BECD1776BF3DF2B2 /* AppIcons.swift */; };
 		4905299430DC11AFFCDBDD4F /* BestPhotoAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D851C0E401BE1B57D02C0ED2 /* BestPhotoAnalyzer.swift */; };
@@ -144,8 +146,10 @@
 		22F62567E139C4F423D2D0D5 /* ShareCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareCardView.swift; sourceTree = "<group>"; };
 		24672D7CA500AAB94EBCF201 /* AppServiceContainer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppServiceContainer.swift; sourceTree = "<group>"; };
 		29C3CCF983E19BEA4092DED4 /* AnalysisResultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisResultTests.swift; sourceTree = "<group>"; };
+		2A631393F8CCEF23B003CA06 /* SwipeCleanHomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeCleanHomeViewModel.swift; sourceTree = "<group>"; };
 		2BB7E80821709C5E5BA55739 /* AlbumSlimApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumSlimApp.swift; sourceTree = "<group>"; };
 		2DEF85CBC76F96E545D1E97C /* CleanupGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupGroup.swift; sourceTree = "<group>"; };
+		314E70B7F1CE6F61105AA8A7 /* SwipeCleanHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeCleanHomeView.swift; sourceTree = "<group>"; };
 		324FF56B779EAAC1022FB279 /* BestPhotoAnalyzerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BestPhotoAnalyzerTests.swift; sourceTree = "<group>"; };
 		361DB7BF6430418A9AA876E2 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		368545C3C186E127DB89EC4C /* SavedNote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedNote.swift; sourceTree = "<group>"; };
@@ -315,6 +319,7 @@
 				F875F651E12872BBA0926BC2 /* QuickCleanViewModel.swift */,
 				20FDBC784FC929F76EBBD5B0 /* ScreenshotViewModel.swift */,
 				BE1EEB2CB6CA8B0B08B5BBE9 /* ShuffleFeedViewModel.swift */,
+				2A631393F8CCEF23B003CA06 /* SwipeCleanHomeViewModel.swift */,
 				B8791C2759DD56207E3E362E /* SwipeCleanViewModel.swift */,
 				434491C41AD68A00EFADE887 /* VideoManagerViewModel.swift */,
 			);
@@ -396,6 +401,7 @@
 			isa = PBXGroup;
 			children = (
 				6C35D9C51804CCDB2AF33AE2 /* SwipeCard.swift */,
+				314E70B7F1CE6F61105AA8A7 /* SwipeCleanHomeView.swift */,
 				22F5D1187A80778EEF0FA125 /* SwipeCleanSessionView.swift */,
 			);
 			path = SwipeClean;
@@ -719,6 +725,8 @@
 				E81C68D979020D16FAF183B4 /* SubscriptionService.swift in Sources */,
 				7F00E4DE10A4629F9E638C45 /* SwipeCard.swift in Sources */,
 				F87D5BD33E9F01486A093645 /* SwipeCleanBucket.swift in Sources */,
+				42A330780CA6F3739F74D3A3 /* SwipeCleanHomeView.swift in Sources */,
+				32CA56BAB5CA37D3EA3D0758 /* SwipeCleanHomeViewModel.swift in Sources */,
 				7FC13EE087521B4E01A47AF9 /* SwipeCleanProgressStore.swift in Sources */,
 				32E401B02601BB048D593C14 /* SwipeCleanSessionView.swift in Sources */,
 				82D21D867273E5AE784460A4 /* SwipeCleanViewModel.swift in Sources */,

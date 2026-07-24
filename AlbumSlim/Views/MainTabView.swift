@@ -147,12 +147,13 @@ extension Notification.Name {
 }
 
 enum PhotoCleanerCategory: Int, CaseIterable, Identifiable {
-    case similar, waste, burst, large
+    case swipe, similar, waste, burst, large
 
     var id: Int { rawValue }
 
     var title: LocalizedStringKey {
         switch self {
+        case .swipe: "逐张清理"
         case .similar: "相似照片"
         case .waste: "废片"
         case .burst: "连拍"
@@ -162,6 +163,7 @@ enum PhotoCleanerCategory: Int, CaseIterable, Identifiable {
 
     var icon: String {
         switch self {
+        case .swipe:   "hand.draw"
         case .similar: AppIcons.similar
         case .waste:   AppIcons.waste
         case .burst:   AppIcons.burst
@@ -171,12 +173,13 @@ enum PhotoCleanerCategory: Int, CaseIterable, Identifiable {
 }
 
 struct PhotoCleanerTabView: View {
-    @State private var selectedCategory: PhotoCleanerCategory = .similar
+    @State private var selectedCategory: PhotoCleanerCategory = .swipe
 
     var body: some View {
         NavigationStack {
             Group {
                 switch selectedCategory {
+                case .swipe: SwipeCleanHomeView()
                 case .similar: SimilarPhotosView()
                 case .waste: WastePhotosView()
                 case .burst: BurstPhotosView()
