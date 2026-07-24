@@ -18,18 +18,20 @@
 - 所有 `@Observable` 类标 `@MainActor`；Photos 写操作走 `PHPhotoLibrary.shared().performChanges`。
 - 纯算法类型（无 UI 状态）保持 `Sendable` 且不加 `@MainActor`，参照 `AIAnalysisEngine`。
 - 大批量处理分批，每批 `AppConstants.Analysis.batchSize`（100）。
-- 用户可见字符串一律 `String(localized:)`；**新增字符串的英文翻译统一在 Task 12 补齐**，前面任务只写中文源文案。
+- 用户可见字符串一律 `String(localized:)`；**新增字符串的翻译统一在 Task 12 补齐**，前面任务只写中文源文案。
+- **项目支持 9 种语言**（见 `project.yml` 的 `knownRegions`）：`zh-Hans`（开发语言）、`zh-Hant`、`en`、`ja`、`ko`、`es`、`fr`、`de`、`pt-BR`、`ru`。Task 12 必须为每条新增文案补齐**全部 9 种**翻译。
+- 模拟器 `OS=26.5`（本机实际可用版本；`CLAUDE.md` 里写的 26.4 已过期）。
 - 并发严格性 `SWIFT_STRICT_CONCURRENCY = targeted`。
 - 每个任务完成后必须执行，构建通过才能 commit：
 
 ```bash
-xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'
+xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5'
 ```
 
 - 单测运行命令：
 
 ```bash
-xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/<TestClass>
+xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/<TestClass>
 ```
 
 - git commit 消息用中文。
@@ -146,7 +148,7 @@ final class BestPhotoAnalyzerTests: XCTestCase {
 - [ ] **Step 2: 运行测试确认失败**
 
 ```bash
-xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/BestPhotoAnalyzerTests
+xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/BestPhotoAnalyzerTests
 ```
 
 Expected: 编译失败，`cannot find 'BestPhotoAnalyzer' in scope` / `cannot find 'PhotoSignals' in scope`
@@ -256,7 +258,7 @@ final class BestPhotoAnalyzer: @unchecked Sendable {
 - [ ] **Step 4: 运行测试确认通过**
 
 ```bash
-xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/BestPhotoAnalyzerTests
+xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/BestPhotoAnalyzerTests
 ```
 
 Expected: 6 个测试全部 PASS
@@ -264,7 +266,7 @@ Expected: 6 个测试全部 PASS
 - [ ] **Step 5: 构建并提交**
 
 ```bash
-xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'
+xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5'
 git add AlbumSlim/Services/BestPhotoAnalyzer.swift AlbumSlimTests/BestPhotoAnalyzerTests.swift AlbumSlim.xcodeproj/project.pbxproj
 git commit -m "新增 BestPhotoAnalyzer: 人脸(微笑/睁眼) + 行为(收藏/编辑) 信号打分"
 ```
@@ -309,7 +311,7 @@ git commit -m "新增 BestPhotoAnalyzer: 人脸(微笑/睁眼) + 行为(收藏/�
 - [ ] **Step 2: 运行测试确认失败**
 
 ```bash
-xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/BestPhotoAnalyzerTests
+xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/BestPhotoAnalyzerTests
 ```
 
 Expected: 编译失败，`type 'BestPhotoAnalyzer' has no member 'pickBest'`
@@ -333,7 +335,7 @@ Expected: 编译失败，`type 'BestPhotoAnalyzer' has no member 'pickBest'`
 - [ ] **Step 4: 运行测试确认通过**
 
 ```bash
-xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/BestPhotoAnalyzerTests
+xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/BestPhotoAnalyzerTests
 ```
 
 Expected: 9 个测试全部 PASS
@@ -420,7 +422,7 @@ Expected: 9 个测试全部 PASS
 - [ ] **Step 7: 构建并跑全量测试**
 
 ```bash
-xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'
+xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5'
 ```
 
 Expected: 全部 PASS（含既有 `CleanupGroupTests`、`CleanupCoordinatorTests`）
@@ -523,7 +525,7 @@ final class SwipeCleanProgressStoreTests: XCTestCase {
 - [ ] **Step 2: 运行测试确认失败**
 
 ```bash
-xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/SwipeCleanProgressStoreTests
+xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/SwipeCleanProgressStoreTests
 ```
 
 Expected: 编译失败，`cannot find 'SwipeCleanProgressStore' in scope`
@@ -671,19 +673,19 @@ final class SwipeCleanProgressStore {
 - [ ] **Step 7: 运行测试确认通过**
 
 ```bash
-xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/SwipeCleanProgressStoreTests
+xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/SwipeCleanProgressStoreTests
 ```
 
 Expected: 6 个测试全部 PASS。既有的 `TrashServiceFilterTests` / `TrashServiceMigrationTests` 也必须仍然通过：
 
 ```bash
-xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/TrashServiceMigrationTests
+xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/TrashServiceMigrationTests
 ```
 
 - [ ] **Step 8: 提交**
 
 ```bash
-xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'
+xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5'
 git add AlbumSlim/Models/SwipeCleanBucket.swift AlbumSlim/Services/SwipeCleanProgressStore.swift AlbumSlim/Services/TrashService.swift AlbumSlim/App/AppServiceContainer.swift AlbumSlimTests/SwipeCleanProgressStoreTests.swift AlbumSlim.xcodeproj/project.pbxproj
 git commit -m "新增滑动清理分堆模型与进度存储"
 ```
@@ -782,7 +784,7 @@ final class SwipeCleanViewModelTests: XCTestCase {
 - [ ] **Step 2: 运行测试确认失败**
 
 ```bash
-xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/SwipeCleanViewModelTests
+xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/SwipeCleanViewModelTests
 ```
 
 Expected: 编译失败，`cannot find 'SwipeCleanViewModel' in scope`
@@ -994,7 +996,7 @@ extension SwipeCleanViewModel {
 - [ ] **Step 4: 运行测试确认通过**
 
 ```bash
-xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/SwipeCleanViewModelTests
+xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/SwipeCleanViewModelTests
 ```
 
 Expected: 6 个测试全部 PASS
@@ -1304,7 +1306,7 @@ struct SwipeCleanSessionView: View {
 - [ ] **Step 3: 构建**
 
 ```bash
-xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'
+xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5'
 ```
 
 Expected: BUILD SUCCEEDED
@@ -1538,7 +1540,7 @@ struct PhotoCleanerTabView: View {
 - [ ] **Step 4: 构建**
 
 ```bash
-xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'
+xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5'
 ```
 
 Expected: BUILD SUCCEEDED
@@ -1546,7 +1548,7 @@ Expected: BUILD SUCCEEDED
 - [ ] **Step 5: 跑全量测试**
 
 ```bash
-xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'
+xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5'
 ```
 
 Expected: 全部 PASS
@@ -1630,7 +1632,7 @@ final class SourceAlbumServiceTests: XCTestCase {
 - [ ] **Step 2: 运行测试确认失败**
 
 ```bash
-xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/SourceAlbumServiceTests
+xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/SourceAlbumServiceTests
 ```
 
 Expected: 编译失败，`cannot find 'SourceApp' in scope`
@@ -1764,7 +1766,7 @@ final class SourceAlbumService {
 - [ ] **Step 5: 运行测试确认通过**
 
 ```bash
-xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/SourceAlbumServiceTests
+xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/SourceAlbumServiceTests
 ```
 
 Expected: 8 个测试全部 PASS
@@ -1909,7 +1911,7 @@ git commit -m "新增 SourceAlbumService: 识别微信/QQ/小红书等 13 个第
 - [ ] **Step 3: 构建**
 
 ```bash
-xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'
+xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5'
 ```
 
 Expected: BUILD SUCCEEDED
@@ -2049,7 +2051,7 @@ final class ContactCleanupServiceTests: XCTestCase {
 - [ ] **Step 2: 运行测试确认失败**
 
 ```bash
-xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/ContactCleanupServiceTests
+xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/ContactCleanupServiceTests
 ```
 
 Expected: 编译失败，`cannot find 'ContactSummary' in scope`
@@ -2347,7 +2349,7 @@ final class ContactCleanupService {
 - [ ] **Step 6: 运行测试确认通过**
 
 ```bash
-xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/ContactCleanupServiceTests
+xcodegen generate && xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' -only-testing:AlbumSlimTests/ContactCleanupServiceTests
 ```
 
 Expected: 10 个测试全部 PASS
@@ -2557,7 +2559,7 @@ struct ContactCleanupView: View {
 - [ ] **Step 3: 构建**
 
 ```bash
-xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'
+xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5'
 ```
 
 Expected: BUILD SUCCEEDED
@@ -2591,26 +2593,25 @@ grep -n "recordCleanup" -r AlbumSlim --include="*.swift"
 
 按 `docs/superpowers/plans/2026-07-24-product-optimization-p0-p1.md` 的决定，成就记账口径统一收敛到「永久删除」时点。滑动清理走的是 `TrashService.moveToTrash`，最终永久删除仍在 `GlobalTrashView` 发生——**若上一份计划已完成，本任务无需改动记账逻辑**，只需验证。
 
-- [ ] **Step 2: 写验证测试**（追加到 `AlbumSlimTests/SwipeCleanProgressStoreTests.swift`）
+本任务是**验证任务，不新增测试**——记账逻辑本身在上一份计划里已完成并测过，这里只确认新模块没有绕开它。
 
-```swift
-    func testKeptIDsDoNotLeakIntoTrashAccounting() {
-        // 保留决策不应产生任何"已释放空间"，释放量只由垃圾桶的永久删除产生
-        let store = SwipeCleanProgressStore()
-        store.markKept("a")
-        store.markKept("b")
-        // 进度存储不持有任何体积字段——这是设计约束，用编译期保证
-        XCTAssertEqual(store.keptCount(in: ["a", "b"]), 2)
-    }
-```
-
-- [ ] **Step 3: 运行测试**
+- [ ] **Step 2: 跑全量测试确认无回归**
 
 ```bash
-xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' -only-testing:AlbumSlimTests/SwipeCleanProgressStoreTests
+xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5'
 ```
 
-Expected: 7 个测试全部 PASS
+Expected: 全部 PASS
+
+- [ ] **Step 3: 确认滑动清理未绕开记账**
+
+确认 `SwipeCleanViewModel.decide` 中 `.trash` 分支只调用 `services.trash.moveToTrash`，**没有**直接调用 `photoLibrary.deleteAssets` 或 `achievement.recordCleanup`：
+
+```bash
+grep -n "deleteAssets\|recordCleanup" AlbumSlim/ViewModels/SwipeCleanViewModel.swift AlbumSlim/Views/SwipeClean/*.swift
+```
+
+Expected: 无输出。释放量只在垃圾桶永久删除时记账，滑动清理不重复记。
 
 - [ ] **Step 4: 手动验收清单**
 
@@ -2626,14 +2627,16 @@ Expected: 7 个测试全部 PASS
 
 - [ ] **Step 5: 提交**
 
+本任务若无代码改动则无需 commit（纯验证）。若 Step 3 发现绕开记账并做了修正，则：
+
 ```bash
-git add AlbumSlimTests/SwipeCleanProgressStoreTests.swift
-git commit -m "补充滑动清理记账口径验证"
+git add -A
+git commit -m "修正滑动清理的记账口径"
 ```
 
 ---
 
-### Task 12: 英文本地化补齐
+### Task 12: 本地化补齐（9 种语言）
 
 **Files:**
 - Modify: `AlbumSlim/Localizable.xcstrings`
@@ -2696,27 +2699,90 @@ grep -rn "String(localized:" AlbumSlim/Views/SwipeClean AlbumSlim/Views/Contacts
 
 同时补上 `project.yml` 里新增的 `NSContactsUsageDescription` 的英文版——Info.plist 键的本地化需要 `InfoPlist.xcstrings`，若项目尚无该文件则保留中文，并在 commit 说明里注明。
 
-- [ ] **Step 3: 构建并检查有无未翻译警告**
+- [ ] **Step 3: 补齐其余 7 种语言**
+
+除 `zh-Hans`（源）和 `en`（Step 2 已完成）外，还需补 `zh-Hant`、`ja`、`ko`、`es`、`fr`、`de`、`pt-BR`、`ru` 共 8 种。
+
+先按下表统一核心术语，避免同一概念在不同句子里译法漂移。表中每个词在该语言的所有句子中必须一致使用：
+
+| zh-Hans | zh-Hant | ja | ko | es | fr | de | pt-BR | ru |
+|---|---|---|---|---|---|---|---|---|
+| 逐张清理 | 逐張清理 | 1枚ずつ整理 | 한 장씩 정리 | Limpiar una a una | Nettoyer une à une | Einzeln aufräumen | Limpar uma a uma | Разбор по одному |
+| 删除 | 刪除 | 削除 | 삭제 | Eliminar | Supprimer | Löschen | Excluir | Удалить |
+| 保留 | 保留 | 残す | 보관 | Conservar | Garder | Behalten | Manter | Оставить |
+| 合并 | 合併 | 統合 | 병합 | Combinar | Fusionner | Zusammenführen | Mesclar | Объединить |
+| 垃圾桶 | 垃圾桶 | ゴミ箱 | 휴지통 | Papelera | Corbeille | Papierkorb | Lixeira | Корзина |
+| 重复联系人 | 重複聯絡人 | 重複した連絡先 | 중복 연락처 | Contactos duplicados | Contacts en double | Doppelte Kontakte | Contatos duplicados | Дубликаты контактов |
+| 通讯录 | 通訊錄 | 連絡先 | 연락처 | Contactos | Contacts | Kontakte | Contatos | Контакты |
+| 相册 | 相簿 | アルバム | 앨범 | Álbum | Album | Album | Álbum | Альбом |
+| 照片 | 照片 | 写真 | 사진 | Fotos | Photos | Fotos | Fotos | Фото |
+
+然后为 Step 1 收集到的**每一条**新增字符串，在 `AlbumSlim/Localizable.xcstrings` 里补上这 8 种语言的 `stringUnit`。格式参照文件中已有条目：
+
+```json
+"逐张清理" : {
+  "localizations" : {
+    "en" : { "stringUnit" : { "state" : "translated", "value" : "Swipe to Clean" } },
+    "zh-Hant" : { "stringUnit" : { "state" : "translated", "value" : "逐張清理" } },
+    "ja" : { "stringUnit" : { "state" : "translated", "value" : "1枚ずつ整理" } },
+    "ko" : { "stringUnit" : { "state" : "translated", "value" : "한 장씩 정리" } },
+    "es" : { "stringUnit" : { "state" : "translated", "value" : "Limpiar una a una" } },
+    "fr" : { "stringUnit" : { "state" : "translated", "value" : "Nettoyer une à une" } },
+    "de" : { "stringUnit" : { "state" : "translated", "value" : "Einzeln aufräumen" } },
+    "pt-BR" : { "stringUnit" : { "state" : "translated", "value" : "Limpar uma a uma" } },
+    "ru" : { "stringUnit" : { "state" : "translated", "value" : "Разбор по одному" } }
+  }
+}
+```
+
+带格式占位符的条目（`%lld`、`%@`）必须在每种语言里保留相同数量与类型的占位符，顺序可按该语言语法调整（调整顺序时用 `%1$@` 形式显式编号）。
+
+- [ ] **Step 4: 验证 9 种语言零缺失**
+
+用下面的脚本检查每个 key 是否都有 9 种语言（源语言 zh-Hans 不出现在 localizations 里，故期望 9 个 localization 条目：en/zh-Hant/ja/ko/es/fr/de/pt-BR/ru）：
 
 ```bash
-xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4' 2>&1 | grep -i "localiz\|warning: " | head -20
+python3 -c "
+import json
+langs = {'en','zh-Hant','ja','ko','es','fr','de','pt-BR','ru'}
+data = json.load(open('AlbumSlim/Localizable.xcstrings'))
+bad = []
+for key, entry in data['strings'].items():
+    have = set(entry.get('localizations', {}).keys())
+    missing = langs - have
+    if missing:
+        bad.append((key, sorted(missing)))
+print(f'总计 {len(data[\"strings\"])} 条, 缺失 {len(bad)} 条')
+for key, miss in bad[:40]:
+    print(f'  {key!r}: 缺 {miss}')
+"
+```
+
+Expected: `缺失 0 条`
+
+若既有旧条目也报缺失，只需保证**本次新增的条目**为 0 缺失，旧条目的缺口记录到 commit 说明里，不在本任务扩大范围。
+
+- [ ] **Step 5: 构建并检查有无未翻译警告**
+
+```bash
+xcodegen generate && xcodebuild build -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5' 2>&1 | grep -i "localiz\|warning: " | head -20
 ```
 
 Expected: 无本地化相关警告
 
-- [ ] **Step 4: 跑全量测试**
+- [ ] **Step 6: 跑全量测试**
 
 ```bash
-xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.4'
+xcodebuild test -project AlbumSlim.xcodeproj -scheme AlbumSlim -destination 'platform=iOS Simulator,name=iPhone 17 Pro,OS=26.5'
 ```
 
 Expected: 全部 PASS
 
-- [ ] **Step 5: 提交**
+- [ ] **Step 7: 提交**
 
 ```bash
 git add AlbumSlim/Localizable.xcstrings
-git commit -m "英文本地化: 补齐滑动清理 + 第三方相册 + 联系人去重文案"
+git commit -m "本地化: 滑动清理 + 第三方相册 + 联系人去重文案补齐 9 种语言"
 ```
 
 ---
