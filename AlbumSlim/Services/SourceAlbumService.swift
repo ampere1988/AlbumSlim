@@ -62,11 +62,25 @@ struct SourceAlbum: Identifiable, Sendable {
 final class SourceAlbumService {
     private(set) var albums: [SourceAlbum] = []
     private(set) var isLoading = false
+    private var loadTask: Task<Void, Never>?
 
     /// 扫描系统里的用户相册，挑出由已知第三方 App 创建的那些。
-    /// 第三方 App 通过 `PHAssetCollectionChangeRequest.creationRequestForAssetCollection(withTitle:)`
-    /// 建的相册都是 `.albumRegular`。
+    /// 并发去重：多次重叠调用共享同一次执行，避免慢的早期调用在后完成时用过期结果覆盖新结果。
+    /// 每次执行完成后清空 `loadTask`，因此这不是一次性的记忆化——上一次完成后再调用会重新扫描。
     func loadAlbums(photoLibrary: PhotoLibraryService) async {
+        if let task = loadTask {
+            await task.value
+            return
+        }
+        let task = Task { @MainActor in
+            await self.performLoad(photoLibrary: photoLibrary)
+        }
+        loadTask = task
+        await task.value
+        loadTask = nil
+    }
+
+    private func performLoad(photoLibrary: PhotoLibraryService) async {
         isLoading = true
         defer { isLoading = false }
 
