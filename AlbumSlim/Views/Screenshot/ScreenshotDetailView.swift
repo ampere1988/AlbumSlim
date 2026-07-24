@@ -17,6 +17,7 @@ struct ScreenshotDetailView: View {
     @State private var recognitionFailed = false
     @State private var savedItemIDs: Set<String> = []
     @State private var recognitionTask: Task<Void, Never>?
+    @State private var showPaywall = false
 
     init(screenshots: [MediaItem], currentID: String, viewModel: ScreenshotViewModel, onTrash: @escaping (String) -> Void) {
         self.viewModel = viewModel
@@ -147,9 +148,15 @@ struct ScreenshotDetailView: View {
         }
         .animation(.easeInOut(duration: 0.25), value: isZoomedIn)
         .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showOCRPanel)
+        .sheet(isPresented: $showPaywall) { PaywallView() }
     }
 
     private func handleOCRButtonTap() {
+        guard ProFeatureGate.canClean(isPro: services.subscription.isPro) else {
+            Haptics.proGate()
+            showPaywall = true
+            return
+        }
         guard let item = currentItem else { return }
         if viewModel.ocrResults[item.id] != nil {
             withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) { showOCRPanel = true }
@@ -190,6 +197,11 @@ struct ScreenshotDetailView: View {
     }
 
     private func handleTrashCurrent() {
+        guard ProFeatureGate.canClean(isPro: services.subscription.isPro) else {
+            Haptics.proGate()
+            showPaywall = true
+            return
+        }
         guard let item = currentItem else { return }
         recognitionTask?.cancel()
         let deletedIndex = currentIndex

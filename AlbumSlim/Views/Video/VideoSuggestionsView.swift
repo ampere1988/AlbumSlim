@@ -7,6 +7,7 @@ struct VideoSuggestionsView: View {
     @State private var selectedIDs: Set<String> = []
     @State private var isEditing = false
     @State private var showTrash = false
+    @State private var showPaywall = false
 
     private var groupedSuggestions: [(VideoAnalysisService.VideoSuggestion.SuggestionType, [VideoAnalysisService.VideoSuggestion])] {
         let grouped = Dictionary(grouping: viewModel.suggestions, by: \.type)
@@ -49,6 +50,11 @@ struct VideoSuggestionsView: View {
                             .secondaryActionStyle()
 
                             Button(role: .destructive) {
+                                guard ProFeatureGate.canClean(isPro: services.subscription.isPro) else {
+                                    Haptics.proGate()
+                                    showPaywall = true
+                                    return
+                                }
                                 let assets = viewModel.suggestions
                                     .filter { selectedIDs.contains($0.id) }
                                     .map(\.item.asset)
@@ -95,6 +101,7 @@ struct VideoSuggestionsView: View {
             Task { await viewModel.analyzeSuggestions(services: services) }
         }
         .sheet(isPresented: $showTrash) { GlobalTrashView() }
+        .sheet(isPresented: $showPaywall) { PaywallView() }
     }
 
     private var savingBanner: some View {
