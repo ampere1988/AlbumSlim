@@ -14,6 +14,7 @@
 		0EEB4E217CE348DC5B8E6FE0 /* WastePhotosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CEAFBC976F45C172EF02CA47 /* WastePhotosView.swift */; };
 		12047E67A32897DDC29462B9 /* ShuffleVideoView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBD414750361F90610134685 /* ShuffleVideoView.swift */; };
 		147BD6073E1E4C36B0447881 /* ScreenshotListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 44A2E63276E56A4BF20C022F /* ScreenshotListView.swift */; };
+		1792A41BDDFF142DAE17CAF4 /* BestPhotoAnalyzerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 324FF56B779EAAC1022FB279 /* BestPhotoAnalyzerTests.swift */; };
 		1C70BECB044BC8F97D87FC64 /* SavedNote.swift in Sources */ = {isa = PBXBuildFile; fileRef = 368545C3C186E127DB89EC4C /* SavedNote.swift */; };
 		1D5D620B1F5B4E6B74174AB1 /* NotificationDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D1A0A02E9595664F4A995C9 /* NotificationDelegate.swift */; };
 		1EE04521FED290D0C07FE6DB /* SpaceSavedBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F1447FDD9993E149FC4FDF3 /* SpaceSavedBanner.swift */; };
@@ -37,6 +38,7 @@
 		420AF12F2DDE34EBE4457032 /* AnalysisResult.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FDACB976E6244E859C31A0C /* AnalysisResult.swift */; };
 		4309BBAC59F7F63F23C70E30 /* CleanupCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 611ADBFEAFCB00D031ED1F62 /* CleanupCoordinator.swift */; };
 		481C650F2A3CB43F596D400A /* AppIcons.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65155C25BECD1776BF3DF2B2 /* AppIcons.swift */; };
+		4905299430DC11AFFCDBDD4F /* BestPhotoAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D851C0E401BE1B57D02C0ED2 /* BestPhotoAnalyzer.swift */; };
 		4C78296DE76E4DBBC3A8EE0E /* ScanProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39ED70F86DE055F155159538 /* ScanProgress.swift */; };
 		4C87053F591C6238F0C9BF53 /* AppConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CFD894333B69341192564C9 /* AppConstants.swift */; };
 		4EDE1F7536A522906B9EC41F /* AppStrings.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE4C9A30E92923E3798F1D22 /* AppStrings.swift */; };
@@ -136,6 +138,7 @@
 		29C3CCF983E19BEA4092DED4 /* AnalysisResultTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisResultTests.swift; sourceTree = "<group>"; };
 		2BB7E80821709C5E5BA55739 /* AlbumSlimApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlbumSlimApp.swift; sourceTree = "<group>"; };
 		2DEF85CBC76F96E545D1E97C /* CleanupGroup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupGroup.swift; sourceTree = "<group>"; };
+		324FF56B779EAAC1022FB279 /* BestPhotoAnalyzerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BestPhotoAnalyzerTests.swift; sourceTree = "<group>"; };
 		361DB7BF6430418A9AA876E2 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		368545C3C186E127DB89EC4C /* SavedNote.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SavedNote.swift; sourceTree = "<group>"; };
 		36AF9E22CA3B926DA5510340 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
@@ -209,6 +212,7 @@
 		D51B791FBB73A7995FF9DB90 /* StorageStatsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageStatsTests.swift; sourceTree = "<group>"; };
 		D5400262DB6A4800E5054A6C /* ReminderService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderService.swift; sourceTree = "<group>"; };
 		D7F492B0DCED7AAC3F7F110D /* SelectionToolbar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelectionToolbar.swift; sourceTree = "<group>"; };
+		D851C0E401BE1B57D02C0ED2 /* BestPhotoAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BestPhotoAnalyzer.swift; sourceTree = "<group>"; };
 		DA77F55E66376546A14787D1 /* EmptyState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyState.swift; sourceTree = "<group>"; };
 		DEB1DA8A206EADB7C135B857 /* TrashService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashService.swift; sourceTree = "<group>"; };
 		EA2B04B956CF16DA0FD62C1D /* QuickCleanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickCleanView.swift; sourceTree = "<group>"; };
@@ -240,6 +244,7 @@
 				3A4C5247F157094EEA132FFE /* AnalysisCacheService.swift */,
 				9EB1ACE83DDDB28F3A0A8687 /* BackdropAdapterService.swift */,
 				6A801972BC9D199E85E0859B /* BackgroundTaskService.swift */,
+				D851C0E401BE1B57D02C0ED2 /* BestPhotoAnalyzer.swift */,
 				611ADBFEAFCB00D031ED1F62 /* CleanupCoordinator.swift */,
 				B3159A367BD548864D9B8A3E /* ImageSimilarityService.swift */,
 				F3F4D5EA9C44BEB4839F9C33 /* LocationNameService.swift */,
@@ -473,6 +478,7 @@
 			children = (
 				29C3CCF983E19BEA4092DED4 /* AnalysisResultTests.swift */,
 				0A2B35EB3EFC4F3E2F03251C /* AppConstantsTests.swift */,
+				324FF56B779EAAC1022FB279 /* BestPhotoAnalyzerTests.swift */,
 				842819C73550B214DBA1A282 /* CleanupCoordinatorTests.swift */,
 				F66C686CC08437B0FA879091 /* CleanupGroupTests.swift */,
 				5179543CDC744084337B5D8D /* ShuffleFeedViewModelMemoryTests.swift */,
@@ -592,6 +598,7 @@
 			files = (
 				E0CA53F1D129ED8780A2471E /* AnalysisResultTests.swift in Sources */,
 				0029995758583EFA5230348A /* AppConstantsTests.swift in Sources */,
+				1792A41BDDFF142DAE17CAF4 /* BestPhotoAnalyzerTests.swift in Sources */,
 				C9C27FD5645D4B7C40E2E9EB /* CleanupCoordinatorTests.swift in Sources */,
 				D67710FA6C38A90BAF700F29 /* CleanupGroupTests.swift in Sources */,
 				CB1329004E1D4C945C405E44 /* ShuffleFeedViewModelMemoryTests.swift in Sources */,
@@ -620,6 +627,7 @@
 				8BC25CC4AFAF157AFBE51FC4 /* AsyncSemaphore.swift in Sources */,
 				7815414F58962420E43D24FB /* BackdropAdapterService.swift in Sources */,
 				2173567B7E7488FF05586BC7 /* BackgroundTaskService.swift in Sources */,
+				4905299430DC11AFFCDBDD4F /* BestPhotoAnalyzer.swift in Sources */,
 				944401F7ACDC3ECB99506BA0 /* BurstPhotosView.swift in Sources */,
 				2806151EC3D9C9486983121E /* ButtonStyles.swift in Sources */,
 				4309BBAC59F7F63F23C70E30 /* CleanupCoordinator.swift in Sources */,
