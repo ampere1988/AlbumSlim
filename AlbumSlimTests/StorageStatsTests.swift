@@ -56,4 +56,16 @@ struct StorageStatsTests {
         #expect(decoded.estimatedSavable == 500)
         #expect(decoded.lastAnalyzedAt == stats.lastAnalyzedAt)
     }
+
+    @Test("save() 应同时写入 App Group 共享容器")
+    func saveWritesToAppGroupSuite() throws {
+        var stats = StorageStats()
+        stats.photoSize = 123
+        stats.save()
+
+        let suite = try #require(UserDefaults(suiteName: StorageStats.appGroupID))
+        let data = try #require(suite.data(forKey: "StorageStatsCache"))
+        let decoded = try JSONDecoder().decode(StorageStats.self, from: data)
+        #expect(decoded.photoSize == 123)
+    }
 }

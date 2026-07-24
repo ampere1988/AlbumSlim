@@ -1,4 +1,5 @@
 import Foundation
+import WidgetKit
 
 struct StorageStats: Codable {
     var totalPhotoCount: Int = 0
@@ -29,11 +30,15 @@ struct StorageStats: Codable {
 
     // MARK: - 缓存
 
+    static let appGroupID = "group.com.hao.doushan"
     private static let cacheKey = "StorageStatsCache"
 
     func save() {
         guard let data = try? JSONEncoder().encode(self) else { return }
         UserDefaults.standard.set(data, forKey: Self.cacheKey)
+        // Widget 从 App Group 容器读取，写完后刷新 timeline
+        UserDefaults(suiteName: Self.appGroupID)?.set(data, forKey: Self.cacheKey)
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     static func loadCached() -> StorageStats? {
