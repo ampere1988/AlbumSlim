@@ -13,10 +13,10 @@
       }
     },
     "·" : {
-
+      "shouldTranslate" : false
     },
     "%@" : {
-
+      "shouldTranslate" : false
     },
     "%@ · %@" : {
       "localizations" : {
@@ -26,7 +26,8 @@
             "value" : "%1$@ · %2$@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@ %@" : {
       "localizations" : {
@@ -36,7 +37,8 @@
             "value" : "%1$@ %2$@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@ %@ · %@" : {
       "localizations" : {
@@ -46,7 +48,8 @@
             "value" : "%1$@ %2$@ · %3$@"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@ %@%%" : {
       "localizations" : {
@@ -56,10 +59,11 @@
             "value" : "%1$@ %2$@%%"
           }
         }
-      }
+      },
+      "shouldTranslate" : false
     },
     "%@ MB" : {
-
+      "shouldTranslate" : false
     },
     "%@ 条建议" : {
       "localizations" : {
@@ -83,10 +87,24 @@
       }
     },
     "%@ 解锁 Pro" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unlock Pro for %@"
+          }
+        }
+      }
     },
     "%@ 项" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ items"
+          }
+        }
+      }
     },
     "%@ 项 · %@" : {
       "localizations" : {
@@ -94,6 +112,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "%1$@ 项 · %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ items · %@"
           }
         }
       }
@@ -153,7 +177,7 @@
       }
     },
     "English" : {
-
+      "shouldTranslate" : false
     },
     "Pro" : {
       "extractionState" : "stale",
@@ -178,7 +202,14 @@
       }
     },
     "一次性付费，不自动续费。购买后在当前 Apple ID 下长期解锁所有 Pro 功能。" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pay once — no subscription. Unlocks all Pro features permanently on your Apple ID."
+          }
+        }
+      }
     },
     "一次性付费，不自动续费。购买后永久解锁所有 Pro 功能。" : {
       "extractionState" : "stale",
@@ -203,7 +234,14 @@
       }
     },
     "一次购买，终身使用" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "One-time purchase, yours forever"
+          }
+        }
+      }
     },
     "上下滑动切换" : {
       "localizations" : {
@@ -391,7 +429,14 @@
       }
     },
     "共 %@ 个视频" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ videos"
+          }
+        }
+      }
     },
     "共 %@ 张 · %@" : {
       "localizations" : {
@@ -399,6 +444,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "共 %1$@ 张 · %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ items · %@"
           }
         }
       }
@@ -766,7 +817,14 @@
       }
     },
     "压缩 %@" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compress %@"
+          }
+        }
+      }
     },
     "压缩中..." : {
       "extractionState" : "stale",
@@ -888,7 +946,14 @@
       }
     },
     "发现 %@ 项可清理" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Found %@ items to clean"
+          }
+        }
+      }
     },
     "发现 %lld 项可清理" : {
       "extractionState" : "stale",
@@ -1303,10 +1368,24 @@
       }
     },
     "开启后才能随机浏览你的照片和视频" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grant access to browse your photos and videos"
+          }
+        }
+      }
     },
     "开启权限后才能扫描和清理" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Grant access to scan and clean"
+          }
+        }
+      }
     },
     "开始扫描" : {
       "extractionState" : "stale",
@@ -1830,7 +1909,14 @@
       }
     },
     "暂无识别结果" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No text recognized"
+          }
+        }
+      }
     },
     "暂无识别记录" : {
       "extractionState" : "stale",
@@ -1899,7 +1985,14 @@
       }
     },
     "未授权相册访问" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo access not granted"
+          }
+        }
+      }
     },
     "未知日期" : {
       "extractionState" : "stale",
@@ -2043,7 +2136,14 @@
       }
     },
     "正在从 iCloud 下载 %@%%" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading from iCloud %@%%"
+          }
+        }
+      }
     },
     "正在分析您的相册..." : {
       "extractionState" : "stale",
@@ -2090,7 +2190,14 @@
       }
     },
     "正在识别文字..." : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recognizing text..."
+          }
+        }
+      }
     },
     "每两周" : {
       "extractionState" : "stale",
@@ -2425,6 +2532,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "相似组 · %1$@ 张 · 可省 %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Similar · %@ photos · save %@"
           }
         }
       }
@@ -2943,7 +3056,14 @@
       }
     },
     "识别失败，请重试" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recognition failed. Try again"
+          }
+        }
+      }
     },
     "识别并存储" : {
       "extractionState" : "stale",
@@ -3023,7 +3143,14 @@
       }
     },
     "请从后台完全关闭闪图后重新打开，新的语言设置即可生效" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Quit AlbumSlim from the App Switcher and reopen it to apply the new language"
+          }
+        }
+      }
     },
     "请在系统设置中允许闪图发送通知，以便接收清理提醒" : {
       "localizations" : {
@@ -3161,6 +3288,12 @@
           "stringUnit" : {
             "state" : "new",
             "value" : "连拍组 · %1$@ 张 · 可省 %2$@"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Burst · %@ photos · save %@"
           }
         }
       }
@@ -3306,7 +3439,14 @@
       }
     },
     "需要相册访问权限" : {
-
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Photo Library Access Required"
+          }
+        }
+      }
     },
     "需要相册访问权限才能使用" : {
       "extractionState" : "stale",
@@ -3369,6 +3509,498 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "High Quality"
+          }
+        }
+      }
+    },
+    "%@ %lld%%" : {
+      "shouldTranslate" : false
+    },
+    "%lld" : {
+      "shouldTranslate" : false
+    },
+    "%lld MB" : {
+      "shouldTranslate" : false
+    },
+    "≥ %lld MB" : {
+      "shouldTranslate" : false
+    },
+    "已恢复 Pro 权益" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Pro restored"
+          }
+        }
+      }
+    },
+    "未找到可恢复的购买" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No purchase found to restore"
+          }
+        }
+      }
+    },
+    "撤销" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Undo"
+          }
+        }
+      }
+    },
+    "已移到垃圾桶 %lld 项 · 可释放 %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moved %lld items to trash · frees %@"
+          }
+        }
+      }
+    },
+    "解锁成就:%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Achievement unlocked: %@"
+          }
+        }
+      }
+    },
+    "发现约 %@ 可清理" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "About %@ ready to clean"
+          }
+        }
+      }
+    },
+    "闪图预估可为你释放约 %@，点开看看吧" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AlbumSlim can free up about %@ — take a look"
+          }
+        }
+      }
+    },
+    "仅可访问部分照片，扫描结果可能不完整" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only some photos are accessible — results may be incomplete"
+          }
+        }
+      }
+    },
+    "选择更多" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select More"
+          }
+        }
+      }
+    },
+    "照片将移入系统相册的「最近删除」，30 天内仍可在系统相册中找回" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Items go to the system Recently Deleted album and can be recovered within 30 days"
+          }
+        }
+      }
+    },
+    "%lld 条建议" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld suggestions"
+          }
+        }
+      }
+    },
+    "位置" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Location"
+          }
+        }
+      }
+    },
+    "使用统计" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Usage Stats"
+          }
+        }
+      }
+    },
+    "保存到识别记录" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Save to Recognition History"
+          }
+        }
+      }
+    },
+    "全部清空" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empty All"
+          }
+        }
+      }
+    },
+    "占位" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Placeholder"
+          }
+        }
+      }
+    },
+    "基础信息" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Basic Info"
+          }
+        }
+      }
+    },
+    "大小" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Size"
+          }
+        }
+      }
+    },
+    "已保存到识别记录" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Saved to Recognition History"
+          }
+        }
+      }
+    },
+    "已压缩，节省 %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Compressed, saved %@"
+          }
+        }
+      }
+    },
+    "已恢复 %lld 项" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restored %lld items"
+          }
+        }
+      }
+    },
+    "已永久删除 %lld 项，释放 %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permanently deleted %lld items, freed %@"
+          }
+        }
+      }
+    },
+    "已移到垃圾桶 %lld 项" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Moved %lld items to trash"
+          }
+        }
+      }
+    },
+    "恢复" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore"
+          }
+        }
+      }
+    },
+    "扫描分析" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scans"
+          }
+        }
+      }
+    },
+    "排序方式" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sort By"
+          }
+        }
+      }
+    },
+    "时间" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Date"
+          }
+        }
+      }
+    },
+    "查看识别" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "View Recognition"
+          }
+        }
+      }
+    },
+    "标识" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identifiers"
+          }
+        }
+      }
+    },
+    "正在从 iCloud 下载 %lld%%" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Downloading from iCloud %lld%%"
+          }
+        }
+      }
+    },
+    "此功能需要 Pro" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This feature requires Pro"
+          }
+        }
+      }
+    },
+    "永久删除" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Delete Permanently"
+          }
+        }
+      }
+    },
+    "永久删除 %lld 项？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Permanently delete %lld items?"
+          }
+        }
+      }
+    },
+    "没有%@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No %@"
+          }
+        }
+      }
+    },
+    "清除缓存？" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clear Cache?"
+          }
+        }
+      }
+    },
+    "相册为空，去拍几张吧" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Your library is empty — go take some photos"
+          }
+        }
+      }
+    },
+    "知道了" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Got It"
+          }
+        }
+      }
+    },
+    "移到垃圾桶" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move to Trash"
+          }
+        }
+      }
+    },
+    "稍后再说" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Maybe Later"
+          }
+        }
+      }
+    },
+    "空" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Empty"
+          }
+        }
+      }
+    },
+    "节省空间" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Space Saved"
+          }
+        }
+      }
+    },
+    "视频压缩与批量管理" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Video compression & batch management"
+          }
+        }
+      }
+    },
+    "识别中..." : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recognizing..."
+          }
+        }
+      }
+    },
+    "详情" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Details"
+          }
+        }
+      }
+    },
+    "重新识别" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Recognize Again"
+          }
+        }
+      }
+    },
+    "预估节省" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Estimated Savings"
+          }
+        }
+      }
+    },
+    "已选 %lld 项" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld selected"
+          }
+        }
+      }
+    },
+    "%lld 项 · %@" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%lld items · %@"
           }
         }
       }

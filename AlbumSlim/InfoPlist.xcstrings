@@ -27,6 +27,12 @@
             "state" : "new",
             "value" : "AlbumSlim"
           }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "AlbumSlim"
+          }
         }
       }
     },
