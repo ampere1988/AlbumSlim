@@ -96,6 +96,7 @@
 		BB4AC2657683670C98143D12 /* ReminderService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D5400262DB6A4800E5054A6C /* ReminderService.swift */; };
 		BD74DA0F65EC4AD348FE41B4 /* SwipeCleanViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BDAF6E03BC21ED2149AB315 /* SwipeCleanViewModelTests.swift */; };
 		BE973DE375B029B479D6DD33 /* LargePhotosView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5C06A408C3515B4008DBC07 /* LargePhotosView.swift */; };
+		C1B8037D9ECD1B59D32FF006 /* ContactCleanupView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 71DC6AEE5621C5891CF98555 /* ContactCleanupView.swift */; };
 		C5E75A63F0B5F5C3BD6A60DD /* OCRService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3DA9D51AD7B82500381DEBD0 /* OCRService.swift */; };
 		C9C27FD5645D4B7C40E2E9EB /* CleanupCoordinatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 842819C73550B214DBA1A282 /* CleanupCoordinatorTests.swift */; };
 		CA7612A30C20BD5CD1D6109F /* AchievementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E6CBA6FC3564CD63C2226FC /* AchievementView.swift */; };
@@ -192,6 +193,7 @@
 		6A413310BD17014EBFF172E7 /* SwipeCleanBucket.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeCleanBucket.swift; sourceTree = "<group>"; };
 		6A801972BC9D199E85E0859B /* BackgroundTaskService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundTaskService.swift; sourceTree = "<group>"; };
 		6C35D9C51804CCDB2AF33AE2 /* SwipeCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SwipeCard.swift; sourceTree = "<group>"; };
+		71DC6AEE5621C5891CF98555 /* ContactCleanupView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContactCleanupView.swift; sourceTree = "<group>"; };
 		7437DA87FFEAF2EB5E654BE7 /* TrashServiceFilterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrashServiceFilterTests.swift; sourceTree = "<group>"; };
 		763869D357F2A1DACB84C5B1 /* MediaGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaGridView.swift; sourceTree = "<group>"; };
 		7FDACB976E6244E859C31A0C /* AnalysisResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnalysisResult.swift; sourceTree = "<group>"; };
@@ -355,6 +357,14 @@
 			path = Dashboard;
 			sourceTree = "<group>";
 		};
+		8D0E7EC5C78B2939D7C9E6FC /* Contacts */ = {
+			isa = PBXGroup;
+			children = (
+				71DC6AEE5621C5891CF98555 /* ContactCleanupView.swift */,
+			);
+			path = Contacts;
+			sourceTree = "<group>";
+		};
 		91A537543DFB6BFDE519BB01 /* Settings */ = {
 			isa = PBXGroup;
 			children = (
@@ -396,6 +406,7 @@
 			children = (
 				0A1E21DFB256416C24692E40 /* MainTabView.swift */,
 				D355C329E2C0C5C23255F76F /* Common */,
+				8D0E7EC5C78B2939D7C9E6FC /* Contacts */,
 				8CFFC810A930AE7919A15099 /* Dashboard */,
 				81FC263907030A06D331D3BD /* Onboarding */,
 				6D8521962E8C8A48FCA8939E /* Photo */,
@@ -687,6 +698,7 @@
 				4309BBAC59F7F63F23C70E30 /* CleanupCoordinator.swift in Sources */,
 				31D9B669AE9A1EDBE6608626 /* CleanupGroup.swift in Sources */,
 				676805AA4A1BAF3EF9ABA67C /* ContactCleanupService.swift in Sources */,
+				C1B8037D9ECD1B59D32FF006 /* ContactCleanupView.swift in Sources */,
 				1DE97C193D063905245B6329 /* ContactDuplicateGroup.swift in Sources */,
 				8D0A66CE26CBD405CF1349D5 /* DashboardViewModel.swift in Sources */,
 				23F65CC84308DAA86A1EC3CB /* DesignSystem.swift in Sources */,

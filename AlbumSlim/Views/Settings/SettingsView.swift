@@ -39,6 +39,12 @@ struct SettingsView: View {
                         }
                     }
                     .foregroundStyle(.primary)
+
+                    NavigationLink {
+                        ContactCleanupView()
+                    } label: {
+                        Label(String(localized: "重复联系人"), systemImage: "person.2.slash")
+                    }
                 }
 
                 OverviewSection()
