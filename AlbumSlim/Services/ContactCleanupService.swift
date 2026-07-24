@@ -214,6 +214,7 @@ final class ContactCleanupService {
     /// 注：不读取/合并 `note`——该字段在现代 iOS 上需要 `com.apple.developer.contacts.notes`
     /// 专属 entitlement，本应用未申请，读取会直接抛异常，故整段跳过。
     func merge(group: ContactDuplicateGroup) async throws {
+        errorMessage = nil
         guard !mergingGroupIDs.contains(group.id) else {
             throw NSError(domain: "ContactCleanup", code: 2, userInfo: [
                 NSLocalizedDescriptionKey: String(localized: "该分组正在合并中")

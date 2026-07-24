@@ -74,6 +74,5 @@ struct SwipeCleanHomeView: View {
                 }
             }
         }
-        .disabled(remaining == 0)
     }
 }

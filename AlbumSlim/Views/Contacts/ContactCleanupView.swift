@@ -67,6 +67,9 @@ struct ContactCleanupView: View {
                 Task {
                     if await service.requestAccess() {
                         await service.scan()
+                        if let errorMessage = service.errorMessage {
+                            services.toast.failure(errorMessage)
+                        }
                     }
                 }
             }
@@ -99,7 +102,14 @@ struct ContactCleanupView: View {
             } description: {
                 Text(String(localized: "已检查 \(service.totalContactCount) 位联系人"))
             }
-            .task { if service.totalContactCount == 0 { await service.scan() } }
+            .task {
+                if service.totalContactCount == 0 {
+                    await service.scan()
+                    if let errorMessage = service.errorMessage {
+                        services.toast.failure(errorMessage)
+                    }
+                }
+            }
         } else {
             List {
                 ForEach(service.groups) { group in

@@ -34,7 +34,7 @@ struct SwipeCleanSessionView: View {
                 } label: {
                     Image(systemName: "arrow.uturn.backward")
                 }
-                .disabled(!viewModel.canUndo)
+                .disabled(!viewModel.canUndo || isCommitting)
             }
         }
         .task {
