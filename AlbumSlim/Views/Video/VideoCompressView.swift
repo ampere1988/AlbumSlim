@@ -41,7 +41,7 @@ struct VideoCompressView: View {
                     }
                 }
                 .frame(maxHeight: 300)
-                .clipShape(RoundedRectangle(cornerRadius: Radius.card))
+                .clipShape(.rect(cornerRadius: Radius.card))
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0))
             }
@@ -137,7 +137,6 @@ struct VideoCompressView: View {
                         }
                     } label: {
                         Text("压缩保存为新视频")
-                            .frame(maxWidth: .infinity)
                     }
                     .secondaryActionStyle()
 
@@ -150,12 +149,13 @@ struct VideoCompressView: View {
                         }
                     } label: {
                         Text("压缩并替换原视频")
-                            .frame(maxWidth: .infinity)
                     }
                     .primaryActionStyle()
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(Theme.background)
         .navigationTitle("视频压缩")
         .task {
             thumbnail = await services.photoLibrary.thumbnail(

@@ -125,23 +125,31 @@ private struct SavedNoteDetailView: View {
 
                 Divider()
 
-                HStack(spacing: 12) {
+                HStack(spacing: Spacing.m) {
                     Button {
                         UIPasteboard.general.string = note.text
                         services.toast.copied()
                     } label: {
                         Label("复制文字", systemImage: "doc.on.doc")
-                            .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(.bordered)
+                    .secondaryActionStyle()
 
                     ShareLink(
                         item: services.notesExport.shareText(for: note),
                         subject: Text(note.category)
                     ) {
                         Label("分享", systemImage: "square.and.arrow.up")
+                            .frame(maxWidth: .infinity, minHeight: 50)
                     }
-                    .buttonStyle(.bordered)
+                    .buttonStyle(PressableCardStyle())
+                    .background {
+                        RoundedRectangle(cornerRadius: Radius.row)
+                            .fill(Theme.surfaceRaised)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: Radius.row)
+                                    .strokeBorder(Theme.hairline)
+                            }
+                    }
                 }
             }
             .padding()

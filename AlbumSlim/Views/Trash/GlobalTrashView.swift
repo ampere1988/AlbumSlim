@@ -52,7 +52,6 @@ struct GlobalTrashView: View {
                                 selectedIDs.removeAll()
                             } label: {
                                 Text("\(AppStrings.restore) \(AppStrings.items(selectedIDs.count))")
-                                    .frame(maxWidth: .infinity)
                             }
                             .secondaryActionStyle()
 
@@ -60,7 +59,6 @@ struct GlobalTrashView: View {
                                 showPermanentDeleteConfirm = true
                             } label: {
                                 Text("\(AppStrings.permanentlyDelete) \(AppStrings.items(selectedIDs.count))")
-                                    .frame(maxWidth: .infinity)
                             }
                             .primaryActionStyle(destructive: true)
                         }
@@ -138,7 +136,7 @@ struct GlobalTrashView: View {
             services.toast.show(
                 icon: achievement.icon,
                 text: String(localized: "解锁成就:\(achievement.title)"),
-                tint: .yellow,
+                tint: Theme.warning,
                 duration: 2.5
             )
         }
@@ -148,14 +146,22 @@ struct GlobalTrashView: View {
     @ViewBuilder
     private var content: some View {
         if items.isEmpty {
-            EmptyState("项目", systemImage: AppIcons.trash, description: "垃圾桶里没有内容")
+            EmptyState("项目", systemImage: AppIcons.trash,
+                       description: "垃圾桶里没有内容", tint: Theme.danger)
+                .background(Theme.background)
         } else {
             List {
-                Section {
-                    Text("\(items.count) 项 · \(services.trash.totalSizeText)")
-                        .font(.footnote)
-                        .foregroundStyle(.secondary)
-                }
+                LibrarySummaryHeader(
+                    countText: AppStrings.items(items.count),
+                    sizeText: services.trash.totalSizeText,
+                    systemImage: AppIcons.trash,
+                    tint: Theme.danger
+                )
+                .listRowInsets(EdgeInsets(top: Spacing.s, leading: Spacing.l,
+                                          bottom: Spacing.m, trailing: Spacing.l))
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+
                 Section {
                     ForEach(items) { item in
                         TrashRow(
@@ -191,9 +197,13 @@ struct GlobalTrashView: View {
                                 }
                             }
                         }
+                        .padding(Spacing.m)
+                        .glassSurface(radius: Radius.row)
+                        .cardListRow()
                     }
                 }
             }
+            .cardListStyle()
         }
     }
 }
@@ -205,35 +215,39 @@ private struct TrashRow: View {
     let onToggle: () -> Void
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: Spacing.m) {
             if isEditing {
                 Image(systemName: isSelected ? AppIcons.checkmarkCircleFill : AppIcons.circle)
-                    .foregroundStyle(isSelected ? Color.accentColor : Color.secondary)
+                    .foregroundStyle(isSelected ? Theme.accent : Theme.textTertiary)
                     .font(.title3)
+                    .frame(width: 32, height: 44)
+                    .contentShape(.rect)
                     .onTapGesture(perform: onToggle)
             }
-            // 缩略图占位（后续可替换为异步加载 PHAsset 缩略图）
             ThumbnailView(localIdentifier: item.id, mediaType: item.mediaType)
                 .frame(width: 56, height: 56)
-                .clipShape(RoundedRectangle(cornerRadius: 6))
-            VStack(alignment: .leading, spacing: 4) {
+                .clipShape(.rect(cornerRadius: Radius.thumb))
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(item.sourceModule.label)
-                    .font(.subheadline.weight(.medium))
+                    .font(AppFont.rowTitle)
+                    .foregroundStyle(Theme.textPrimary)
                 Text(item.fileSizeText)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(AppFont.metricSmall)
+                    .foregroundStyle(Theme.textSecondary)
             }
-            Spacer()
+            Spacer(minLength: 0)
             if let date = item.creationDate {
                 Text(date, style: .date)
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                    .font(AppFont.label)
+                    .foregroundStyle(Theme.textTertiary)
             }
         }
-        .contentShape(Rectangle())
+        .contentShape(.rect)
         .onTapGesture {
             if isEditing { onToggle() }
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 
@@ -246,12 +260,13 @@ private struct ThumbnailView: View {
 
     var body: some View {
         ZStack {
-            Color.gray.opacity(0.15)
+            Theme.surfaceSunken
             if let image {
                 Image(uiImage: image).resizable().scaledToFill()
             } else {
                 Image(systemName: mediaType == .video ? AppIcons.video : AppIcons.screenshot)
-                    .foregroundStyle(.secondary)
+                    .font(.footnote)
+                    .foregroundStyle(Theme.textTertiary)
             }
         }
         .task { await load() }

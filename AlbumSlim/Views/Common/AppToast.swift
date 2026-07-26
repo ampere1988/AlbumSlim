@@ -13,30 +13,33 @@ struct AppToast: View {
     var body: some View {
         Group {
             if let toast = toastCenter.current {
-                HStack(spacing: 8) {
+                HStack(spacing: Spacing.s) {
                     Image(systemName: toast.icon)
+                        .font(.footnote.weight(.semibold))
                         .foregroundStyle(toast.tint)
+                        .frame(width: 26, height: 26)
+                        .background(Circle().fill(toast.tint.opacity(0.18)))
                     Text(toast.text)
-                        .font(.subheadline.weight(.medium))
-                        .foregroundStyle(.primary)
+                        .font(AppFont.meta.weight(.medium))
+                        .foregroundStyle(Theme.textPrimary)
                     if let actionLabel = toast.actionLabel, let action = toast.action {
                         Button {
                             action()
                             toastCenter.dismissCurrent()
                         } label: {
                             Text(actionLabel)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(.blue)
+                                .font(AppFont.meta.weight(.semibold))
+                                .foregroundStyle(Theme.accent)
                         }
-                        .padding(.leading, 4)
+                        .padding(.leading, Spacing.xs)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(
-                    Capsule().fill(.ultraThinMaterial)
-                )
-                .shadow(color: .black.opacity(0.15), radius: 8, y: 2)
+                .padding(.leading, Spacing.s)
+                .padding(.trailing, Spacing.l)
+                .padding(.vertical, Spacing.s)
+                .background(Capsule().fill(.ultraThinMaterial))
+                .overlay { Capsule().strokeBorder(Theme.hairline, lineWidth: 1) }
+                .elevation(.floating)
                 .padding(.bottom, 100)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .id(toast.id)

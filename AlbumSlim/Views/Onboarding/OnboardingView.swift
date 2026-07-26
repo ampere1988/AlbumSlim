@@ -16,46 +16,45 @@ struct OnboardingView: View {
     }
 
     private var permissionView: some View {
-        VStack(spacing: 32) {
+        VStack(spacing: Spacing.xxl) {
             Spacer()
 
-            Image(systemName: "photo.stack")
-                .font(.system(size: 72))
-                .foregroundStyle(.blue)
+            GlowIcon(systemImage: "photo.stack", size: 104)
 
-            VStack(spacing: 12) {
+            VStack(spacing: Spacing.m) {
                 Text("闪图")
-                    .font(.largeTitle.bold())
+                    .font(AppFont.display)
+                    .foregroundStyle(Theme.accentGradient)
                 Text("智能分析相册，释放存储空间")
-                    .font(.title3)
-                    .foregroundStyle(.secondary)
+                    .font(AppFont.meta)
+                    .foregroundStyle(Theme.textSecondary)
             }
 
-            VStack(alignment: .leading, spacing: 16) {
-                featureRow(icon: "lock.shield", text: "所有分析在本地完成，隐私安全")
-                featureRow(icon: "video.fill", text: "智能压缩视频，画质几乎无损")
-                featureRow(icon: "photo.on.rectangle.angled", text: "自动发现相似照片和废片")
-                featureRow(icon: "scissors", text: "批量管理截图，一键清理")
+            VStack(alignment: .leading, spacing: Spacing.l) {
+                featureRow(icon: "lock.shield", tint: Theme.success, text: "所有分析在本地完成，隐私安全")
+                featureRow(icon: "video.fill", tint: Theme.video, text: "智能压缩视频，画质几乎无损")
+                featureRow(icon: "photo.on.rectangle.angled", tint: Theme.photo, text: "自动发现相似照片和废片")
+                featureRow(icon: "scissors", tint: Theme.screenshot, text: "批量管理截图，一键清理")
             }
-            .padding(.horizontal, 32)
+            .padding(Spacing.l)
+            .glassSurface()
 
             Spacer()
 
             switch authStatus {
             case .denied, .restricted:
-                VStack(spacing: 12) {
+                VStack(spacing: Spacing.m) {
                     Text("未授权相册访问")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Button("前往系统设置") {
-                        PermissionManager.openSettings()
-                    }
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.large)
+                        .font(AppFont.meta)
+                        .foregroundStyle(Theme.textSecondary)
+                    Button("前往系统设置", action: PermissionManager.openSettings)
+                        .primaryActionStyle()
                     Button("稍后再说") {
                         hasCompletedOnboarding = true
                     }
-                    .font(.footnote)
+                    .font(AppFont.label)
+                    .foregroundStyle(Theme.textSecondary)
+                    .frame(minHeight: 44)
                 }
             default:
                 Button {
@@ -68,19 +67,24 @@ struct OnboardingView: View {
                     }
                 } label: {
                     if isRequesting {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
+                        ProgressView().tint(Theme.textOnAccent)
                     } else {
                         Text("授权访问相册")
-                            .frame(maxWidth: .infinity)
                     }
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
+                .primaryActionStyle()
                 .disabled(isRequesting)
             }
         }
-        .padding(24)
+        .padding(Spacing.xl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            Theme.background
+                .overlay(alignment: .top) {
+                    Theme.ambientGlow.frame(height: 460).allowsHitTesting(false)
+                }
+                .ignoresSafeArea()
+        }
         .onReceive(NotificationCenter.default.publisher(for: UIApplication.didBecomeActiveNotification)) { _ in
             authStatus = PermissionManager.photoLibraryStatus
             if PermissionManager.isAuthorized {
@@ -89,14 +93,16 @@ struct OnboardingView: View {
         }
     }
 
-    private func featureRow(icon: String, text: LocalizedStringKey) -> some View {
-        HStack(spacing: 12) {
+    private func featureRow(icon: String, tint: Color, text: LocalizedStringKey) -> some View {
+        HStack(spacing: Spacing.m) {
             Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(.blue)
-                .frame(width: 28)
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(tint)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(tint.opacity(0.16)))
             Text(text)
-                .font(.body)
+                .font(AppFont.body)
+                .foregroundStyle(Theme.textPrimary)
         }
     }
 }
@@ -109,19 +115,18 @@ struct PrivacyAgreementView: View {
     private let termsOfServiceURL = URL(string: "https://chunbingtang.com/terms.html")!
 
     var body: some View {
-        VStack(spacing: 28) {
+        VStack(spacing: Spacing.xl) {
             Spacer()
 
-            Image(systemName: "shield.checkered")
-                .font(.system(size: 64))
-                .foregroundStyle(.green)
+            GlowIcon(systemImage: "shield.checkered", tint: Theme.success, size: 96)
 
-            VStack(spacing: 8) {
+            VStack(spacing: Spacing.s) {
                 Text("隐私保护承诺")
-                    .font(.title.bold())
+                    .font(AppFont.screenTitle)
+                    .foregroundStyle(Theme.textPrimary)
                 Text("您的相册安全是我们的首要原则")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .font(AppFont.meta)
+                    .foregroundStyle(Theme.textSecondary)
             }
 
             VStack(alignment: .leading, spacing: 20) {
@@ -146,58 +151,52 @@ struct PrivacyAgreementView: View {
                     detail: "分析缓存仅存储在本地，删除 App 即彻底清除所有数据"
                 )
             }
-            .padding(.horizontal, 24)
+            .padding(Spacing.l)
+            .glassSurface()
 
             Spacer()
 
-            VStack(spacing: 12) {
-                Button {
+            VStack(spacing: Spacing.m) {
+                Button("同意并继续") {
                     hasAgreedToPrivacy = true
-                } label: {
-                    Text("同意并继续")
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .tint(.green)
+                .primaryActionStyle()
 
-                HStack(spacing: 16) {
-                    Button {
-                        openURL(privacyPolicyURL)
-                    } label: {
-                        Text("隐私政策")
-                            .font(.subheadline)
-                    }
-
-                    Text("·")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-
-                    Button {
-                        openURL(termsOfServiceURL)
-                    } label: {
-                        Text("使用条款")
-                            .font(.subheadline)
-                    }
+                HStack(spacing: Spacing.l) {
+                    Button("隐私政策") { openURL(privacyPolicyURL) }
+                    Text("·").foregroundStyle(Theme.textTertiary)
+                    Button("使用条款") { openURL(termsOfServiceURL) }
                 }
+                .font(AppFont.meta)
+                .foregroundStyle(Theme.accent)
+                .frame(minHeight: 44)
             }
         }
-        .padding(24)
+        .padding(Spacing.xl)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background {
+            Theme.background
+                .overlay(alignment: .top) {
+                    Theme.ambientGlow.frame(height: 460).allowsHitTesting(false)
+                }
+                .ignoresSafeArea()
+        }
     }
 
     private func privacyItem(icon: String, title: LocalizedStringKey, detail: LocalizedStringKey) -> some View {
-        HStack(alignment: .top, spacing: 14) {
+        HStack(alignment: .top, spacing: Spacing.m) {
             Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(.green)
-                .frame(width: 28, alignment: .center)
-                .padding(.top, 2)
-            VStack(alignment: .leading, spacing: 4) {
+                .font(.footnote.weight(.semibold))
+                .foregroundStyle(Theme.success)
+                .frame(width: 32, height: 32)
+                .background(Circle().fill(Theme.success.opacity(0.16)))
+            VStack(alignment: .leading, spacing: Spacing.xs) {
                 Text(title)
-                    .font(.subheadline.bold())
+                    .font(AppFont.rowTitle)
+                    .foregroundStyle(Theme.textPrimary)
                 Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .font(AppFont.label)
+                    .foregroundStyle(Theme.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

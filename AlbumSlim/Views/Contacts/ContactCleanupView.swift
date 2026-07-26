@@ -73,8 +73,8 @@ struct ContactCleanupView: View {
                     }
                 }
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
+            .primaryActionStyle()
+            .frame(maxWidth: 280)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
@@ -157,7 +157,7 @@ struct ContactCleanupView: View {
             if isPrimary {
                 Text(String(localized: "保留"))
                     .font(.caption2.bold())
-                    .foregroundStyle(.green)
+                    .foregroundStyle(Theme.success)
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(.green.opacity(0.15), in: Capsule())

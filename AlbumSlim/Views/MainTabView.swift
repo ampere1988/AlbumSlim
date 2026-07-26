@@ -31,9 +31,9 @@ struct MainTabView: View {
                 // 浏览 Tab 走沉浸式全屏，不显示权限横幅（由 ShuffleFeedView 自己做 overlay 引导）
                 if selectedTab != 0,
                    photoAuthStatus != .authorized && photoAuthStatus != .limited {
-                    permissionBanner
+                    PermissionBanner()
                 } else if selectedTab != 0, photoAuthStatus == .limited, !limitedBannerDismissed {
-                    limitedBanner
+                    LimitedAccessBanner { limitedBannerDismissed = true }
                 }
             }
             .onReceive(NotificationCenter.default.publisher(for: .switchTab)) { notification in
@@ -82,62 +82,6 @@ struct MainTabView: View {
         }
     }
 
-    private var permissionBanner: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "exclamationmark.triangle.fill")
-                .foregroundStyle(.orange)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("未授权相册访问")
-                    .font(.footnote.bold())
-                Text("开启权限后才能扫描和清理")
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-            }
-            Spacer()
-            Button("去设置") {
-                PermissionManager.openSettings()
-            }
-            .font(.footnote.bold())
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 10)
-        .background(.thinMaterial)
-    }
-
-    private var limitedBanner: some View {
-        HStack(spacing: 10) {
-            Image(systemName: "photo.badge.plus")
-                .foregroundStyle(.blue)
-            Text(String(localized: "仅可访问部分照片，扫描结果可能不完整"))
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Spacer()
-            Button(String(localized: "选择更多")) {
-                presentLimitedLibraryPicker()
-            }
-            .font(.footnote.bold())
-            .controlSize(.small)
-            Button {
-                limitedBannerDismissed = true
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.caption2.bold())
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 8)
-        .background(.thinMaterial)
-    }
-
-    private func presentLimitedLibraryPicker() {
-        guard let scene = UIApplication.shared.connectedScenes
-            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
-            let root = scene.windows.first(where: \.isKeyWindow)?.rootViewController else { return }
-        PHPhotoLibrary.shared().presentLimitedLibraryPicker(from: root)
-    }
 }
 
 extension Notification.Name {

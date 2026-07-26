@@ -13,12 +13,14 @@ struct SimilarPhotosView: View {
         Group {
             if viewModel.isScanning {
                 ProgressLoadingState(phase: AppStrings.scanning, progress: viewModel.scanProgress)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.similarGroups.isEmpty {
-                EmptyState("相似照片", systemImage: AppIcons.similar) {
+                EmptyState("相似照片", systemImage: AppIcons.similar, tint: Theme.photo) {
                     Button("开始扫描") {
                         Task { await viewModel.scanSimilarPhotos(services: services) }
                     }
                     .primaryActionStyle()
+                    .frame(maxWidth: 240)
                 }
             } else {
                 List {
@@ -26,41 +28,52 @@ struct SimilarPhotosView: View {
                         count: allItems.count,
                         size: viewModel.similarGroups.reduce(0) { $0 + $1.savableSize }
                     )
-                    .listRowInsets(EdgeInsets())
+                    .listRowInsets(EdgeInsets(top: Spacing.s, leading: 0,
+                                              bottom: Spacing.m, trailing: 0))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
 
-                    ForEach(Array(viewModel.similarGroups.enumerated()), id: \.element.id) { _, group in
+                    ForEach(Array(viewModel.similarGroups.enumerated()), id: \.element.id) { index, group in
                         Section {
-                            MediaGridView(
-                                items: group.items,
-                                bestItemID: group.bestItemID,
-                                services: services,
-                                isSelectable: isEditing,
-                                selection: $viewModel.selectedForDeletion
-                            )
+                            VStack(spacing: Spacing.m) {
+                                MediaGridView(
+                                    items: group.items,
+                                    bestItemID: group.bestItemID,
+                                    services: services,
+                                    isSelectable: isEditing,
+                                    selection: $viewModel.selectedForDeletion
+                                )
 
-                            if isEditing {
-                                let isFullySelected = viewModel.isGroupFullySelectedExceptBest(group)
-                                Button(isFullySelected ? "取消选中本组" : "选中除最佳外全部") {
-                                    if isFullySelected {
-                                        viewModel.deselectGroup(group)
-                                    } else {
-                                        viewModel.selectAllExceptBest(in: group)
+                                if isEditing {
+                                    let isFullySelected = viewModel.isGroupFullySelectedExceptBest(group)
+                                    Button(isFullySelected ? "取消选中本组" : "选中除最佳外全部") {
+                                        if isFullySelected {
+                                            viewModel.deselectGroup(group)
+                                        } else {
+                                            viewModel.selectAllExceptBest(in: group)
+                                        }
                                     }
+                                    .font(AppFont.label.bold())
+                                    .foregroundStyle(Theme.accent)
+                                    .frame(maxWidth: .infinity, minHeight: 44)
                                 }
-                                .font(.footnote)
                             }
+                            .padding(Spacing.m)
+                            .glassSurface()
+                            .cardListRow()
                         } header: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("相似组 · \(group.items.count) 张 · 可省 \(group.savableSize.formattedFileSize)")
-                                if let range = timeRange(for: group) {
-                                    Text(range)
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
+                            PhotoGroupHeader(
+                                index: index,
+                                count: group.items.count,
+                                savableSize: group.savableSize,
+                                subtitle: timeRange(for: group),
+                                tint: Theme.photo
+                            )
+                            .cardListRow()
                         }
                     }
                 }
+                .cardListStyle()
                 .safeAreaInset(edge: .bottom) {
                     if isEditing && !viewModel.selectedForDeletion.isEmpty {
                         ActionBar {
@@ -82,7 +95,6 @@ struct SimilarPhotosView: View {
                                 }
                             } label: {
                                 Text("\(AppStrings.moveToTrash) \(AppStrings.items(viewModel.selectedForDeletion.count))")
-                                    .frame(maxWidth: .infinity)
                             }
                             .primaryActionStyle(destructive: true)
                         }
@@ -90,6 +102,7 @@ struct SimilarPhotosView: View {
                 }
             }
         }
+        .background(Theme.background)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 TrashToolbarButton(count: services.trash.trashedItems.count) {

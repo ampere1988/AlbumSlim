@@ -326,14 +326,15 @@ private struct OCROverlayPanel: View {
             } else if let result = ocrResult {
                 resultContent(result: result)
             } else if recognitionFailed {
-                VStack(spacing: 12) {
+                VStack(spacing: Spacing.m) {
                     Text("识别失败，请重试")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
+                        .font(AppFont.meta)
+                        .foregroundStyle(Theme.textSecondary)
                     Button(action: onRetry) {
                         Label("重新识别", systemImage: "arrow.clockwise")
                     }
-                    .buttonStyle(.borderedProminent)
+                    .primaryActionStyle()
+                    .frame(maxWidth: 240)
                 }
                 .padding(.vertical, 20)
                 .padding(.bottom, 20)
@@ -347,7 +348,7 @@ private struct OCROverlayPanel: View {
         }
         .frame(maxWidth: .infinity)
         .background(.regularMaterial)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.sheet, style: .continuous))
+        .clipShape(.rect(cornerRadius: Radius.sheet))
         .shadow(color: .black.opacity(0.2), radius: 16, y: -4)
     }
 
@@ -358,7 +359,7 @@ private struct OCROverlayPanel: View {
                     .font(.caption.bold())
                     .padding(.horizontal, 10)
                     .padding(.vertical, 4)
-                    .background(result.category.color.opacity(0.2), in: Capsule())
+                    .background(result.category.color.opacity(0.16), in: Capsule())
                     .foregroundStyle(result.category.color)
                 Spacer()
                 Button {
@@ -379,7 +380,7 @@ private struct OCROverlayPanel: View {
                     .padding(.vertical, 8)
             }
             .frame(maxHeight: 180)
-            .background(Color.primary.opacity(0.05), in: RoundedRectangle(cornerRadius: Radius.thumb))
+            .background(Theme.surfaceSunken, in: RoundedRectangle(cornerRadius: Radius.thumb))
             .padding(.horizontal, 12)
 
             Button(action: onSave) {
@@ -387,10 +388,8 @@ private struct OCROverlayPanel: View {
                     isSaved ? "已保存到识别记录" : "保存到识别记录",
                     systemImage: isSaved ? "checkmark.circle.fill" : "square.and.arrow.down"
                 )
-                .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
-            .tint(isSaved ? .green : .blue)
+            .buttonStyle(AccentButtonStyle())
             .disabled(isSaved)
             .padding(.horizontal, 16)
             .padding(.bottom, 32)

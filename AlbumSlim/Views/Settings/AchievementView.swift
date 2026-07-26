@@ -10,6 +10,7 @@ struct AchievementView: View {
             statsSection
             achievementsSection
         }
+        .cardListStyle()
         .navigationTitle("清理成就")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -19,6 +20,7 @@ struct AchievementView: View {
                 } label: {
                     Image(systemName: "square.and.arrow.up")
                 }
+                .accessibilityLabel("分享成就")
             }
         }
         .sheet(isPresented: $showShareSheet) {
@@ -45,34 +47,39 @@ struct AchievementView: View {
 
     private var statsSection: some View {
         Section {
-            HStack(spacing: 0) {
-                statItem(
-                    value: services.achievement.totalFreedSpace.formattedFileSize,
-                    label: "累计释放"
-                )
-                Divider().frame(height: 40)
-                statItem(
-                    value: "\(services.achievement.totalCleanupCount)",
-                    label: "清理次数"
-                )
-                Divider().frame(height: 40)
-                statItem(
-                    value: "\(services.achievement.totalDeletedCount)",
-                    label: "清理项目"
-                )
+            VStack(spacing: Spacing.l) {
+                // 累计释放是这一页唯一的"成绩单"，单独放大一档
+                VStack(spacing: Spacing.xs) {
+                    Text(services.achievement.totalFreedSpace.formattedFileSize)
+                        .font(AppFont.display)
+                        .foregroundStyle(Theme.accentGradient)
+                    Text("累计释放")
+                        .font(AppFont.label)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+
+                HStack(spacing: 0) {
+                    statItem(value: "\(services.achievement.totalCleanupCount)", label: "清理次数")
+                    Rectangle().fill(Theme.hairline).frame(width: 1, height: 32)
+                    statItem(value: "\(services.achievement.totalDeletedCount)", label: "清理项目")
+                }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, Spacing.l)
+            .frame(maxWidth: .infinity)
+            .glassSurface()
+            .cardListRow()
+            .accessibilityElement(children: .combine)
         }
     }
 
-    private func statItem(value: String, label: String) -> some View {
-        VStack(spacing: 4) {
+    private func statItem(value: String, label: LocalizedStringKey) -> some View {
+        VStack(spacing: Spacing.xs) {
             Text(value)
-                .font(.title3.bold().monospacedDigit())
-                .foregroundStyle(.orange)
+                .font(AppFont.metric)
+                .foregroundStyle(Theme.textPrimary)
             Text(label)
-                .font(.caption)
-                .foregroundStyle(.secondary)
+                .font(AppFont.label)
+                .foregroundStyle(Theme.textSecondary)
         }
         .frame(maxWidth: .infinity)
     }
@@ -80,46 +87,21 @@ struct AchievementView: View {
     // MARK: - 成就列表
 
     private var achievementsSection: some View {
-        Section("全部成就") {
+        Section {
             ForEach(services.achievement.achievements) { achievement in
-                achievementRow(achievement)
+                AchievementBadgeRow(
+                    achievement: achievement,
+                    isUnlocked: services.achievement.isUnlocked(achievement),
+                    progress: services.achievement.progress(for: achievement)
+                )
+                .padding(Spacing.m)
+                .glassSurface(radius: Radius.row)
+                .cardListRow()
             }
+        } header: {
+            SectionHeader(title: "全部成就", tint: Theme.warning)
+                .cardListRow()
         }
-    }
-
-    private func achievementRow(_ achievement: Achievement) -> some View {
-        let unlocked = services.achievement.isUnlocked(achievement)
-        let progress = services.achievement.progress(for: achievement)
-
-        return HStack(spacing: 12) {
-            Image(systemName: achievement.icon)
-                .font(.title2)
-                .foregroundStyle(unlocked ? .orange : .gray)
-                .frame(width: 36)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(achievement.title)
-                    .font(.headline)
-                    .foregroundStyle(unlocked ? .primary : .secondary)
-                Text(achievement.description)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-
-                if !unlocked {
-                    ProgressView(value: progress)
-                        .tint(.orange)
-                }
-            }
-
-            Spacer()
-
-            if unlocked {
-                Image(systemName: "checkmark.seal.fill")
-                    .foregroundStyle(.green)
-            }
-        }
-        .padding(.vertical, 4)
-        .opacity(unlocked ? 1.0 : 0.6)
     }
 }
 

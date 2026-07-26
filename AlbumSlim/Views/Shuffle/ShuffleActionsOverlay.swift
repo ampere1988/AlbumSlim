@@ -20,12 +20,13 @@ struct ShuffleActionsOverlay: View {
     var body: some View {
         VStack(spacing: 14) {
             button(system: isFavorite ? "star.fill" : "star",
+                   label: isFavorite ? "取消收藏" : "收藏",
                    tint: isFavorite ? .yellow : nil,
                    glassID: "fav") {
                 Task { await toggleFavorite() }
             }
 
-            button(system: "trash", glassID: "trash") { onDelete() }
+            button(system: "trash", label: "删除", glassID: "trash") { onDelete() }
 
             moreStack
         }
@@ -46,16 +47,18 @@ struct ShuffleActionsOverlay: View {
     private var moreStack: some View {
         let stack = VStack(spacing: 10) {
             if isExpanded {
-                button(system: "info.circle", glassID: "info") {
+                button(system: "info.circle", label: "详细信息", glassID: "info") {
                     close(); onShowDetail()
                 }
                 .transition(.scale(scale: 0.6).combined(with: .opacity))
-                button(system: "square.and.arrow.up", glassID: "share") {
+                button(system: "square.and.arrow.up", label: "分享", glassID: "share") {
                     close(); onShare()
                 }
                 .transition(.scale(scale: 0.6).combined(with: .opacity))
             }
-            button(system: isExpanded ? "xmark" : "ellipsis", glassID: "more") {
+            button(system: isExpanded ? "xmark" : "ellipsis",
+                   label: isExpanded ? "收起" : "更多操作",
+                   glassID: "more") {
                 toggleExpand()
             }
         }
@@ -68,6 +71,7 @@ struct ShuffleActionsOverlay: View {
     }
 
     private func button(system: String,
+                        label: LocalizedStringKey,
                         tint: Color? = nil,
                         glassID: String,
                         action: @escaping () -> Void) -> some View {
@@ -76,9 +80,10 @@ struct ShuffleActionsOverlay: View {
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundStyle(tint ?? .primary)
                 .frame(width: 48, height: 48)
-                .contentShape(Circle())
+                .contentShape(.circle)
         }
         .modifier(ShuffleCircleButtonStyle(glassID: glassID, glassNs: glassNs))
+        .accessibilityLabel(label)
     }
 
     private func toggleExpand() {
@@ -114,12 +119,12 @@ private struct ShuffleCircleButtonStyle: ViewModifier {
                 .glassEffect(.regular.interactive(), in: .circle)
                 .glassEffectID(glassID, in: glassNs)
         } else {
-            content.background(
+            content.background {
                 Circle()
                     .fill(.ultraThinMaterial)
-                    .overlay(Circle().stroke(.primary.opacity(0.12), lineWidth: 0.5))
-                    .shadow(color: .black.opacity(0.25), radius: 6, y: 2)
-            )
+                    .overlay { Circle().strokeBorder(.primary.opacity(0.14), lineWidth: 1) }
+                    .shadow(color: .black.opacity(0.28), radius: 8, y: 3)
+            }
         }
     }
 }

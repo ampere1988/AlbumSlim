@@ -16,10 +16,10 @@ struct TrashToolbarButton: View {
                     if count > 0 {
                         Text("\(min(count, 99))")
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white)
+                            .foregroundStyle(Theme.textOnAccent)
                             .padding(.horizontal, 4)
                             .padding(.vertical, 1)
-                            .background(Capsule().fill(.red))
+                            .background(Capsule().fill(Theme.danger))
                             .offset(x: 8, y: -6)
                     }
                 }

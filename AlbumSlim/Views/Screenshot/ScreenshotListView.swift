@@ -37,11 +37,12 @@ struct ScreenshotListView: View {
                 if viewModel.isLoading {
                     LoadingState(AppStrings.loading)
                 } else if viewModel.screenshots.isEmpty {
-                    EmptyState("截图", systemImage: AppIcons.screenshot)
+                    EmptyState("截图", systemImage: AppIcons.screenshot, tint: Theme.screenshot)
                 } else {
                     screenshotGrid
                 }
             }
+            .background(Theme.background)
             .navigationTitle("截图")
             .selectionToolbar(
                 isEditing: $viewModel.isEditing,
@@ -79,7 +80,6 @@ struct ScreenshotListView: View {
                             }
                         } label: {
                             Text("\(AppStrings.moveToTrash) \(AppStrings.items(viewModel.selectedItems.count))")
-                                .frame(maxWidth: .infinity)
                         }
                         .primaryActionStyle(destructive: true)
                     }
@@ -122,9 +122,9 @@ struct ScreenshotListView: View {
                 }
 
                 categoryFilterBar
-                    .padding(.bottom, 8)
+                    .padding(.bottom, Spacing.s)
 
-                LazyVGrid(columns: gridColumns, spacing: 2) {
+                LazyVGrid(columns: gridColumns, spacing: Spacing.xs) {
                     ForEach(viewModel.filteredScreenshots) { screenshot in
                         ScreenshotThumbnailCell(
                             item: screenshot,
@@ -142,14 +142,14 @@ struct ScreenshotListView: View {
                         .zoomTransitionSource(id: screenshot.id, in: zoomNamespace)
                     }
                 }
-                .padding(.horizontal, 2)
+                .padding(.horizontal, Spacing.xs)
             }
         }
     }
 
     private var categoryFilterBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
+        ScrollView(.horizontal) {
+            HStack(spacing: Spacing.s) {
                 FilterChip(title: "全部", isSelected: viewModel.filterCategory == nil) {
                     viewModel.filterCategory = nil
                 }
@@ -169,8 +169,9 @@ struct ScreenshotListView: View {
                     }
                 }
             }
-            .padding(.horizontal, 12)
+            .padding(.horizontal, Spacing.m)
         }
+        .scrollIndicators(.hidden)
     }
 
     @ToolbarContentBuilder
@@ -217,10 +218,10 @@ struct ScreenshotListView: View {
             if unreadNotesCount > 0 {
                 Text("\(min(unreadNotesCount, 99))")
                     .font(.caption2.bold())
-                    .foregroundStyle(.white)
+                    .foregroundStyle(Theme.textOnAccent)
                     .padding(.horizontal, 4)
                     .padding(.vertical, 1)
-                    .background(.red, in: Capsule())
+                    .background(Capsule().fill(Theme.danger))
                     .offset(x: 10, y: -8)
             }
         }
@@ -249,100 +250,5 @@ private extension View {
         } else {
             self
         }
-    }
-}
-
-// MARK: - 缩略图单元格
-
-private struct ScreenshotThumbnailCell: View {
-    let item: MediaItem
-    let ocrResult: OCRResult?
-    let isEditing: Bool
-    let isSelected: Bool
-    let services: AppServiceContainer
-    let onTap: () -> Void
-    @State private var image: UIImage?
-
-    var body: some View {
-        ZStack(alignment: .topLeading) {
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(9.0 / 16.0, contentMode: .fill)
-                    .clipped()
-            } else {
-                Rectangle()
-                    .fill(.quaternary)
-                    .aspectRatio(9.0 / 16.0, contentMode: .fill)
-                    .overlay { ProgressView() }
-            }
-
-            if isEditing && isSelected {
-                Rectangle().fill(.blue.opacity(0.3))
-            }
-
-            if isEditing {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
-                    .foregroundStyle(isSelected ? .white : .white.opacity(0.8))
-                    .shadow(radius: 2)
-                    .padding(6)
-            }
-
-            // 底部：文件大小 + 分类标签
-            VStack {
-                Spacer()
-                HStack(spacing: 4) {
-                    Text(item.fileSizeText)
-                        .font(.caption2)
-                        .padding(.horizontal, 4)
-                        .padding(.vertical, 2)
-                        .background(.black.opacity(0.5), in: Capsule())
-                        .foregroundStyle(.white)
-
-                    if let result = ocrResult {
-                        Text(result.category.localizedName)
-                            .font(.caption2)
-                            .padding(.horizontal, 4)
-                            .padding(.vertical, 2)
-                            .background(result.category.color.opacity(0.85), in: Capsule())
-                            .foregroundStyle(.white)
-                    }
-
-                    Spacer()
-                }
-                .padding(4)
-            }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
-        .contentShape(Rectangle())
-        .onTapGesture { onTap() }
-        .task {
-            image = await services.photoLibrary.thumbnail(
-                for: item.asset,
-                size: CGSize(width: 200, height: 360)
-            )
-        }
-    }
-}
-
-// MARK: - 分类过滤 Chip
-
-private struct FilterChip: View {
-    let title: String
-    let isSelected: Bool
-    var color: Color = .blue
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            Text(title)
-                .font(.caption)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(isSelected ? color.opacity(0.2) : Color(.systemGray6), in: Capsule())
-                .foregroundStyle(isSelected ? color : .primary)
-        }
-        .buttonStyle(.plain)
     }
 }

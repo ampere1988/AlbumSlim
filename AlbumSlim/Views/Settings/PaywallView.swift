@@ -8,16 +8,35 @@ struct PaywallView: View {
 
     private var subscription: SubscriptionService { services.subscription }
 
+    private static let features: [(icon: String, tint: Color, text: LocalizedStringKey)] = [
+        ("trash.circle.fill", Theme.danger, "无限废片清理"),
+        ("square.on.square", Theme.photo, "相似照片去重"),
+        ("video.fill", Theme.video, "视频压缩与批量管理"),
+        ("text.viewfinder", Theme.screenshot, "截图 OCR 文字识别"),
+        ("square.stack.3d.up.fill", Theme.burst, "连拍 / 大照片清理"),
+        ("wand.and.stars", Theme.accentSecondary, "智能一键扫描清理"),
+    ]
+
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: Spacing.xl) {
                     headerSection
                     featureList
                     purchaseSection
                     footerSection
                 }
-                .padding()
+                .padding(Spacing.l)
+            }
+            .background {
+                // 顶部一团环境光，把付费页从普通设置页里"抬"出来
+                Theme.background
+                    .overlay(alignment: .top) {
+                        Theme.ambientGlow
+                            .frame(height: 420)
+                            .allowsHitTesting(false)
+                    }
+                    .ignoresSafeArea()
             }
             .navigationTitle("解锁 Pro")
             .navigationBarTitleDisplayMode(.inline)
@@ -25,8 +44,9 @@ struct PaywallView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { dismiss() } label: {
                         Image(systemName: "xmark.circle.fill")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.textTertiary)
                     }
+                    .accessibilityLabel("关闭")
                 }
             }
             .task { await subscription.loadProduct() }
@@ -52,115 +72,121 @@ struct PaywallView: View {
     // MARK: - Header
 
     private var headerSection: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "crown.fill")
-                .font(.system(size: 48))
-                .foregroundStyle(.yellow)
+        VStack(spacing: Spacing.m) {
+            GlowIcon(systemImage: "crown.fill", tint: Theme.warning, size: 88)
             Text("解锁全部功能")
-                .font(.largeTitle.bold())
+                .font(AppFont.display)
+                .foregroundStyle(Theme.accentGradient)
             Text("一次购买，终身使用")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(AppFont.meta)
+                .foregroundStyle(Theme.textSecondary)
         }
-        .padding(.top, 8)
+        .padding(.top, Spacing.s)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - Feature List
 
     private var featureList: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            featureRow(icon: "trash.circle.fill", color: .red, text: "无限废片清理")
-            featureRow(icon: "square.on.square", color: .green, text: "相似照片去重")
-            featureRow(icon: "video.fill", color: .blue, text: "视频压缩与批量管理")
-            featureRow(icon: "text.viewfinder", color: .orange, text: "截图 OCR 文字识别")
-            featureRow(icon: "square.stack.3d.up.fill", color: .purple, text: "连拍 / 大照片清理")
-            featureRow(icon: "wand.and.stars", color: .pink, text: "智能一键扫描清理")
+        VStack(alignment: .leading, spacing: Spacing.l) {
+            ForEach(Self.features, id: \.icon) { feature in
+                HStack(spacing: Spacing.m) {
+                    Image(systemName: feature.icon)
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(feature.tint)
+                        .frame(width: 32, height: 32)
+                        .background(Circle().fill(feature.tint.opacity(0.16)))
+                    Text(feature.text)
+                        .font(AppFont.body)
+                        .foregroundStyle(Theme.textPrimary)
+                    Spacer(minLength: 0)
+                    Image(systemName: "checkmark")
+                        .font(.caption.bold())
+                        .foregroundStyle(Theme.success)
+                }
+            }
         }
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.card))
-    }
-
-    private func featureRow(icon: String, color: Color, text: LocalizedStringKey) -> some View {
-        HStack(spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3)
-                .foregroundStyle(color)
-                .frame(width: 28)
-            Text(text)
-                .font(.subheadline)
-        }
+        .padding(Spacing.l)
+        .glassSurface()
     }
 
     // MARK: - Purchase
 
+    @ViewBuilder
     private var purchaseSection: some View {
-        VStack(spacing: 12) {
-            if subscription.isLoading && subscription.product == nil {
-                ProgressView("加载中...")
-                    .padding()
-            } else if let product = subscription.product {
-                Button {
-                    Task {
-                        try? await subscription.purchase(product)
-                        if subscription.isPro { dismiss() }
-                    }
-                } label: {
-                    Group {
-                        if subscription.isLoading {
-                            ProgressView()
-                                .tint(.white)
-                        } else {
-                            Text("\(product.displayPrice) 解锁 Pro")
-                                .font(.headline)
-                        }
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+        if subscription.isLoading && subscription.product == nil {
+            ProgressView()
+                .tint(Theme.accent)
+                .padding(Spacing.l)
+        } else if let product = subscription.product {
+            Button {
+                purchase(product)
+            } label: {
+                if subscription.isLoading {
+                    ProgressView().tint(Theme.textOnAccent)
+                } else {
+                    Text("\(product.displayPrice) 解锁 Pro")
                 }
-                .buttonStyle(.borderedProminent)
-                .disabled(subscription.isLoading)
-            } else {
-                VStack(spacing: 8) {
-                    Text("无法加载产品信息")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Button("重试") {
-                        Task { await subscription.loadProduct() }
-                    }
-                    .buttonStyle(.bordered)
-                }
-                .padding()
             }
+            .primaryActionStyle()
+            .disabled(subscription.isLoading)
+        } else {
+            VStack(spacing: Spacing.m) {
+                Text("无法加载产品信息")
+                    .font(AppFont.meta)
+                    .foregroundStyle(Theme.textSecondary)
+                Button("重试", action: reloadProduct)
+                    .secondaryActionStyle()
+                    .frame(maxWidth: 200)
+            }
+            .padding(Spacing.l)
         }
     }
 
     // MARK: - Footer
 
     private var footerSection: some View {
-        VStack(spacing: 8) {
-            Button("恢复购买") {
-                Task {
-                    let restored = await subscription.restorePurchases()
-                    restoreResultMessage = restored
-                        ? String(localized: "已恢复 Pro 权益")
-                        : String(localized: "未找到可恢复的购买")
-                }
-            }
-            .font(.footnote)
+        VStack(spacing: Spacing.m) {
+            Button("恢复购买", action: restore)
+                .font(AppFont.label.bold())
+                .foregroundStyle(Theme.accent)
+                .frame(minHeight: 44)
 
             Text("一次性付费，不自动续费。购买后在当前 Apple ID 下长期解锁所有 Pro 功能。")
-                .font(.caption2)
-                .foregroundStyle(.tertiary)
+                .font(AppFont.label)
+                .foregroundStyle(Theme.textTertiary)
                 .multilineTextAlignment(.center)
 
-            HStack(spacing: 16) {
+            HStack(spacing: Spacing.l) {
                 Link("隐私政策", destination: URL(string: "https://chunbingtang.com/privacy.html")!)
-                Text("·").foregroundStyle(.tertiary)
+                Text("·").foregroundStyle(Theme.textTertiary)
                 Link("使用条款", destination: URL(string: "https://chunbingtang.com/terms.html")!)
             }
-            .font(.caption2)
-            .foregroundStyle(.secondary)
-            .padding(.top, 4)
+            .font(AppFont.label)
+            .foregroundStyle(Theme.textSecondary)
+            .frame(minHeight: 44)
+        }
+    }
+
+    // MARK: - Actions
+
+    private func purchase(_ product: Product) {
+        Task {
+            try? await subscription.purchase(product)
+            if subscription.isPro { dismiss() }
+        }
+    }
+
+    private func reloadProduct() {
+        Task { await subscription.loadProduct() }
+    }
+
+    private func restore() {
+        Task {
+            let restored = await subscription.restorePurchases()
+            restoreResultMessage = restored
+                ? String(localized: "已恢复 Pro 权益")
+                : String(localized: "未找到可恢复的购买")
         }
     }
 }

@@ -11,11 +11,13 @@ struct QuickCleanView: View {
             } else if viewModel.wasCancelled && viewModel.cleanupGroups.isEmpty {
                 pausedStateView
             } else if viewModel.cleanupGroups.isEmpty {
-                emptyStateView
+                EmptyState("可清理项", systemImage: "sparkles",
+                           description: "相册很整洁", tint: Theme.success)
             } else {
                 resultSummary
             }
         }
+        .background(Theme.background)
         .navigationTitle("智能扫描")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -30,154 +32,133 @@ struct QuickCleanView: View {
     // MARK: - 扫描中
 
     private var scanningView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: Spacing.xxl) {
             Spacer()
-            ProgressLoadingState(
+            ScanProgressRing(
                 phase: services.cleanupCoordinator.scanPhase.localizedName,
                 progress: services.cleanupCoordinator.scanProgress
             )
-            Button(AppStrings.cancel) {
-                viewModel.cancelScan()
-            }
-            .buttonStyle(.bordered)
+            Button(AppStrings.cancel, action: viewModel.cancelScan)
+                .secondaryActionStyle()
+                .frame(maxWidth: 200)
             Spacer()
         }
-    }
-
-    // MARK: - 空状态
-
-    private var emptyStateView: some View {
-        EmptyState("可清理项", systemImage: "sparkles", description: "相册很整洁")
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - 已暂停（用户取消扫描）
 
     private var pausedStateView: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Spacing.l) {
             Spacer()
-            Image(systemName: "pause.circle")
-                .font(.system(size: 48))
-                .foregroundStyle(.secondary)
-            Text(String(localized: "已暂停扫描"))
-                .font(.title3.bold())
-            Text(String(localized: "扫描进度已保存，可随时继续"))
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-            Button {
-                Task { await viewModel.loadOrScan(services: services) }
-            } label: {
-                Label(String(localized: "继续扫描"), systemImage: "arrow.clockwise")
+            GlowIcon(systemImage: "pause.fill", tint: Theme.warning, size: 76)
+            Text("已暂停扫描")
+                .font(AppFont.screenTitle)
+                .foregroundStyle(Theme.textPrimary)
+            Text("扫描进度已保存，可随时继续")
+                .font(AppFont.meta)
+                .foregroundStyle(Theme.textSecondary)
+            Button(action: resumeScan) {
+                Label("继续扫描", systemImage: "arrow.clockwise")
             }
-            .buttonStyle(.borderedProminent)
-            .padding(.top, 8)
+            .primaryActionStyle()
+            .frame(maxWidth: 240)
+            .padding(.top, Spacing.s)
             Spacer()
         }
-        .padding()
+        .padding(Spacing.l)
     }
 
     // MARK: - 扫描结果总览
 
     private var resultSummary: some View {
         ScrollView {
-            VStack(spacing: 16) {
-                // 头部
-                VStack(spacing: 8) {
-                    Image(systemName: viewModel.hasCompletedScan ? "checkmark.circle.fill" : "clock.arrow.circlepath")
-                        .font(.system(size: 48))
-                        .foregroundStyle(viewModel.hasCompletedScan ? .green : .secondary)
-                    Text(viewModel.hasCompletedScan ? "扫描完成" : "上次扫描结果")
-                        .font(.title2.bold())
-                    Text("点击分类前往对应页面查看详情")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                }
-                .padding(.top, 20)
-                .padding(.bottom, 8)
+            VStack(spacing: Spacing.m) {
+                summaryHeader
+                    .padding(.bottom, Spacing.s)
 
-                // 分类卡片
                 ForEach(sortedTypes, id: \.0) { type, groups in
                     categoryCard(type: type, groups: groups)
                 }
 
-                // 重新扫描
-                Button {
-                    Task { await viewModel.forceRescan(services: services) }
-                } label: {
+                Button(action: rescan) {
                     Label("重新扫描", systemImage: "arrow.clockwise")
-                        .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
-                .padding(.top, 8)
+                .secondaryActionStyle()
+                .padding(.top, Spacing.s)
             }
-            .padding()
+            .padding(Spacing.l)
         }
+    }
+
+    /// 头部把"总共能释放多少"顶到主位 —— 这是用户真正关心的唯一数字
+    private var summaryHeader: some View {
+        VStack(spacing: Spacing.s) {
+            GlowIcon(
+                systemImage: viewModel.hasCompletedScan ? "checkmark" : "clock.arrow.circlepath",
+                tint: viewModel.hasCompletedScan ? Theme.success : Theme.textSecondary,
+                size: 64
+            )
+            Text(totalSavableSize.formattedFileSize)
+                .font(AppFont.display)
+                .foregroundStyle(Theme.accentGradient)
+            Text(viewModel.hasCompletedScan ? "本次扫描可释放" : "上次扫描可释放")
+                .font(AppFont.meta)
+                .foregroundStyle(Theme.textSecondary)
+            Text("点击分类前往对应页面查看详情")
+                .font(AppFont.label)
+                .foregroundStyle(Theme.textTertiary)
+                .padding(.top, Spacing.xs)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, Spacing.xl)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - 分类卡片
 
     @ViewBuilder
     private func categoryCard(type: CleanupGroup.GroupType, groups: [CleanupGroup]) -> some View {
-        let label = cardLabel(type: type, groups: groups)
+        let card = CleanupCategoryCard(
+            type: type,
+            countText: countText(type, groups),
+            sizeText: sizeText(groups),
+            leavesCurrentStack: type == .largeVideo
+        )
 
         switch type {
         case .waste:
-            NavigationLink {
-                WastePhotosView()
-                    .navigationTitle("废片检测")
-            } label: { label }
-            .buttonStyle(.plain)
+            NavigationLink { WastePhotosView().navigationTitle("废片检测") } label: { card }
+                .pressableCardStyle()
         case .similar:
-            NavigationLink {
-                SimilarPhotosView()
-                    .navigationTitle("相似照片")
-            } label: { label }
-            .buttonStyle(.plain)
+            NavigationLink { SimilarPhotosView().navigationTitle("相似照片") } label: { card }
+                .pressableCardStyle()
         case .burst:
-            NavigationLink {
-                BurstPhotosView()
-                    .navigationTitle("连拍清理")
-            } label: { label }
-            .buttonStyle(.plain)
+            NavigationLink { BurstPhotosView().navigationTitle("连拍清理") } label: { card }
+                .pressableCardStyle()
         case .largePhoto:
-            NavigationLink {
-                LargePhotosView()
-                    .navigationTitle("超大照片")
-            } label: { label }
-            .buttonStyle(.plain)
+            NavigationLink { LargePhotosView().navigationTitle("超大照片") } label: { card }
+                .pressableCardStyle()
         case .largeVideo:
-            Button { switchToVideoTab() } label: { label }
-            .buttonStyle(.plain)
+            Button(action: switchToVideoTab) { card }
+                .pressableCardStyle()
         case .screenshot:
             EmptyView()
         }
     }
 
-    private func cardLabel(type: CleanupGroup.GroupType, groups: [CleanupGroup]) -> some View {
-        HStack(spacing: 14) {
-            Image(systemName: iconForType(type))
-                .font(.title2)
-                .foregroundStyle(colorForType(type))
-                .frame(width: 44, height: 44)
-                .background(colorForType(type).opacity(0.15), in: RoundedRectangle(cornerRadius: Radius.thumb))
+    // MARK: - Actions
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(titleForType(type))
-                    .font(.headline)
-                    .foregroundStyle(.primary)
-                Text("\(countText(type, groups)) · \(sizeText(groups))")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-            }
+    private func resumeScan() {
+        Task { await viewModel.loadOrScan(services: services) }
+    }
 
-            Spacer()
+    private func rescan() {
+        Task { await viewModel.forceRescan(services: services) }
+    }
 
-            Image(systemName: type == .largeVideo ? "arrow.right.square" : "chevron.right")
-
-                .font(.subheadline)
-                .foregroundStyle(.tertiary)
-        }
-        .padding()
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: Radius.card))
+    private func switchToVideoTab() {
+        NotificationCenter.default.post(name: .switchTab, object: nil, userInfo: ["index": 1])
     }
 
     // MARK: - Helpers
@@ -190,53 +171,21 @@ struct QuickCleanView: View {
         }
     }
 
-    private func switchToVideoTab() {
-        NotificationCenter.default.post(name: .switchTab, object: nil, userInfo: ["index": 1])
-    }
-
-    private func iconForType(_ type: CleanupGroup.GroupType) -> String {
-        switch type {
-        case .waste: AppIcons.waste
-        case .similar: AppIcons.similar
-        case .burst: AppIcons.burst
-        case .screenshot: AppIcons.screenshot
-        case .largePhoto: AppIcons.largePhoto
-        case .largeVideo: AppIcons.video
-        }
-    }
-
-    private func colorForType(_ type: CleanupGroup.GroupType) -> Color {
-        switch type {
-        case .waste: .red
-        case .similar: .green
-        case .burst: .purple
-        case .screenshot: .orange
-        case .largePhoto: .indigo
-        case .largeVideo: .blue
-        }
-    }
-
-    private func titleForType(_ type: CleanupGroup.GroupType) -> String {
-        switch type {
-        case .waste: "废片"
-        case .similar: "相似照片"
-        case .burst: "连拍多余"
-        case .screenshot: "截图"
-        case .largePhoto: "超大照片"
-        case .largeVideo: "大视频"
+    private var totalSavableSize: Int64 {
+        sortedTypes.reduce(Int64(0)) { partial, entry in
+            partial + entry.1.reduce(Int64(0)) { $0 + $1.savableSize }
         }
     }
 
     private func countText(_ type: CleanupGroup.GroupType, _ groups: [CleanupGroup]) -> String {
         if type == .similar || type == .burst {
-            return "\(groups.count) 组"
+            return String(localized: "\(groups.count) 组")
         }
         let total = groups.reduce(0) { $0 + $1.items.count }
-        return "\(total) 项"
+        return String(localized: "\(total) 项")
     }
 
     private func sizeText(_ groups: [CleanupGroup]) -> String {
-        let total = groups.reduce(Int64(0)) { $0 + $1.savableSize }
-        return total.formattedFileSize
+        groups.reduce(Int64(0)) { $0 + $1.savableSize }.formattedFileSize
     }
 }

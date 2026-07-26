@@ -17,24 +17,32 @@ struct VideoListView: View {
                     EmptyState("视频", systemImage: AppIcons.video)
                 } else {
                     List {
-                        Section {
-                            HStack {
-                                Text("共 \(viewModel.sortedVideos.count) 个视频")
-                                Spacer()
-                                Text("占用 \(viewModel.totalVideoSize.formattedFileSize)")
-                                    .foregroundStyle(.secondary)
-                            }
-                            .font(.subheadline)
-                        }
+                        LibrarySummaryHeader(
+                            countText: String(localized: "\(viewModel.sortedVideos.count) 个视频"),
+                            sizeText: viewModel.totalVideoSize.formattedFileSize,
+                            systemImage: AppIcons.video,
+                            tint: Theme.video
+                        )
+                        .listRowInsets(EdgeInsets(top: Spacing.s, leading: Spacing.l,
+                                                  bottom: Spacing.m, trailing: Spacing.l))
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
 
                         ForEach(viewModel.sortedVideos) { video in
                             if isEditing {
                                 VideoRow(item: video, services: services, isSelected: viewModel.selectedVideos.contains(video.id))
+                                    .padding(.horizontal, Spacing.m)
+                                    .glassSurface(radius: Radius.row)
+                                    .contentShape(.rect)
                                     .onTapGesture { viewModel.toggleSelection(video.id) }
+                                    .cardListRow()
                             } else {
                                 NavigationLink(value: video.id) {
                                     VideoRow(item: video, services: services)
+                                        .padding(.horizontal, Spacing.m)
                                 }
+                                .glassSurface(radius: Radius.row)
+                                .cardListRow()
                                 .swipeActions(edge: .trailing) {
                                     Button(AppStrings.moveToTrash, role: .destructive) {
                                         if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
@@ -54,6 +62,7 @@ struct VideoListView: View {
                             }
                         }
                     }
+                    .cardListStyle()
                     .navigationDestination(for: String.self) { videoID in
                         if let video = viewModel.sortedVideos.first(where: { $0.id == videoID }) {
                             VideoCompressView(item: video)
@@ -152,64 +161,5 @@ struct VideoListView: View {
             .sheet(isPresented: $showPaywall) { PaywallView() }
             .sheet(isPresented: $showTrash) { GlobalTrashView() }
         }
-    }
-}
-
-private struct VideoRow: View {
-    let item: MediaItem
-    let services: AppServiceContainer
-    var isSelected: Bool = false
-    @State private var thumbnail: UIImage?
-
-    var body: some View {
-        HStack(spacing: 12) {
-            if isSelected {
-                Image(systemName: "checkmark.circle.fill")
-                    .foregroundStyle(.blue)
-                    .frame(width: 24)
-            }
-
-            Group {
-                if let thumbnail {
-                    Image(uiImage: thumbnail)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                } else {
-                    Image(systemName: "video.fill")
-                        .font(.title2)
-                        .foregroundStyle(.blue)
-                }
-            }
-            .frame(width: 60, height: 44)
-            .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
-            .background(.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: Radius.thumb))
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.creationDate?.formatted(date: .abbreviated, time: .shortened) ?? "未知日期")
-                    .font(.subheadline)
-                Text(item.resolution)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-
-            Spacer()
-
-            VStack(alignment: .trailing, spacing: 4) {
-                Text(item.fileSizeText)
-                    .font(.subheadline.bold())
-                Text(formatDuration(item.duration))
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-        }
-        .task {
-            thumbnail = await services.photoLibrary.thumbnail(for: item.asset, size: CGSize(width: 120, height: 88))
-        }
-    }
-
-    private func formatDuration(_ seconds: TimeInterval) -> String {
-        let mins = Int(seconds) / 60
-        let secs = Int(seconds) % 60
-        return String(format: "%d:%02d", mins, secs)
     }
 }

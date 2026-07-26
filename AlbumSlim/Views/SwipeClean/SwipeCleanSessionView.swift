@@ -15,9 +15,7 @@ struct SwipeCleanSessionView: View {
             header
 
             if viewModel.isLoading {
-                Spacer()
-                ProgressView()
-                Spacer()
+                LoadingState(AppStrings.loading)
             } else if viewModel.isFinished || viewModel.totalCount == 0 {
                 finishedState
             } else {
@@ -25,6 +23,7 @@ struct SwipeCleanSessionView: View {
                 actionBar
             }
         }
+        .background(Theme.background)
         .navigationTitle(bucket.title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -35,6 +34,7 @@ struct SwipeCleanSessionView: View {
                     Image(systemName: "arrow.uturn.backward")
                 }
                 .disabled(!viewModel.canUndo || isCommitting)
+                .accessibilityLabel("撤销上一步")
             }
         }
         .task {
@@ -51,56 +51,67 @@ struct SwipeCleanSessionView: View {
     // MARK: - 头部进度
 
     private var header: some View {
-        VStack(spacing: 6) {
-            ProgressView(value: viewModel.progress)
-                .tint(.accentColor)
+        VStack(spacing: Spacing.s) {
+            ZStack(alignment: .leading) {
+                Rectangle().fill(Theme.surfaceSunken)
+                Rectangle()
+                    .fill(Theme.accentGradient)
+                    .scaleEffect(x: min(max(viewModel.progress, 0), 1), y: 1, anchor: .leading)
+            }
+            .frame(height: 6)
+            .clipShape(.capsule)
+            .motion(Motion.standard, value: viewModel.progress)
+
             HStack {
                 Text(String(localized: "\(viewModel.processedCount) / \(viewModel.totalCount)"))
-                    .font(.caption.monospacedDigit())
-                    .foregroundStyle(.secondary)
+                    .font(AppFont.metricSmall)
+                    .foregroundStyle(Theme.textSecondary)
                 Spacer()
                 if viewModel.trashedSizeInSession > 0 {
-                    Label(viewModel.trashedSizeText, systemImage: "trash")
-                        .font(.caption.bold())
-                        .foregroundStyle(.red)
+                    MetaChip(text: viewModel.trashedSizeText, systemImage: "trash", tint: Theme.danger)
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .padding(.vertical, 12)
+        .padding(.horizontal, Spacing.xl)
+        .padding(.vertical, Spacing.m)
+        .accessibilityElement(children: .combine)
     }
 
     // MARK: - 卡片堆
 
     private var cardStack: some View {
-        GeometryReader { geo in
-            ZStack {
-                // 下一张垫在底下，制造纵深
-                if let upcoming = viewModel.upcoming {
-                    SwipeCard(
-                        image: viewModel.thumbnail(for: upcoming.id),
-                        offset: .zero,
-                        isTop: false
-                    )
-                    .scaleEffect(0.94)
-                    .opacity(0.6)
-                }
+        ZStack {
+            // 下一张垫在底下，制造纵深；再往下垫一层纯色，让"还有很多"这件事可见
+            RoundedRectangle(cornerRadius: Radius.hero)
+                .fill(Theme.surfaceSunken)
+                .scaleEffect(0.88)
+                .opacity(0.5)
+                .padding(.top, Spacing.m)
 
-                if let current = viewModel.current {
-                    SwipeCard(
-                        image: viewModel.thumbnail(for: current.id),
-                        offset: dragOffset,
-                        isTop: true
-                    )
-                    .gesture(dragGesture)
-                    .allowsHitTesting(!isCommitting)
-                    .id(current.id)
-                }
+            if let upcoming = viewModel.upcoming {
+                SwipeCard(
+                    image: viewModel.thumbnail(for: upcoming.id),
+                    offset: .zero,
+                    isTop: false
+                )
+                .scaleEffect(0.94)
+                .opacity(0.6)
             }
-            .frame(width: geo.size.width, height: geo.size.height)
+
+            if let current = viewModel.current {
+                SwipeCard(
+                    image: viewModel.thumbnail(for: current.id),
+                    offset: dragOffset,
+                    isTop: true
+                )
+                .gesture(dragGesture)
+                .allowsHitTesting(!isCommitting)
+                .id(current.id)
+            }
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 12)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.horizontal, Spacing.xl)
+        .padding(.bottom, Spacing.m)
     }
 
     private var dragGesture: some Gesture {
@@ -127,54 +138,69 @@ struct SwipeCleanSessionView: View {
     // MARK: - 底部按钮
 
     private var actionBar: some View {
-        HStack(spacing: 40) {
-            circleButton(icon: "trash.fill", tint: .red) { commit(.trash) }
+        HStack(spacing: Spacing.xxxl) {
+            circleButton(icon: "trash.fill", tint: Theme.danger, label: "删除") { commit(.trash) }
                 .disabled(isCommitting)
-            circleButton(icon: "checkmark", tint: .green) { commit(.keep) }
+            circleButton(icon: "checkmark", tint: Theme.success, label: "保留") { commit(.keep) }
                 .disabled(isCommitting)
         }
-        .padding(.bottom, 28)
+        .padding(.bottom, Spacing.xxl)
     }
 
-    private func circleButton(icon: String, tint: Color, action: @escaping () -> Void) -> some View {
+    private func circleButton(icon: String, tint: Color,
+                              label: LocalizedStringKey,
+                              action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.title2.bold())
-                .foregroundStyle(tint)
-                .frame(width: 64, height: 64)
-                .background(.ultraThinMaterial, in: Circle())
-                .overlay { Circle().strokeBorder(tint.opacity(0.35), lineWidth: 1.5) }
+            VStack(spacing: Spacing.s) {
+                Image(systemName: icon)
+                    .font(.title2.bold())
+                    .foregroundStyle(tint)
+                    .frame(width: 68, height: 68)
+                    .background(Circle().fill(.ultraThinMaterial))
+                    .overlay { Circle().strokeBorder(tint.opacity(0.45), lineWidth: 2) }
+                    .elevation(.card)
+                Text(label)
+                    .font(AppFont.label)
+                    .foregroundStyle(Theme.textSecondary)
+            }
         }
+        .buttonStyle(PressableCardStyle())
+        .accessibilityLabel(label)
     }
 
     // MARK: - 完成态
 
     private var finishedState: some View {
-        VStack(spacing: 16) {
+        VStack(spacing: Spacing.l) {
             Spacer()
-            Image(systemName: "checkmark.seal.fill")
-                .font(.system(size: 56))
-                .foregroundStyle(.green)
-            Text(String(localized: "这一堆清完了"))
-                .font(.title3.bold())
+            GlowIcon(systemImage: "checkmark.seal.fill", tint: Theme.success, size: 92)
+            Text("这一堆清完了")
+                .font(AppFont.screenTitle)
+                .foregroundStyle(Theme.textPrimary)
             if viewModel.trashedSizeInSession > 0 {
-                Text(String(localized: "本次可释放 \(viewModel.trashedSizeText)，去垃圾桶确认删除"))
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
+                Text(viewModel.trashedSizeText)
+                    .font(AppFont.display)
+                    .foregroundStyle(Theme.accentGradient)
+                Text("本次可释放，去垃圾桶确认删除")
+                    .font(AppFont.meta)
+                    .foregroundStyle(Theme.textSecondary)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
+                    .padding(.horizontal, Spacing.xxl)
             }
             Spacer()
-            Button(String(localized: "重新清理这一堆")) {
-                Task { await viewModel.restart(services: services) }
-            }
-            .font(.footnote)
-            .foregroundStyle(.secondary)
-            Button(String(localized: "完成")) { dismiss() }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .padding(.bottom, 28)
+            Button("重新清理这一堆", action: restart)
+                .font(AppFont.label)
+                .foregroundStyle(Theme.textSecondary)
+                .frame(minHeight: 44)
+            Button("完成") { dismiss() }
+                .primaryActionStyle()
+                .padding(.horizontal, Spacing.xl)
+                .padding(.bottom, Spacing.xxl)
         }
+    }
+
+    private func restart() {
+        Task { await viewModel.restart(services: services) }
     }
 
     // MARK: - 决策落地

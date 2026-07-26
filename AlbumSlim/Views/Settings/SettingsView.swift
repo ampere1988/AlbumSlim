@@ -26,16 +26,16 @@ struct SettingsView: View {
                     } label: {
                         HStack {
                             Image(systemName: AppIcons.trash)
-                                .foregroundStyle(.red)
+                                .foregroundStyle(Theme.danger)
                             Text("垃圾桶")
                             Spacer()
                             if !services.trash.trashedItems.isEmpty {
-                                Text(AppStrings.items(services.trash.trashedItems.count))
-                                    .foregroundStyle(.secondary)
+                                MetaChip(text: AppStrings.items(services.trash.trashedItems.count),
+                                         tint: Theme.danger)
                             }
                             Image(systemName: "chevron.right")
                                 .font(.footnote)
-                                .foregroundStyle(.tertiary)
+                                .foregroundStyle(Theme.textTertiary)
                         }
                     }
                     .foregroundStyle(.primary)
@@ -59,6 +59,8 @@ struct SettingsView: View {
 
                 legalSection
             }
+            .scrollContentBackground(.hidden)
+            .background(Theme.background)
             .navigationTitle("设置")
             .alert("通知权限未开启", isPresented: $showPermissionDenied) {
                 Button("去设置") {
@@ -98,21 +100,55 @@ struct SettingsView: View {
     // MARK: - 订阅
 
     private var subscriptionSection: some View {
-        Section("Pro") {
+        Section {
             if services.subscription.isPro {
-                HStack {
-                    Label("Pro 已激活", systemImage: "crown.fill")
-                        .foregroundStyle(.orange)
-                    Spacer()
+                HStack(spacing: Spacing.m) {
+                    GlowIcon(systemImage: "crown.fill", tint: Theme.warning, size: 44)
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Pro 已激活")
+                            .font(AppFont.rowTitle)
+                            .foregroundStyle(Theme.textPrimary)
+                        Text("所有清理功能已解锁")
+                            .font(AppFont.label)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                    Spacer(minLength: 0)
                     Image(systemName: "checkmark.circle.fill")
-                        .foregroundStyle(.green)
+                        .foregroundStyle(Theme.success)
                 }
+                .padding(.vertical, Spacing.xs)
+                .accessibilityElement(children: .combine)
             } else {
+                // 未解锁时把入口做成一张渐变卡：它是这一页唯一的商业动作
                 Button {
                     showPaywall = true
                 } label: {
-                    Label("解锁 Pro", systemImage: "crown")
+                    HStack(spacing: Spacing.m) {
+                        Image(systemName: "crown.fill")
+                            .font(.title3)
+                            .foregroundStyle(Theme.textOnAccent)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("解锁 Pro")
+                                .font(AppFont.rowTitle.bold())
+                            Text("一次购买，永久解锁全部清理功能")
+                                .font(AppFont.label)
+                                .opacity(0.85)
+                        }
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.right")
+                            .font(.footnote.weight(.semibold))
+                    }
+                    .foregroundStyle(Theme.textOnAccent)
+                    .padding(Spacing.l)
+                    .background {
+                        RoundedRectangle(cornerRadius: Radius.row)
+                            .fill(Theme.accentGradient)
+                    }
                 }
+                .buttonStyle(PressableCardStyle())
+                .listRowInsets(EdgeInsets(top: Spacing.s, leading: Spacing.l,
+                                          bottom: Spacing.s, trailing: Spacing.l))
+                .listRowBackground(Color.clear)
             }
 
             Button("恢复购买") {

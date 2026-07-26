@@ -13,56 +13,65 @@ struct BurstPhotosView: View {
             if isLoading {
                 LoadingState(AppStrings.scanning)
             } else if burstGroups.isEmpty {
-                EmptyState("连拍照片", systemImage: AppIcons.burst) {
+                EmptyState("连拍照片", systemImage: AppIcons.burst, tint: Theme.burst) {
                     Button("开始扫描") {
                         Task { await loadBursts() }
                     }
-                    .buttonStyle(.borderedProminent)
+                    .primaryActionStyle()
+                    .frame(maxWidth: 240)
                 }
             } else {
                 List {
                     ForEach(Array(burstGroups.enumerated()), id: \.element.id) { index, group in
                         Section {
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 6) {
-                                    ForEach(group.items) { item in
-                                        BurstThumbnail(
-                                            item: item,
-                                            isBest: item.id == group.bestItemID,
-                                            services: services
-                                        )
+                            VStack(spacing: Spacing.m) {
+                                ScrollView(.horizontal) {
+                                    HStack(spacing: Spacing.s) {
+                                        ForEach(group.items) { item in
+                                            BurstThumbnail(
+                                                item: item,
+                                                isBest: item.id == group.bestItemID,
+                                                services: services
+                                            )
+                                        }
                                     }
                                 }
-                                .padding(.vertical, 4)
-                            }
+                                .scrollIndicators(.hidden)
 
-                            Button {
-                                if ProFeatureGate.canClean(isPro: services.subscription.isPro) {
-                                    keepOnlyBest(id: group.id)
-                                } else {
-                                    Haptics.proGate()
-                                    services.toast.proRequired()
-                                    showPaywall = true
+                                Button {
+                                    keepOnlyBestGated(group: group)
+                                } label: {
+                                    Label("只保留最佳", systemImage: AppIcons.checkmarkCircle)
+                                        .font(AppFont.label.bold())
+                                        .foregroundStyle(Theme.danger)
+                                        .frame(maxWidth: .infinity, minHeight: 44)
+                                        .background {
+                                            RoundedRectangle(cornerRadius: Radius.row)
+                                                .fill(Theme.dangerMuted)
+                                        }
                                 }
-                            } label: {
-                                Label("只保留最佳", systemImage: AppIcons.checkmarkCircle)
+                                .buttonStyle(PressableCardStyle())
                             }
-                            .font(.footnote)
-                            .foregroundStyle(.red)
+                            .padding(Spacing.m)
+                            .glassSurface()
+                            .cardListRow()
                         } header: {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("连拍组 · \(group.items.count) 张 · 可省 \(group.savableSize.formattedFileSize)")
-                                if let date = group.items.first?.creationDate {
-                                    Text(date.formatted(date: .abbreviated, time: .shortened))
-                                        .font(.caption2)
-                                        .foregroundStyle(.secondary)
-                                }
-                            }
+                            PhotoGroupHeader(
+                                index: index,
+                                count: group.items.count,
+                                savableSize: group.savableSize,
+                                subtitle: group.items.first?.creationDate?
+                                    .formatted(date: .abbreviated, time: .shortened),
+                                tint: Theme.burst
+                            )
+                            .cardListRow()
                         }
                     }
                 }
+                .cardListStyle()
             }
         }
+        .background(Theme.background)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 TrashToolbarButton(count: services.trash.trashedItems.count) {
@@ -124,6 +133,16 @@ struct BurstPhotosView: View {
         coordinator.markCategoryScanned(.burst, libraryVersion: version)
     }
 
+    private func keepOnlyBestGated(group: CleanupGroup) {
+        guard ProFeatureGate.canClean(isPro: services.subscription.isPro) else {
+            Haptics.proGate()
+            services.toast.proRequired()
+            showPaywall = true
+            return
+        }
+        keepOnlyBest(id: group.id)
+    }
+
     private func keepOnlyBest(id: UUID) {
         guard let group = burstGroups.first(where: { $0.id == id }) else { return }
         let toDelete = group.items.filter { $0.id != group.bestItemID }
@@ -136,57 +155,6 @@ struct BurstPhotosView: View {
         services.toast.movedToTrash(batch.ids.count, freed: batch.totalSize) { [weak services] in
             services?.trash.restore(batch.ids)
             services?.toast.restored(batch.ids.count)
-        }
-    }
-}
-
-private struct BurstThumbnail: View {
-    let item: MediaItem
-    let isBest: Bool
-    let services: AppServiceContainer
-    @State private var image: UIImage?
-
-    var body: some View {
-        ZStack(alignment: .topTrailing) {
-            if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-                    .frame(width: 100, height: 100)
-                    .clipped()
-            } else {
-                Rectangle().fill(.quaternary)
-                    .frame(width: 100, height: 100)
-                    .overlay { ProgressView() }
-            }
-
-            if isBest {
-                Image(systemName: "star.fill")
-                    .font(.caption)
-                    .padding(4)
-                    .background(.yellow, in: Circle())
-                    .padding(4)
-            }
-
-            VStack {
-                Spacer()
-                Text(item.fileSizeText)
-                    .font(.caption2)
-                    .padding(.horizontal, 3)
-                    .padding(.vertical, 1)
-                    .background(.ultraThinMaterial, in: Capsule())
-                    .padding(3)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
-        .overlay {
-            if isBest {
-                RoundedRectangle(cornerRadius: Radius.thumb).stroke(.yellow, lineWidth: 2)
-            }
-        }
-        .task {
-            image = await services.photoLibrary.thumbnail(for: item.asset, size: CGSize(width: 200, height: 200))
         }
     }
 }

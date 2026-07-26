@@ -22,7 +22,8 @@ struct VideoSuggestionsView: View {
             if viewModel.isAnalyzingSuggestions {
                 ProgressLoadingState(phase: AppStrings.scanning, progress: 0.5)
             } else if viewModel.suggestions.isEmpty {
-                EmptyState("清理建议", systemImage: AppIcons.checkmarkCircle, description: "暂无可清理的视频")
+                EmptyState("清理建议", systemImage: AppIcons.checkmarkCircle,
+                           description: "暂无可清理的视频", tint: Theme.success)
             } else {
                 List {
                     savingBanner
@@ -31,12 +32,17 @@ struct VideoSuggestionsView: View {
                         Section {
                             ForEach(items) { suggestion in
                                 suggestionRow(suggestion)
+                                    .padding(Spacing.m)
+                                    .glassSurface(radius: Radius.row)
+                                    .cardListRow()
                             }
                         } header: {
-                            Label(type.localizedName, systemImage: type.icon)
+                            SectionHeader(title: LocalizedStringKey(type.localizedName), tint: Theme.video)
+                                .cardListRow()
                         }
                     }
                 }
+                .cardListStyle()
                 .safeAreaInset(edge: .bottom) {
                     if isEditing && !selectedIDs.isEmpty {
                         ActionBar {
@@ -45,7 +51,6 @@ struct VideoSuggestionsView: View {
                                 Task { await compressSelected() }
                             } label: {
                                 Text("压缩 \(AppStrings.items(selectedIDs.count))")
-                                    .frame(maxWidth: .infinity)
                             }
                             .secondaryActionStyle()
 
@@ -69,7 +74,6 @@ struct VideoSuggestionsView: View {
                                 }
                             } label: {
                                 Text("\(AppStrings.moveToTrash) \(AppStrings.items(selectedIDs.count))")
-                                    .frame(maxWidth: .infinity)
                             }
                             .primaryActionStyle(destructive: true)
                         }
@@ -77,6 +81,7 @@ struct VideoSuggestionsView: View {
                 }
             }
         }
+        .background(Theme.background)
         .navigationTitle("清理建议")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -107,56 +112,62 @@ struct VideoSuggestionsView: View {
     }
 
     private var savingBanner: some View {
-        Section {
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("可优化空间")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                    Text(viewModel.totalSuggestedSaving.formattedFileSize)
-                        .font(.title2.bold())
-                }
-                Spacer()
-                Text("\(viewModel.suggestions.count) 条建议")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
+        HStack {
+            VStack(alignment: .leading, spacing: Spacing.xs) {
+                Text("可优化空间")
+                    .font(AppFont.label)
+                    .foregroundStyle(Theme.textSecondary)
+                Text(viewModel.totalSuggestedSaving.formattedFileSize)
+                    .font(AppFont.metric)
+                    .foregroundStyle(Theme.accentGradient)
             }
+            Spacer(minLength: 0)
+            MetaChip(text: String(localized: "\(viewModel.suggestions.count) 条建议"),
+                     systemImage: "lightbulb", tint: Theme.warning)
         }
+        .padding(Spacing.l)
+        .glassSurface()
+        .listRowInsets(EdgeInsets(top: Spacing.s, leading: Spacing.l,
+                                  bottom: Spacing.m, trailing: Spacing.l))
+        .listRowBackground(Color.clear)
+        .listRowSeparator(.hidden)
+        .accessibilityElement(children: .combine)
     }
 
     private func suggestionRow(_ suggestion: VideoAnalysisService.VideoSuggestion) -> some View {
         HStack(spacing: 12) {
             if isEditing {
                 Image(systemName: selectedIDs.contains(suggestion.id) ? "checkmark.circle.fill" : "circle")
-                    .foregroundStyle(selectedIDs.contains(suggestion.id) ? .blue : .secondary)
-                    .frame(width: 24)
+                    .font(.title3)
+                    .foregroundStyle(selectedIDs.contains(suggestion.id) ? Theme.accent : Theme.textTertiary)
+                    .frame(width: 28)
                     .onTapGesture { toggleSelection(suggestion.id) }
             }
 
-            VideoThumbnail(asset: suggestion.item.asset, services: services)
+            AssetThumbnail(asset: suggestion.item.asset, services: services,
+                           targetSize: CGSize(width: 200, height: 140))
+                .frame(width: 76, height: 52)
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(suggestion.item.creationDate?.formatted(date: .abbreviated, time: .shortened) ?? "未知日期")
-                    .font(.subheadline)
-                HStack(spacing: 6) {
-                    Text(suggestion.reason)
-                        .font(.caption)
-                        .foregroundStyle(.orange)
-                        .lineLimit(1)
-                }
+            VStack(alignment: .leading, spacing: Spacing.s) {
+                Text(suggestion.item.creationDate?.formatted(date: .abbreviated, time: .shortened)
+                     ?? String(localized: "未知日期"))
+                    .font(AppFont.rowTitle)
+                    .foregroundStyle(Theme.textPrimary)
+                MetaChip(text: suggestion.reason, tint: Theme.warning)
             }
 
-            Spacer()
+            Spacer(minLength: 0)
 
-            VStack(alignment: .trailing, spacing: 4) {
+            VStack(alignment: .trailing, spacing: Spacing.xs) {
                 Text(suggestion.item.fileSizeText)
-                    .font(.subheadline.bold())
+                    .font(AppFont.metricSmall)
+                    .foregroundStyle(Theme.textPrimary)
                 Text("可省 \(suggestion.estimatedSaving.formattedFileSize)")
-                    .font(.caption)
-                    .foregroundStyle(.green)
+                    .font(AppFont.label)
+                    .foregroundStyle(Theme.success)
             }
         }
-        .contentShape(Rectangle())
+        .contentShape(.rect)
         .onTapGesture {
             if isEditing { toggleSelection(suggestion.id) }
         }
@@ -179,31 +190,5 @@ struct VideoSuggestionsView: View {
         isEditing = false
         await viewModel.loadVideos(services: services)
         await viewModel.analyzeSuggestions(services: services)
-    }
-}
-
-private struct VideoThumbnail: View {
-    let asset: PHAsset
-    let services: AppServiceContainer
-    @State private var thumbnail: UIImage?
-
-    var body: some View {
-        Group {
-            if let thumbnail {
-                Image(uiImage: thumbnail)
-                    .resizable()
-                    .aspectRatio(contentMode: .fill)
-            } else {
-                Image(systemName: "video.fill")
-                    .font(.title2)
-                    .foregroundStyle(.blue)
-            }
-        }
-        .frame(width: 60, height: 44)
-        .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
-        .background(.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: Radius.thumb))
-        .task {
-            thumbnail = await services.photoLibrary.thumbnail(for: asset, size: CGSize(width: 120, height: 88))
-        }
     }
 }

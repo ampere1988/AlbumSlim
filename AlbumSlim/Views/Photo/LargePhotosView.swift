@@ -24,30 +24,42 @@ struct LargePhotosView: View {
             if isLoading {
                 LoadingState(AppStrings.scanning)
             } else if allPhotos.isEmpty {
-                EmptyState("超大照片", systemImage: AppIcons.largePhoto, description: "没有超过 \(thresholdMB) MB 的照片") {
-                    VStack(spacing: 12) {
+                EmptyState("超大照片", systemImage: AppIcons.largePhoto,
+                           description: "没有超过 \(thresholdMB) MB 的照片",
+                           tint: Theme.accentSecondary) {
+                    VStack(spacing: Spacing.m) {
                         thresholdPicker
                         Button("开始扫描") {
                             Task { await loadAllPhotos() }
                         }
                         .primaryActionStyle()
+                        .frame(maxWidth: 240)
                     }
                 }
             } else if largePhotos.isEmpty {
-                EmptyState("超大照片", systemImage: AppIcons.largePhoto, description: "没有超过 \(thresholdMB) MB 的照片，试试降低阈值") {
+                EmptyState("超大照片", systemImage: AppIcons.largePhoto,
+                           description: "没有超过 \(thresholdMB) MB 的照片，试试降低阈值",
+                           tint: Theme.accentSecondary) {
                     thresholdPicker
                 }
             } else {
                 List {
-                    Section {
-                        thresholdPicker
+                    HStack {
+                        LibrarySummaryHeader(
+                            countText: String(localized: "\(largePhotos.count) 张超大照片"),
+                            sizeText: totalSize.formattedFileSize,
+                            systemImage: AppIcons.largePhoto,
+                            tint: Theme.accentSecondary
+                        )
                     }
+                    .listRowInsets(EdgeInsets(top: Spacing.s, leading: Spacing.l,
+                                              bottom: Spacing.s, trailing: Spacing.l))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
 
-                    Section {
-                        Text("共 \(largePhotos.count) 张 · \(totalSize.formattedFileSize)")
-                            .font(.footnote)
-                            .foregroundStyle(.secondary)
-                    }
+                    thresholdPicker
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .cardListRow()
 
                     ForEach(largePhotos) { item in
                         LargePhotoRow(
@@ -58,8 +70,12 @@ struct LargePhotosView: View {
                         ) {
                             toggleSelection(item.id)
                         }
+                        .padding(Spacing.m)
+                        .glassSurface(radius: Radius.row)
+                        .cardListRow()
                     }
                 }
+                .cardListStyle()
                 .safeAreaInset(edge: .bottom) {
                     if isEditing && !selectedIDs.isEmpty {
                         let savableBytes = largePhotos
@@ -87,7 +103,6 @@ struct LargePhotosView: View {
                                 isEditing = false
                             } label: {
                                 Text("\(AppStrings.moveToTrash) \(AppStrings.items(selectedIDs.count)) · \(AppStrings.releasable(savableBytes))")
-                                    .frame(maxWidth: .infinity)
                             }
                             .primaryActionStyle(destructive: true)
                         }
@@ -95,6 +110,7 @@ struct LargePhotosView: View {
                 }
             }
         }
+        .background(Theme.background)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 TrashToolbarButton(count: services.trash.trashedItems.count) {
@@ -140,7 +156,11 @@ struct LargePhotosView: View {
             }
         } label: {
             Label("≥ \(thresholdMB) MB", systemImage: "line.3.horizontal.decrease.circle")
-                .font(.footnote)
+                .font(AppFont.label.bold())
+                .foregroundStyle(Theme.accent)
+                .padding(.horizontal, Spacing.m)
+                .frame(height: 36)
+                .background(Capsule().fill(Theme.accentMuted))
         }
     }
 
@@ -189,59 +209,5 @@ struct LargePhotosView: View {
             coordinator.addGroups([group])
         }
         coordinator.markCategoryScanned(.largePhoto, libraryVersion: version)
-    }
-}
-
-private struct LargePhotoRow: View {
-    let item: MediaItem
-    let isSelected: Bool
-    let isEditing: Bool
-    let services: AppServiceContainer
-    let onTap: () -> Void
-    @State private var image: UIImage?
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ZStack(alignment: .bottomLeading) {
-                if let image {
-                    Image(uiImage: image)
-                        .resizable()
-                        .aspectRatio(contentMode: .fill)
-                        .frame(width: 72, height: 72)
-                        .clipped()
-                } else {
-                    Rectangle().fill(.quaternary)
-                        .frame(width: 72, height: 72)
-                        .overlay { ProgressView() }
-                }
-            }
-            .clipShape(RoundedRectangle(cornerRadius: Radius.thumb))
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.fileSizeText)
-                    .font(.headline)
-                Text(item.resolution)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                if let date = item.creationDate {
-                    Text(date.formatted(date: .abbreviated, time: .shortened))
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                }
-            }
-
-            Spacer()
-
-            if isEditing {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.title2)
-                    .foregroundStyle(isSelected ? .red : .secondary)
-            }
-        }
-        .contentShape(Rectangle())
-        .onTapGesture { if isEditing { onTap() } }
-        .task {
-            image = await services.photoLibrary.thumbnail(for: item.asset, size: CGSize(width: 200, height: 200))
-        }
     }
 }
