@@ -1,5 +1,4 @@
 import Foundation
-import SwiftData
 
 enum WasteReason: String, Codable {
     case pureBlack    // 纯黑
@@ -18,9 +17,8 @@ enum PhotoQuality: String, Codable, Comparable {
     }
 }
 
-@Model
 final class CachedAnalysis {
-    @Attribute(.unique) var assetIdentifier: String
+    let assetIdentifier: String
     var isWaste: Bool
     var wasteReason: WasteReason?
     var qualityScore: Float

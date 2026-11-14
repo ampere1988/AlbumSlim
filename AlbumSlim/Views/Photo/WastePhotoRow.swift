@@ -12,25 +12,31 @@ struct WastePhotoRow: View {
 
     var body: some View {
         HStack(spacing: Spacing.m) {
-            if isEditing {
-                Button(action: onToggle) {
-                    Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                        .font(.title3)
-                        .foregroundStyle(isSelected ? Theme.accent : Theme.textTertiary)
-                        .frame(width: 44, height: 44)
-                        .contentShape(.rect)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(isSelected ? "取消选择" : "选择")
-            }
-
             AssetThumbnail(asset: item.asset, services: services,
-                           targetSize: CGSize(width: 160, height: 160))
-                .frame(width: 64, height: 64)
+                           targetSize: CGSize(width: 280, height: 280))
+                .frame(width: 112, height: 112)
+                .overlay(alignment: .topTrailing) {
+                    if isEditing {
+                        Image(systemName: isSelected ? "checkmark" : "circle")
+                            .font(.caption.bold())
+                            .foregroundStyle(.white)
+                            .frame(width: 28, height: 28)
+                            .background(Circle().fill(isSelected ? Theme.accent : .black.opacity(0.38)))
+                            .overlay {
+                                if !isSelected {
+                                    Circle().strokeBorder(.white.opacity(0.8), lineWidth: 1)
+                                }
+                            }
+                            .padding(Spacing.s)
+                    }
+                }
                 .overlay {
                     RoundedRectangle(cornerRadius: Radius.thumb)
-                        .strokeBorder(Theme.hairline, lineWidth: 1)
+                        .strokeBorder(isSelected ? Theme.accent : Theme.hairline,
+                                      lineWidth: isSelected ? 3 : 1)
                 }
+                .scaleEffect(isSelected ? 0.985 : 1)
+                .motion(Motion.standard, value: isSelected)
 
             VStack(alignment: .leading, spacing: Spacing.s) {
                 if let reason {
@@ -39,6 +45,11 @@ struct WastePhotoRow: View {
                 Text(item.fileSizeText)
                     .font(AppFont.metricSmall)
                     .foregroundStyle(Theme.textPrimary)
+                if let date = item.creationDate {
+                    Text(date.formatted(date: .abbreviated, time: .shortened))
+                        .font(AppFont.label)
+                        .foregroundStyle(Theme.textTertiary)
+                }
             }
 
             Spacer(minLength: 0)
@@ -48,10 +59,12 @@ struct WastePhotoRow: View {
                     .font(AppFont.label.bold())
                     .foregroundStyle(Theme.textSecondary)
                     .padding(.horizontal, Spacing.m)
-                    .frame(height: 34)
+                    .frame(height: 38)
                     .background(Capsule().fill(Theme.surfaceSunken))
+                    .buttonStyle(.plain)
             }
         }
+        .frame(minHeight: 112)
         .contentShape(.rect)
         .onTapGesture {
             if isEditing { onToggle() }

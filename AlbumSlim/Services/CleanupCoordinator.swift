@@ -14,6 +14,8 @@ final class CleanupCoordinator {
     }
 
     private static let scannedVersionsKey = "CleanupCoordinator.scannedVersions"
+    private static let maximumPersistedGroupBytes = 256 * 1024
+    private var canPersistScanState = true
 
     func isCategoryFresh(_ type: CleanupGroup.GroupType, libraryVersion: Int) -> Bool {
         scannedVersions[type] == libraryVersion
@@ -36,7 +38,18 @@ final class CleanupCoordinator {
     }
 
     func restoreScannedVersions() {
-        guard let dict = UserDefaults.standard.dictionary(forKey: Self.scannedVersionsKey) as? [String: Int] else { return }
+        let defaults = UserDefaults.standard
+        guard let skeletonData = defaults.data(forKey: Self.groupSkeletonsKey),
+              skeletonData.count <= Self.maximumPersistedGroupBytes,
+              (try? JSONDecoder().decode([GroupSkeleton].self, from: skeletonData)) != nil
+        else {
+            defaults.removeObject(forKey: Self.groupSkeletonsKey)
+            defaults.removeObject(forKey: Self.scannedVersionsKey)
+            canPersistScanState = false
+            return
+        }
+
+        guard let dict = defaults.dictionary(forKey: Self.scannedVersionsKey) as? [String: Int] else { return }
         var restored: [CleanupGroup.GroupType: Int] = [:]
         for (key, value) in dict {
             if let type = CleanupGroup.GroupType(rawValue: key) {
@@ -47,6 +60,10 @@ final class CleanupCoordinator {
     }
 
     private func persistScannedVersions() {
+        guard canPersistScanState else {
+            UserDefaults.standard.removeObject(forKey: Self.scannedVersionsKey)
+            return
+        }
         let dict = Dictionary(uniqueKeysWithValues: scannedVersions.map { ($0.key.rawValue, $0.value) })
         UserDefaults.standard.set(dict, forKey: Self.scannedVersionsKey)
     }
@@ -60,6 +77,15 @@ final class CleanupCoordinator {
         let incomingTypes = Set(groups.map(\.type))
         pendingGroups.removeAll { incomingTypes.contains($0.type) }
         pendingGroups.append(contentsOf: groups)
+        recalculateSavable()
+        persistGroupSkeletons()
+    }
+
+    /// 用一次扫描的完整结果替换指定分类。空数组也会清掉旧结果，
+    /// 让“已扫描但没有发现内容”同样可以被缓存。
+    func replaceGroups(_ groups: [CleanupGroup], ofType type: CleanupGroup.GroupType) {
+        pendingGroups.removeAll { $0.type == type }
+        pendingGroups.append(contentsOf: groups.filter { $0.type == type })
         recalculateSavable()
         persistGroupSkeletons()
     }
@@ -101,7 +127,16 @@ final class CleanupCoordinator {
             )
         }
         guard let data = try? JSONEncoder().encode(skeletons) else { return }
-        UserDefaults.standard.set(data, forKey: Self.groupSkeletonsKey)
+        if data.count <= Self.maximumPersistedGroupBytes {
+            canPersistScanState = true
+            UserDefaults.standard.set(data, forKey: Self.groupSkeletonsKey)
+            persistScannedVersions()
+        } else {
+            // 分组只是一份可重建缓存，绝不允许它随相册规模无限增长。
+            canPersistScanState = false
+            UserDefaults.standard.removeObject(forKey: Self.groupSkeletonsKey)
+            UserDefaults.standard.removeObject(forKey: Self.scannedVersionsKey)
+        }
     }
 
     /// 从持久化骨架恢复分组，通过 PHAsset.localIdentifier 重建完整对象
@@ -217,8 +252,8 @@ final class CleanupCoordinator {
     private(set) var scanPhase: ScanPhase = .done
     private(set) var scanProgress: Double = 0
 
-    /// 纯分析：废片检测 + 特征向量提取，写入 SwiftData 缓存，支持断点续传
-    /// 后台安全：不持有 CleanupGroup / PHAsset 引用
+    /// 纯分析：废片检测写入有硬上限的轻量缓存，支持批次级续扫。
+    /// 相似度特征向量仅在构建分组时临时计算，不做全库持久化。
     func backgroundAnalyze(services: AppServiceContainer) async {
         let photoLibrary = services.photoLibrary
         let engine = services.aiEngine
@@ -278,57 +313,20 @@ final class CleanupCoordinator {
                     }
                 }
                 cache.batchSave()
-                scanProgress = Double(batchEnd) / Double(photoTotal) * 0.5
+                scanProgress = Double(batchEnd) / Double(photoTotal)
                 progress.lastUpdatedAt = .now
                 progress.save()
                 await Task.yield()
             }
 
-            // 进入下一阶段
-            progress.phase = .similar
+            // 特征向量体积很大，只在真正构建相似组时按时间窗口临时计算，
+            // 不再为整套照片库预生成并落盘。
+            progress.phase = .done
             progress.save()
         }
 
-        // Phase 2: 特征向量提取
+        // 兼容旧版本停留在 feature-print 阶段的进度。
         if progress.phase == .similar {
-            scanPhase = .similar
-            let photoFetch = photoLibrary.fetchAllAssets(mediaType: .image)
-            let photoTotal = photoFetch.count
-
-            for batchStart in stride(from: 0, to: photoTotal, by: batchSize) {
-                if Task.isCancelled { progress.save(); return }
-
-                let batchEnd = min(batchStart + batchSize, photoTotal)
-
-                for i in batchStart..<batchEnd {
-                    if Task.isCancelled { progress.save(); return }
-
-                    let asset = photoFetch.object(at: i)
-                    let assetID = asset.localIdentifier
-
-                    if cache.featurePrintData(for: assetID) != nil { continue }
-
-                    if let image = await photoLibrary.thumbnail(for: asset, size: thumbSize) {
-                        if let cgImage = image.cgImage {
-                            let fpData: Data? = await Task.detached {
-                                autoreleasepool {
-                                    guard let fp = engine.featurePrint(for: cgImage) else { return nil as Data? }
-                                    return try? NSKeyedArchiver.archivedData(withRootObject: fp, requiringSecureCoding: true)
-                                }
-                            }.value
-                            if let fpData {
-                                cache.saveFeaturePrint(assetID: assetID, data: fpData)
-                            }
-                        }
-                    }
-                }
-                cache.batchSave()
-                scanProgress = 0.5 + Double(batchEnd) / Double(photoTotal) * 0.5
-                progress.lastUpdatedAt = .now
-                progress.save()
-                await Task.yield()
-            }
-
             progress.phase = .done
             progress.save()
         }
@@ -339,7 +337,7 @@ final class CleanupCoordinator {
 
     // MARK: - 按分类构建清理分组
 
-    /// 废片（从 SwiftData 缓存读取）
+    /// 废片（从轻量分析缓存读取）
     private func buildWasteGroups(services: AppServiceContainer) async -> [CleanupGroup] {
         let cache = services.analysisCache
         let photoLibrary = services.photoLibrary

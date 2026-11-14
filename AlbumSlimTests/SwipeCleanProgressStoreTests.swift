@@ -60,4 +60,22 @@ final class SwipeCleanProgressStoreTests: XCTestCase {
         XCTAssertFalse(store.isKept("a"))
         XCTAssertTrue(store.isKept("b"))
     }
+
+    func testBucketSnapshotCanRoundTripThroughJSON() throws {
+        let bucket = SwipeCleanBucket(
+            id: "month-2026-7",
+            kind: .month(year: 2026, month: 7),
+            title: "2026年7月",
+            assetIDs: ["asset-1", "asset-2"],
+            totalSize: 1_024
+        )
+
+        let data = try JSONEncoder().encode(bucket)
+        let decoded = try JSONDecoder().decode(SwipeCleanBucket.self, from: data)
+
+        XCTAssertEqual(decoded.id, bucket.id)
+        XCTAssertEqual(decoded.kind, bucket.kind)
+        XCTAssertEqual(decoded.assetIDs, bucket.assetIDs)
+        XCTAssertEqual(decoded.totalSize, bucket.totalSize)
+    }
 }

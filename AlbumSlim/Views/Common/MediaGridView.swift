@@ -7,7 +7,11 @@ struct MediaGridView: View {
     var isSelectable: Bool = false
     var selection: Binding<Set<String>>?
 
-    private let columns = [GridItem(.adaptive(minimum: 104), spacing: Spacing.s)]
+    /// 两列让相似照片保留足够的脸部和文字细节，用户无需打开详情就能判断。
+    private let columns = [
+        GridItem(.flexible(), spacing: Spacing.s),
+        GridItem(.flexible(), spacing: Spacing.s)
+    ]
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: Spacing.s) {

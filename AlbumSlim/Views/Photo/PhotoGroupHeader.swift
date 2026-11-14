@@ -23,6 +23,8 @@ struct PhotoGroupHeader: View {
                 Text("\(count) 张")
                     .font(AppFont.rowTitle)
                     .foregroundStyle(Theme.textPrimary)
+                    .contentTransition(.numericText())
+                    .motion(Motion.standard, value: count)
                 if let subtitle {
                     Text(subtitle)
                         .font(AppFont.label)
@@ -34,6 +36,8 @@ struct PhotoGroupHeader: View {
 
             MetaChip(text: String(localized: "可省 \(savableSize.formattedFileSize)"),
                      systemImage: "arrow.down.circle", tint: tint)
+                .contentTransition(.numericText())
+                .motion(Motion.standard, value: savableSize)
         }
         .textCase(nil)
         .accessibilityElement(children: .combine)

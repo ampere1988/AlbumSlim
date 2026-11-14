@@ -30,7 +30,12 @@ struct VideoListView: View {
 
                         ForEach(viewModel.sortedVideos) { video in
                             if isEditing {
-                                VideoRow(item: video, services: services, isSelected: viewModel.selectedVideos.contains(video.id))
+                                VideoRow(
+                                    item: video,
+                                    services: services,
+                                    isEditing: true,
+                                    isSelected: viewModel.selectedVideos.contains(video.id)
+                                )
                                     .padding(.horizontal, Spacing.m)
                                     .glassSurface(radius: Radius.row)
                                     .contentShape(.rect)

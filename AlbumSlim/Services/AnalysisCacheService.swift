@@ -1,129 +1,194 @@
 import Foundation
-import SwiftData
 
 @MainActor
 final class AnalysisCacheService {
-    private let modelContainer: ModelContainer
-    private let modelContext: ModelContext
+    /// 可重建的分析结果只写入系统可随时回收的 Caches 目录，并严格限制文件体积。
+    /// Vision feature print 体积远大于分类结果，因此只保留在本次运行的内存 LRU 中。
+    private struct StoredAnalysis: Codable {
+        let assetIdentifier: String
+        let isWaste: Bool
+        let wasteReason: WasteReason?
+        let analyzedAt: Date
+
+        init(_ analysis: CachedAnalysis) {
+            assetIdentifier = analysis.assetIdentifier
+            isWaste = analysis.isWaste
+            wasteReason = analysis.wasteReason
+            analyzedAt = analysis.analyzedAt
+        }
+
+        func makeAnalysis() -> CachedAnalysis {
+            let analysis = CachedAnalysis(assetIdentifier: assetIdentifier)
+            analysis.isWaste = isWaste
+            analysis.wasteReason = wasteReason
+            analysis.analyzedAt = analyzedAt
+            return analysis
+        }
+    }
+
+    private static let cacheFileName = "analysis-results-v2.plist"
+    private static let maximumDiskBytes = 768 * 1024
+    private static let maximumStoredEntries = 8_000
+    private static let maximumFeaturePrintEntries = 256
+
+    private let cacheURL: URL?
+    private var analyses: [String: CachedAnalysis] = [:]
+    private var featurePrints: [String: Data] = [:]
+    private var featurePrintOrder: [String] = []
     private var pendingChanges = 0
-    private let autoSaveThreshold = 50
+    private let autoSaveThreshold = 500
 
     init() {
-        let schema = Schema([CachedAnalysis.self])
-        let diskConfig = ModelConfiguration(isStoredInMemoryOnly: false)
-        if let container = try? ModelContainer(for: schema, configurations: [diskConfig]) {
-            self.modelContainer = container
+        let fileManager = FileManager.default
+        if let directory = fileManager.urls(for: .cachesDirectory, in: .userDomainMask).first {
+            try? fileManager.createDirectory(at: directory, withIntermediateDirectories: true)
+            self.cacheURL = directory.appendingPathComponent(Self.cacheFileName)
         } else {
-            // 磁盘存储初始化失败（存储异常/迁移冲突等）时，降级为内存存储，避免启动崩溃。
-            // 本次会话内缓存不持久化，下次启动会重试磁盘。
-            let memoryConfig = ModelConfiguration(isStoredInMemoryOnly: true)
-            self.modelContainer = try! ModelContainer(for: schema, configurations: [memoryConfig])
+            self.cacheURL = nil
         }
-        self.modelContext = ModelContext(modelContainer)
+
+        Self.removeLegacySwiftDataStore(using: fileManager)
+        load()
+        // 结果文件有硬上限，不能把上次的“全库已完成”进度带到新进程。
+        // 重置后仍会跳过已缓存项，并补齐因空间预算未落盘的照片。
+        ScanProgress.clear()
     }
 
     func cachedAnalysis(for assetID: String) -> CachedAnalysis? {
-        let predicate = #Predicate<CachedAnalysis> { $0.assetIdentifier == assetID }
-        let descriptor = FetchDescriptor(predicate: predicate)
-        return try? modelContext.fetch(descriptor).first
+        analyses[assetID]
     }
 
     func cachedAssetIDs(from assetIDs: [String]) -> Set<String> {
-        // 分批查询避免 predicate 过大，每批 500 个
-        var result = Set<String>()
-        let batchSize = 500
-        for batchStart in stride(from: 0, to: assetIDs.count, by: batchSize) {
-            let batchEnd = min(batchStart + batchSize, assetIDs.count)
-            let batch = Set(assetIDs[batchStart..<batchEnd])
-            let predicate = #Predicate<CachedAnalysis> { batch.contains($0.assetIdentifier) }
-            let descriptor = FetchDescriptor(predicate: predicate)
-            if let fetched = try? modelContext.fetch(descriptor) {
-                for item in fetched {
-                    result.insert(item.assetIdentifier)
-                }
-            }
-        }
-        return result
+        Set(assetIDs.filter { analyses[$0] != nil })
     }
 
     func saveWasteResult(assetID: String, isWaste: Bool, reason: WasteReason?) {
-        if let existing = cachedAnalysis(for: assetID) {
-            existing.isWaste = isWaste
-            existing.wasteReason = reason
-            existing.analyzedAt = .now
-        } else {
-            let cached = CachedAnalysis(assetIdentifier: assetID)
-            cached.isWaste = isWaste
-            cached.wasteReason = reason
-            cached.analyzedAt = .now
-            modelContext.insert(cached)
-        }
+        let cached = analyses[assetID] ?? CachedAnalysis(assetIdentifier: assetID)
+        cached.isWaste = isWaste
+        cached.wasteReason = reason
+        cached.analyzedAt = .now
+        analyses[assetID] = cached
         pendingChanges += 1
         autoSaveIfNeeded()
     }
 
     func saveFeaturePrint(assetID: String, data: Data) {
-        if let existing = cachedAnalysis(for: assetID) {
-            existing.featurePrintData = data
-            existing.analyzedAt = .now
+        if featurePrints[assetID] == nil {
+            featurePrintOrder.append(assetID)
         } else {
-            let cached = CachedAnalysis(assetIdentifier: assetID)
-            cached.featurePrintData = data
-            cached.analyzedAt = .now
-            modelContext.insert(cached)
+            featurePrintOrder.removeAll { $0 == assetID }
+            featurePrintOrder.append(assetID)
         }
-        pendingChanges += 1
-        autoSaveIfNeeded()
+        featurePrints[assetID] = data
+
+        while featurePrintOrder.count > Self.maximumFeaturePrintEntries {
+            let oldest = featurePrintOrder.removeFirst()
+            featurePrints.removeValue(forKey: oldest)
+        }
     }
 
     func featurePrintData(for assetID: String) -> Data? {
-        cachedAnalysis(for: assetID)?.featurePrintData
+        guard let data = featurePrints[assetID] else { return nil }
+        featurePrintOrder.removeAll { $0 == assetID }
+        featurePrintOrder.append(assetID)
+        return data
     }
 
     func allCachedWasteIDs() -> Set<String> {
-        let predicate = #Predicate<CachedAnalysis> { $0.isWaste == true }
-        let descriptor = FetchDescriptor(predicate: predicate)
-        let results = (try? modelContext.fetch(descriptor)) ?? []
-        return Set(results.map(\.assetIdentifier))
+        Set(analyses.values.lazy.filter(\.isWaste).map(\.assetIdentifier))
     }
 
     func allWasteReasons() -> [String: WasteReason] {
-        let predicate = #Predicate<CachedAnalysis> { $0.isWaste == true }
-        let descriptor = FetchDescriptor(predicate: predicate)
-        let results = (try? modelContext.fetch(descriptor)) ?? []
         var reasons: [String: WasteReason] = [:]
-        for item in results {
-            if let reason = item.wasteReason {
-                reasons[item.assetIdentifier] = reason
+        for analysis in analyses.values where analysis.isWaste {
+            if let reason = analysis.wasteReason {
+                reasons[analysis.assetIdentifier] = reason
             }
         }
         return reasons
     }
 
     func clearAllCache() {
-        let descriptor = FetchDescriptor<CachedAnalysis>()
-        if let all = try? modelContext.fetch(descriptor) {
-            for item in all {
-                modelContext.delete(item)
-            }
-            try? modelContext.save()
-        }
+        analyses.removeAll()
+        featurePrints.removeAll()
+        featurePrintOrder.removeAll()
         pendingChanges = 0
+        if let cacheURL {
+            try? FileManager.default.removeItem(at: cacheURL)
+        }
+        Self.removeLegacySwiftDataStore(using: .default)
     }
 
     func batchSave() {
         guard pendingChanges > 0 else { return }
-        do {
-            try modelContext.save()
-        } catch {
-            // 静默处理：下次 batchSave 会重试
-        }
-        pendingChanges = 0
+        persist()
     }
 
     private func autoSaveIfNeeded() {
         if pendingChanges >= autoSaveThreshold {
-            batchSave()
+            persist()
+        }
+    }
+
+    private func load() {
+        guard let cacheURL,
+              let data = try? Data(contentsOf: cacheURL),
+              data.count <= Self.maximumDiskBytes,
+              let stored = try? PropertyListDecoder().decode([StoredAnalysis].self, from: data)
+        else {
+            if let cacheURL { try? FileManager.default.removeItem(at: cacheURL) }
+            return
+        }
+
+        analyses = Dictionary(
+            uniqueKeysWithValues: stored.map { ($0.assetIdentifier, $0.makeAnalysis()) }
+        )
+    }
+
+    private func persist() {
+        guard let cacheURL else {
+            pendingChanges = 0
+            return
+        }
+
+        var stored = analyses.values
+            .sorted { $0.analyzedAt < $1.analyzedAt }
+            .suffix(Self.maximumStoredEntries)
+            .map(StoredAnalysis.init)
+
+        let encoder = PropertyListEncoder()
+        encoder.outputFormat = .binary
+        guard var data = try? encoder.encode(stored) else { return }
+
+        // 数据预算优先于命中率；超限时按最旧优先继续淘汰。
+        while data.count > Self.maximumDiskBytes, stored.count > 1 {
+            stored.removeFirst(max(1, stored.count / 5))
+            guard let reduced = try? encoder.encode(stored) else { return }
+            data = reduced
+        }
+
+        do {
+            try data.write(to: cacheURL, options: .atomic)
+            var values = URLResourceValues()
+            values.isExcludedFromBackup = true
+            var mutableURL = cacheURL
+            try? mutableURL.setResourceValues(values)
+            pendingChanges = 0
+        } catch {
+            // 缓存写入失败不影响功能，下次保存继续重试。
+        }
+    }
+
+    /// 旧版本把大型 Vision feature print 写在默认 SwiftData 数据库。
+    /// 当前项目没有其他 SwiftData 用户，因此只清理这些精确命名的旧文件。
+    private static func removeLegacySwiftDataStore(using fileManager: FileManager) {
+        guard let directory = fileManager.urls(
+            for: .applicationSupportDirectory,
+            in: .userDomainMask
+        ).first else { return }
+
+        for name in ["default.store", "default.store-shm", "default.store-wal"] {
+            try? fileManager.removeItem(at: directory.appendingPathComponent(name))
         }
     }
 }

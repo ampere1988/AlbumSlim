@@ -50,6 +50,25 @@ final class VideoCompressionService {
     private(set) var isCompressing = false
     private(set) var queue: [CompressionTask] = []
     private(set) var isProcessingQueue = false
+    private let compressionDirectory: URL
+
+    init() {
+        let fileManager = FileManager.default
+        let root = fileManager.temporaryDirectory
+        let directory = root.appendingPathComponent(
+            "AlbumSlimCompression",
+            isDirectory: true
+        )
+        compressionDirectory = directory
+
+        // App 启动时没有进行中的压缩任务，可安全回收上次崩溃/强退留下的文件。
+        try? fileManager.removeItem(at: directory)
+        try? fileManager.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+        Self.removeLegacyTemporaryVideos(in: root, using: fileManager)
+    }
 
     func enqueueCompression(asset: PHAsset, quality: CompressionQuality) {
         queue.append(CompressionTask(asset: asset, quality: quality))
@@ -81,12 +100,15 @@ final class VideoCompressionService {
         isCompressing = true
         defer { isCompressing = false; progress = 0 }
 
-        let inputURL = try await exportOriginalVideo(asset: asset)
-        let outputURL = FileManager.default.temporaryDirectory
-            .appendingPathComponent(UUID().uuidString)
-            .appendingPathExtension("mov")
+        let input = try await exportOriginalVideo(asset: asset)
+        defer {
+            if input.isOwnedTemporaryFile {
+                cleanupTempFile(input.url)
+            }
+        }
+        let outputURL = makeTemporaryVideoURL()
 
-        let avAsset = AVURLAsset(url: inputURL)
+        let avAsset = AVURLAsset(url: input.url)
         guard let session = AVAssetExportSession(asset: avAsset, presetName: quality.exportPreset) else {
             throw CompressionError.exportSessionFailed
         }
@@ -104,11 +126,6 @@ final class VideoCompressionService {
 
         await session.export()
         progressTask.cancel()
-
-        // 清理临时输入文件（如果是我们拷贝出来的）
-        if inputURL.path.contains(NSTemporaryDirectory()) {
-            try? FileManager.default.removeItem(at: inputURL)
-        }
 
         if session.status == .completed {
             progress = 1.0
@@ -134,13 +151,13 @@ final class VideoCompressionService {
     }
 
     func saveCompressedToLibrary(url: URL) async throws {
+        defer { cleanupTempFile(url) }
         try await Self.performSave(videoFileURL: url)
-        cleanupTempFile(url)
     }
 
     func replaceOriginal(asset: PHAsset, with url: URL) async throws {
+        defer { cleanupTempFile(url) }
         try await Self.performReplace(asset: asset, videoFileURL: url)
-        cleanupTempFile(url)
     }
 
     /// nonisolated 入口：避免 @MainActor 类闭包被隐式隔离到主线程，
@@ -159,10 +176,23 @@ final class VideoCompressionService {
     }
 
     func cleanupTempFile(_ url: URL) {
+        let ownedRoot = compressionDirectory.standardizedFileURL.path + "/"
+        guard url.standardizedFileURL.path.hasPrefix(ownedRoot) else { return }
         try? FileManager.default.removeItem(at: url)
     }
 
     // MARK: - Private
+
+    private struct ExportedVideo {
+        let url: URL
+        let isOwnedTemporaryFile: Bool
+    }
+
+    private func makeTemporaryVideoURL() -> URL {
+        compressionDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("mov")
+    }
 
     private func sendCompletionNotification() async {
         let completed = queue.filter {
@@ -185,8 +215,9 @@ final class VideoCompressionService {
         try? await UNUserNotificationCenter.current().add(request)
     }
 
-    private func exportOriginalVideo(asset: PHAsset) async throws -> URL {
-        try await withCheckedThrowingContinuation { continuation in
+    private func exportOriginalVideo(asset: PHAsset) async throws -> ExportedVideo {
+        let compositionTempURL = makeTemporaryVideoURL()
+        return try await withCheckedThrowingContinuation { continuation in
             let options = PHVideoRequestOptions()
             options.isNetworkAccessAllowed = true
             options.deliveryMode = .highQualityFormat
@@ -198,12 +229,12 @@ final class VideoCompressionService {
                 }
 
                 if let urlAsset = avAsset as? AVURLAsset {
-                    continuation.resume(returning: urlAsset.url)
+                    continuation.resume(returning: ExportedVideo(
+                        url: urlAsset.url,
+                        isOwnedTemporaryFile: false
+                    ))
                 } else if let composition = avAsset as? AVComposition {
                     // 慢动作视频等返回 AVComposition，需要导出为临时文件
-                    let tempURL = FileManager.default.temporaryDirectory
-                        .appendingPathComponent(UUID().uuidString)
-                        .appendingPathExtension("mov")
                     guard let exportSession = AVAssetExportSession(
                         asset: composition,
                         presetName: AVAssetExportPresetPassthrough
@@ -211,12 +242,16 @@ final class VideoCompressionService {
                         continuation.resume(throwing: CompressionError.exportSessionFailed)
                         return
                     }
-                    exportSession.outputURL = tempURL
+                    exportSession.outputURL = compositionTempURL
                     exportSession.outputFileType = .mov
                     exportSession.exportAsynchronously {
                         if exportSession.status == .completed {
-                            continuation.resume(returning: tempURL)
+                            continuation.resume(returning: ExportedVideo(
+                                url: compositionTempURL,
+                                isOwnedTemporaryFile: true
+                            ))
                         } else {
+                            try? FileManager.default.removeItem(at: compositionTempURL)
                             continuation.resume(throwing: exportSession.error ?? CompressionError.assetNotAvailable)
                         }
                     }
@@ -224,6 +259,24 @@ final class VideoCompressionService {
                     continuation.resume(throwing: CompressionError.assetNotAvailable)
                 }
             }
+        }
+    }
+
+    /// v1 把 UUID.mov 直接放在 tmp 根目录；升级后只回收这一精确命名格式的旧文件。
+    private static func removeLegacyTemporaryVideos(
+        in root: URL,
+        using fileManager: FileManager
+    ) {
+        guard let urls = try? fileManager.contentsOfDirectory(
+            at: root,
+            includingPropertiesForKeys: nil,
+            options: [.skipsHiddenFiles]
+        ) else { return }
+
+        for url in urls where url.pathExtension.lowercased() == "mov" {
+            let stem = url.deletingPathExtension().lastPathComponent
+            guard UUID(uuidString: stem) != nil else { continue }
+            try? fileManager.removeItem(at: url)
         }
     }
 }

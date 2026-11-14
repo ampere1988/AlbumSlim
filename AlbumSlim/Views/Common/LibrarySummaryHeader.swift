@@ -21,6 +21,8 @@ struct LibrarySummaryHeader: View {
             Text(countText)
                 .font(AppFont.rowTitle)
                 .foregroundStyle(Theme.textPrimary)
+                .contentTransition(.numericText())
+                .motion(Motion.standard, value: countText)
 
             Spacer(minLength: 0)
 
@@ -28,13 +30,15 @@ struct LibrarySummaryHeader: View {
                 Text(sizeText)
                     .font(AppFont.metricSmall)
                     .foregroundStyle(Theme.textPrimary)
+                    .contentTransition(.numericText())
+                    .motion(Motion.standard, value: sizeText)
                 Text("总占用")
                     .font(AppFont.label)
                     .foregroundStyle(Theme.textTertiary)
             }
         }
         .padding(Spacing.m)
-        .glassSurface(radius: Radius.row)
+        .glassSurface(radius: Radius.row, elevation: .flat)
         .accessibilityElement(children: .combine)
     }
 }

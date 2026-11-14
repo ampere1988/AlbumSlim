@@ -146,8 +146,8 @@ struct ScreenshotDetailView: View {
         .onDisappear {
             recognitionTask?.cancel()
         }
-        .animation(.easeInOut(duration: 0.25), value: isZoomedIn)
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: showOCRPanel)
+        .motion(Motion.standard, value: isZoomedIn)
+        .motion(Motion.emphasized, value: showOCRPanel)
         .sheet(isPresented: $showPaywall) { PaywallView() }
     }
 

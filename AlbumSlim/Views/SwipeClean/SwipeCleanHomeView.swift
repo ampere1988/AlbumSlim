@@ -2,7 +2,9 @@ import SwiftUI
 
 struct SwipeCleanHomeView: View {
     @Environment(AppServiceContainer.self) private var services
-    @State private var viewModel = SwipeCleanHomeViewModel()
+
+    /// 由 AppServiceContainer 持有，切换 Tab 或分类时不会丢失已加载结果。
+    private var viewModel: SwipeCleanHomeViewModel { services.swipeCleanHome }
 
     var body: some View {
         Group {
@@ -18,6 +20,9 @@ struct SwipeCleanHomeView: View {
         .background(Theme.background)
         .task {
             await viewModel.loadBuckets(services: services)
+        }
+        .onChange(of: services.photoLibrary.libraryVersion) {
+            Task { await viewModel.loadBuckets(services: services) }
         }
     }
 

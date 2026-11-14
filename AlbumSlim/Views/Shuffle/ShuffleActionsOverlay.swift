@@ -32,7 +32,7 @@ struct ShuffleActionsOverlay: View {
         }
         .tint(.primary)  // 覆盖项目 AccentColor（绿色），保持黑白灰
         .environment(\.colorScheme, services.backdrop.isDark ? .dark : .light)
-        .animation(.smooth(duration: 0.25), value: services.backdrop.isDark)
+        .motion(Motion.standard, value: services.backdrop.isDark)
         .onAppear {
             isFavorite = item.asset.isFavorite
             haptic.prepare()

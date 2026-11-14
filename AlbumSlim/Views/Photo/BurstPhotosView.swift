@@ -10,7 +10,7 @@ struct BurstPhotosView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && burstGroups.isEmpty {
                 LoadingState(AppStrings.scanning)
             } else if burstGroups.isEmpty {
                 EmptyState("连拍照片", systemImage: AppIcons.burst, tint: Theme.burst) {
@@ -82,9 +82,10 @@ struct BurstPhotosView: View {
         .sheet(isPresented: $showPaywall) { PaywallView() }
         .sheet(isPresented: $showTrash) { GlobalTrashView() }
         .task {
-            if burstGroups.isEmpty && !isLoading {
-                await loadBursts()
-            }
+            await loadBursts()
+        }
+        .onChange(of: services.photoLibrary.libraryVersion) {
+            Task { await loadBursts() }
         }
         .onChange(of: services.trash.trashedItems.count) { _, _ in
             if services.trash.lastChangeKind == .permanentDelete { return }
@@ -93,20 +94,19 @@ struct BurstPhotosView: View {
     }
 
     private func loadBursts() async {
+        guard !isLoading else { return }
+        await services.prepareAsync()
+
         let coordinator = services.cleanupCoordinator
         let version = services.photoLibrary.libraryVersion
-        if coordinator.isCategoryFresh(.burst, libraryVersion: version) {
-            let cached = coordinator.groups(ofType: .burst)
-            if !cached.isEmpty {
-                let trashedIDs = services.trash.trashedAssetIDs
-                burstGroups = cached.compactMap { group in
-                    var g = group
-                    g.items = g.items.filter { !trashedIDs.contains($0.id) }
-                    return g.items.count > 1 ? g : nil
-                }
-                return
-            }
+        let cached = coordinator.groups(ofType: .burst)
+        let trashedIDs = services.trash.trashedAssetIDs
+        burstGroups = cached.compactMap { group in
+            var g = group
+            g.items = g.items.filter { !trashedIDs.contains($0.id) }
+            return g.items.count > 1 ? g : nil
         }
+        if coordinator.isCategoryFresh(.burst, libraryVersion: version) { return }
 
         isLoading = true
         defer { isLoading = false }
@@ -121,7 +121,6 @@ struct BurstPhotosView: View {
             }
         }
 
-        let trashedIDs = services.trash.trashedAssetIDs
         burstGroups = groups.values
             .map { items in items.filter { !trashedIDs.contains($0.id) } }
             .filter { $0.count > 1 }
@@ -130,6 +129,7 @@ struct BurstPhotosView: View {
                 return CleanupGroup(type: .burst, items: items, bestItemID: best?.id)
             }
 
+        coordinator.replaceGroups(burstGroups, ofType: .burst)
         coordinator.markCategoryScanned(.burst, libraryVersion: version)
     }
 

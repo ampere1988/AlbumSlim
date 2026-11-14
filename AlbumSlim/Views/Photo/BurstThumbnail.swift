@@ -8,8 +8,8 @@ struct BurstThumbnail: View {
 
     var body: some View {
         AssetThumbnail(asset: item.asset, services: services,
-                       targetSize: CGSize(width: 240, height: 240))
-            .frame(width: 104, height: 104)
+                       targetSize: CGSize(width: 320, height: 400))
+            .frame(width: 144, height: 180)
             .overlay(alignment: .bottomLeading) { sizeLabel }
             .overlay(alignment: .topTrailing) { bestBadge }
             .overlay {
@@ -25,7 +25,7 @@ struct BurstThumbnail: View {
 
     private var sizeLabel: some View {
         Text(item.fileSizeText)
-            .font(.system(size: 10, weight: .medium))
+            .font(AppFont.label)
             .foregroundStyle(.white)
             .shadow(color: .black.opacity(0.5), radius: 3, y: 1)
             .padding(Spacing.xs)
@@ -34,12 +34,13 @@ struct BurstThumbnail: View {
     @ViewBuilder
     private var bestBadge: some View {
         if isBest {
-            Image(systemName: "star.fill")
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(.black)
-                .frame(width: 20, height: 20)
-                .background(Circle().fill(Theme.warning))
-                .padding(Spacing.xs)
+            Label("保留", systemImage: "sparkles")
+                .font(AppFont.label.bold())
+                .foregroundStyle(.white)
+                .padding(.horizontal, Spacing.s)
+                .frame(height: 26)
+                .background(Capsule().fill(Theme.success))
+                .padding(Spacing.s)
         }
     }
 }

@@ -21,6 +21,7 @@ final class AppServiceContainer {
     let locationName: LocationNameService
     let backdrop: BackdropAdapterService
     let swipeProgress: SwipeCleanProgressStore
+    let swipeCleanHome: SwipeCleanHomeViewModel
     let toast: ToastCenter
     let sourceAlbum: SourceAlbumService
     let contactCleanup: ContactCleanupService
@@ -48,6 +49,7 @@ final class AppServiceContainer {
         self.locationName = LocationNameService()
         self.backdrop = BackdropAdapterService()
         self.swipeProgress = SwipeCleanProgressStore()
+        self.swipeCleanHome = SwipeCleanHomeViewModel()
         self.toast = ToastCenter()
         self.sourceAlbum = SourceAlbumService()
         self.contactCleanup = ContactCleanupService()

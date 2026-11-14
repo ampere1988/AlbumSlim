@@ -21,7 +21,7 @@ struct LargePhotosView: View {
 
     var body: some View {
         Group {
-            if isLoading {
+            if isLoading && allPhotos.isEmpty {
                 LoadingState(AppStrings.scanning)
             } else if allPhotos.isEmpty {
                 EmptyState("超大照片", systemImage: AppIcons.largePhoto,
@@ -135,9 +135,10 @@ struct LargePhotosView: View {
             Task { await loadAllPhotos() }
         }
         .task {
-            if allPhotos.isEmpty && !isLoading {
-                await loadAllPhotos()
-            }
+            await loadAllPhotos()
+        }
+        .onChange(of: services.photoLibrary.libraryVersion) {
+            Task { await loadAllPhotos() }
         }
     }
 
@@ -177,17 +178,17 @@ struct LargePhotosView: View {
     }
 
     private func loadAllPhotos() async {
+        guard !isLoading else { return }
+        await services.prepareAsync()
+
         let coordinator = services.cleanupCoordinator
         let version = services.photoLibrary.libraryVersion
-        if coordinator.isCategoryFresh(.largePhoto, libraryVersion: version) {
-            let cached = coordinator.groups(ofType: .largePhoto)
-            let cachedItems = cached.flatMap(\.items)
-            if !cachedItems.isEmpty {
-                let trashedIDs = services.trash.trashedAssetIDs
-                allPhotos = cachedItems.filter { !trashedIDs.contains($0.id) }.sorted { $0.fileSize > $1.fileSize }
-                return
-            }
-        }
+        let cachedItems = coordinator.groups(ofType: .largePhoto).flatMap(\.items)
+        let trashedIDs = services.trash.trashedAssetIDs
+        allPhotos = cachedItems
+            .filter { !trashedIDs.contains($0.id) }
+            .sorted { $0.fileSize > $1.fileSize }
+        if coordinator.isCategoryFresh(.largePhoto, libraryVersion: version) { return }
 
         isLoading = true
         defer { isLoading = false }
@@ -196,17 +197,15 @@ struct LargePhotosView: View {
         let items = await services.photoLibrary.buildMediaItems(from: fetchResult)
 
         let minThreshold = Int64(Self.thresholdOptions.last ?? 3) * 1024 * 1024
-        let trashedIDs = services.trash.trashedAssetIDs
         allPhotos = items
             .filter { $0.fileSize >= minThreshold && !trashedIDs.contains($0.id) }
             .sorted { $0.fileSize > $1.fileSize }
 
-        for group in coordinator.groups(ofType: .largePhoto) {
-            coordinator.removeGroup(group)
-        }
         if !allPhotos.isEmpty {
             let group = CleanupGroup(type: .largePhoto, items: allPhotos, bestItemID: nil)
-            coordinator.addGroups([group])
+            coordinator.replaceGroups([group], ofType: .largePhoto)
+        } else {
+            coordinator.replaceGroups([], ofType: .largePhoto)
         }
         coordinator.markCategoryScanned(.largePhoto, libraryVersion: version)
     }

@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 次操作按钮: 描边 + 半透明填充, 视觉重量明确低于 `AccentButtonStyle`,
+/// 次操作按钮: 系统分组表面，视觉重量明确低于 `AccentButtonStyle`,
 /// 但仍保持 50pt 高度以满足触控下限。
 struct GhostButtonStyle: ButtonStyle {
     @Environment(\.isEnabled) private var isEnabled
@@ -16,14 +16,11 @@ struct GhostButtonStyle: ButtonStyle {
                     .fill(Theme.surfaceRaised)
                     .overlay {
                         RoundedRectangle(cornerRadius: Radius.row)
-                            .strokeBorder(configuration.isPressed ? Theme.hairlineStrong : Theme.hairline)
+                            .strokeBorder(Theme.hairline.opacity(0.5), lineWidth: 0.5)
                     }
             }
             .opacity(isEnabled ? 1 : 0.4)
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.99 : 1)
             .motion(Motion.instant, value: configuration.isPressed)
-            .sensoryFeedback(trigger: configuration.isPressed) { _, pressed in
-                pressed ? .impact(weight: .light) : nil
-            }
     }
 }

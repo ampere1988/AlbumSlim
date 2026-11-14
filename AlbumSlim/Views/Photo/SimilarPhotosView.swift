@@ -8,10 +8,15 @@ struct SimilarPhotosView: View {
     @State private var showTrash = false
 
     private var allItems: [MediaItem] { viewModel.similarGroups.flatMap(\.items) }
+    private var suggestedItems: [MediaItem] {
+        viewModel.similarGroups.flatMap { group in
+            group.items.filter { $0.id != group.bestItemID }
+        }
+    }
 
     var body: some View {
         Group {
-            if viewModel.isScanning {
+            if viewModel.isScanning && viewModel.similarGroups.isEmpty {
                 ProgressLoadingState(phase: AppStrings.scanning, progress: viewModel.scanProgress)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.similarGroups.isEmpty {
@@ -113,9 +118,9 @@ struct SimilarPhotosView: View {
         .selectionToolbar(
             isEditing: $isEditing,
             selectedCount: viewModel.selectedForDeletion.count,
-            totalCount: allItems.count,
+            totalCount: suggestedItems.count,
             onSelectAll: {
-                viewModel.selectedForDeletion = Set(allItems.map(\.id))
+                viewModel.selectedForDeletion = Set(suggestedItems.map(\.id))
             },
             onDeselectAll: {
                 viewModel.selectedForDeletion.removeAll()
@@ -123,10 +128,18 @@ struct SimilarPhotosView: View {
         )
         .sheet(isPresented: $showPaywall) { PaywallView() }
         .sheet(isPresented: $showTrash) { GlobalTrashView() }
-        .task {
-            if viewModel.similarGroups.isEmpty && !viewModel.isScanning {
-                await viewModel.scanSimilarPhotos(services: services)
+        .onChange(of: isEditing) { _, editing in
+            if editing {
+                viewModel.autoSelectAllExceptBest()
+            } else {
+                viewModel.selectedForDeletion.removeAll()
             }
+        }
+        .task {
+            await viewModel.scanSimilarPhotos(services: services)
+        }
+        .onChange(of: services.photoLibrary.libraryVersion) {
+            Task { await viewModel.scanSimilarPhotos(services: services) }
         }
         .onChange(of: services.trash.trashedItems.count) { _, _ in
             if services.trash.lastChangeKind == .permanentDelete { return }

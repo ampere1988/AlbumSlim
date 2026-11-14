@@ -1,5 +1,4 @@
 import SwiftUI
-import SwiftData
 import AVFoundation
 import UserNotifications
 
@@ -41,7 +40,6 @@ struct AlbumSlimApp: App {
                 OnboardingView(hasCompletedOnboarding: $hasCompletedOnboarding)
             }
         }
-        .modelContainer(for: CachedAnalysis.self)
         .onChange(of: scenePhase) { _, newPhase in
             switch newPhase {
             case .background:

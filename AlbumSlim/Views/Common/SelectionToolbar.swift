@@ -3,6 +3,7 @@ import SwiftUI
 /// 标准编辑模式 toolbar：右上"选择/完成" + 编辑模式下左上"全选/取消全选"
 /// 在 View 上挂载：`.modifier(SelectionToolbar(isEditing:..., selectedCount:..., totalCount:..., onSelectAll:..., onDeselectAll:...))`
 struct SelectionToolbar: ViewModifier {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Binding var isEditing: Bool
     let selectedCount: Int
     let totalCount: Int
@@ -15,7 +16,9 @@ struct SelectionToolbar: ViewModifier {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(isEditing ? AppStrings.done : AppStrings.select) {
                         Haptics.tap()
-                        withAnimation { isEditing.toggle() }
+                        withAnimation(reduceMotion ? nil : Motion.standard) {
+                            isEditing.toggle()
+                        }
                     }
                 }
                 if isEditing {
@@ -31,6 +34,8 @@ struct SelectionToolbar: ViewModifier {
                     ToolbarItem(placement: .principal) {
                         Text(AppStrings.selected(selectedCount))
                             .font(.headline)
+                            .contentTransition(.numericText())
+                            .motion(Motion.standard, value: selectedCount)
                     }
                 }
             }

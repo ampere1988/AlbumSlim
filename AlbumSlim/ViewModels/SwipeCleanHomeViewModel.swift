@@ -3,34 +3,75 @@ import Photos
 
 @MainActor @Observable
 final class SwipeCleanHomeViewModel {
+    private struct CacheSnapshot: Codable {
+        let buckets: [SwipeCleanBucket]
+        let appBuckets: [SwipeCleanBucket]
+        let libraryVersion: Int
+        let savedAt: Date
+    }
+
     private(set) var buckets: [SwipeCleanBucket] = []
     /// 第三方 App 相册堆，与月份堆分开展示
     private(set) var appBuckets: [SwipeCleanBucket] = []
     private(set) var isLoading = false
     private var loadTask: Task<Void, Never>?
+    private var lastLibraryVersion = Int.min
+    private var lastLoadedAt: Date?
+    private var hasLoaded = false
 
     /// 少于这个数量的月份不单独成堆，避免入口页碎片化
     private let minimumBucketCount = 5
+    /// 相册内容短时间内通常变化很小。即使版本指纹没有变化，也定期做一次轻量校验。
+    private static let cacheLifetime: TimeInterval = 5 * 60
+    /// 旧快照只用于刷新期间的占位，超过一天就不再恢复，避免展示过时过多的数据。
+    private static let maximumSnapshotAge: TimeInterval = 24 * 60 * 60
+    private static let cacheKey = "SwipeCleanHomeViewModel.cache"
 
-    /// 并发去重：多次重叠调用共享同一次执行，避免慢的早期调用在后完成时用过期结果覆盖新结果。
-    /// 每次执行完成后清空 `loadTask`，因此这不是一次性的记忆化——上一次完成后再调用会重新扫描。
-    /// 做法与 `SourceAlbumService.loadAlbums` 一致。
+    init() {
+        guard let data = UserDefaults.standard.data(forKey: Self.cacheKey),
+              let snapshot = try? JSONDecoder().decode(CacheSnapshot.self, from: data),
+              Date.now.timeIntervalSince(snapshot.savedAt) < Self.maximumSnapshotAge else {
+            return
+        }
+        buckets = snapshot.buckets
+        appBuckets = snapshot.appBuckets
+        lastLibraryVersion = snapshot.libraryVersion
+        lastLoadedAt = snapshot.savedAt
+        hasLoaded = true
+    }
+
+    /// 优先复用内存缓存；缓存过期或相册变化时保留旧结果，在后台刷新。
+    /// 多次重叠调用共享同一次执行，避免重复遍历整个相册。
     func loadBuckets(services: AppServiceContainer) async {
+        let version = services.photoLibrary.libraryVersion
+        if isCacheFresh(libraryVersion: version) { return }
+
         if let task = loadTask {
             await task.value
             return
         }
         let task = Task { @MainActor in
-            await self.performLoad(services: services)
+            await self.performLoad(services: services, libraryVersion: version)
         }
         loadTask = task
         await task.value
         loadTask = nil
     }
 
-    private func performLoad(services: AppServiceContainer) async {
-        isLoading = true
-        defer { isLoading = false }
+    private func isCacheFresh(libraryVersion: Int, now: Date = .now) -> Bool {
+        guard hasLoaded,
+              lastLibraryVersion == libraryVersion,
+              let lastLoadedAt else { return false }
+        return now.timeIntervalSince(lastLoadedAt) < Self.cacheLifetime
+    }
+
+    private func performLoad(services: AppServiceContainer, libraryVersion: Int) async {
+        // 已有缓存时继续展示列表，不再用全屏 loading 打断用户。
+        let shouldShowLoading = !hasLoaded
+        if shouldShowLoading { isLoading = true }
+        defer {
+            if shouldShowLoading { isLoading = false }
+        }
 
         let fetchResult = services.photoLibrary.fetchAllAssets()
 
@@ -49,6 +90,7 @@ final class SwipeCleanHomeViewModel {
         guard !grouped.isEmpty else {
             buckets = []
             await loadAppBuckets(services: services)
+            markLoaded(libraryVersion: libraryVersion)
             return
         }
 
@@ -84,17 +126,27 @@ final class SwipeCleanHomeViewModel {
         guard !pending.isEmpty else {
             buckets = []
             await loadAppBuckets(services: services)
+            markLoaded(libraryVersion: libraryVersion)
             return
         }
 
-        // 第二步：把 fileSize 汇总挪到后台线程，用 autoreleasepool 分批，
-        // 做法与 `SourceAlbumService.performLoad` 一致。
+        // 没变化的月份直接复用旧体积；通常只需重算本月新增照片所在的一个桶。
+        let cachedByID = Dictionary(uniqueKeysWithValues: buckets.map { ($0.id, $0) })
+        var reused: [SwipeCleanBucket] = []
+        let changed = pending.filter { item in
+            guard let cached = cachedByID[item.id],
+                  cached.assetIDs == item.assets.map(\.localIdentifier) else { return true }
+            reused.append(cached)
+            return false
+        }
+
+        // 第二步：只对变化的月份在后台汇总 fileSize，用 autoreleasepool 分批。
         let photoLibrary = services.photoLibrary
         let found: [SwipeCleanBucket] = await Task.detached(priority: .utility) { () -> [SwipeCleanBucket] in
             var result: [SwipeCleanBucket] = []
-            result.reserveCapacity(pending.count)
+            result.reserveCapacity(changed.count)
 
-            for item in pending {
+            for item in changed {
                 var size: Int64 = 0
                 let total = item.assets.count
                 let batchSize = 500
@@ -119,8 +171,10 @@ final class SwipeCleanHomeViewModel {
             return result
         }.value
 
+        guard !Task.isCancelled else { return }
+
         // 新的月份排前面
-        buckets = found.sorted { lhs, rhs in
+        buckets = (reused + found).sorted { lhs, rhs in
             guard case let .month(ly, lm) = lhs.kind, case let .month(ry, rm) = rhs.kind else {
                 return false
             }
@@ -128,6 +182,7 @@ final class SwipeCleanHomeViewModel {
         }
 
         await loadAppBuckets(services: services)
+        markLoaded(libraryVersion: libraryVersion)
     }
 
     private func loadAppBuckets(services: AppServiceContainer) async {
@@ -140,6 +195,22 @@ final class SwipeCleanHomeViewModel {
                 assetIDs: album.assetIDs,
                 totalSize: album.totalSize
             )
+        }
+    }
+
+    private func markLoaded(libraryVersion: Int) {
+        let now = Date.now
+        hasLoaded = true
+        lastLibraryVersion = libraryVersion
+        lastLoadedAt = now
+        let snapshot = CacheSnapshot(
+            buckets: buckets,
+            appBuckets: appBuckets,
+            libraryVersion: libraryVersion,
+            savedAt: now
+        )
+        if let data = try? JSONEncoder().encode(snapshot) {
+            UserDefaults.standard.set(data, forKey: Self.cacheKey)
         }
     }
 

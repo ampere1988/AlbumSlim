@@ -35,7 +35,9 @@ struct ShuffleFeedView: View {
                 } else {
                     feedScroll(size: geo.size)
                     overlay
-                    cleanupCapsule(topInset: geo.safeAreaInsets.top)
+                    cleanupCapsule(
+                        topInset: max(geo.safeAreaInsets.top, windowTopSafeAreaInset)
+                    )
                     if showHint { swipeHint }
                 }
             }
@@ -137,6 +139,16 @@ struct ShuffleFeedView: View {
     }
 
     // MARK: - 顶部导流胶囊
+
+    /// 全屏浏览会隐藏状态栏并忽略安全区，GeometryReader 在灵动岛机型上可能返回过小的
+    /// top inset；窗口的 safeAreaInsets 仍包含真实的硬件遮挡区域。
+    private var windowTopSafeAreaInset: CGFloat {
+        guard let scene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene else {
+            return 0
+        }
+        return scene.windows.first(where: \.isKeyWindow)?.safeAreaInsets.top ?? 0
+    }
 
     @ViewBuilder
     private func cleanupCapsule(topInset: CGFloat) -> some View {

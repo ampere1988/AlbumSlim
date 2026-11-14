@@ -184,7 +184,13 @@ struct VideoSuggestionsView: View {
     private func compressSelected() async {
         let items = viewModel.suggestions.filter { selectedIDs.contains($0.id) }.map(\.item)
         for item in items {
-            _ = try? await services.videoCompression.compressVideo(asset: item.asset, quality: .high)
+            if let url = try? await services.videoCompression.compressVideo(
+                asset: item.asset,
+                quality: .high
+            ) {
+                // 这个入口目前只做压缩估算，不把结果写回相册；立即回收大体积产物。
+                services.videoCompression.cleanupTempFile(url)
+            }
         }
         selectedIDs.removeAll()
         isEditing = false

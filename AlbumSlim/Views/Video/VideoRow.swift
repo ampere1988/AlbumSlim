@@ -4,6 +4,7 @@ import SwiftUI
 struct VideoRow: View {
     let item: MediaItem
     let services: AppServiceContainer
+    var isEditing: Bool = false
     var isSelected: Bool = false
 
     @State private var thumbnail: UIImage?
@@ -17,20 +18,21 @@ struct VideoRow: View {
                      ?? String(localized: "未知日期"))
                     .font(AppFont.rowTitle)
                     .foregroundStyle(Theme.textPrimary)
-                MetaChip(text: item.resolution, systemImage: "aspectratio")
+                Text(item.fileSizeText)
+                    .font(AppFont.metricSmall)
+                    .foregroundStyle(Theme.textPrimary)
+                Text(item.resolution)
+                    .font(AppFont.label)
+                    .foregroundStyle(Theme.textTertiary)
             }
 
             Spacer(minLength: 0)
-
-            Text(item.fileSizeText)
-                .font(AppFont.metricSmall)
-                .foregroundStyle(Theme.textPrimary)
         }
-        .padding(.vertical, Spacing.xs)
+        .padding(.vertical, Spacing.s)
         .task {
             thumbnail = await services.photoLibrary.thumbnail(
                 for: item.asset,
-                size: CGSize(width: 240, height: 160)
+                size: CGSize(width: 360, height: 240)
             )
         }
     }
@@ -51,7 +53,7 @@ struct VideoRow: View {
                     }
             }
         }
-        .frame(width: 86, height: 58)
+        .frame(width: 132, height: 88)
         .clipShape(.rect(cornerRadius: Radius.thumb))
         .overlay(alignment: .bottomTrailing) { durationBadge }
         .overlay {
@@ -60,12 +62,17 @@ struct VideoRow: View {
                               lineWidth: isSelected ? 2 : 1)
         }
         .overlay(alignment: .topLeading) {
-            if isSelected {
-                Image(systemName: "checkmark")
-                    .font(.caption2.bold())
-                    .foregroundStyle(Theme.textOnAccent)
-                    .frame(width: 20, height: 20)
-                    .background(Circle().fill(Theme.accent))
+            if isEditing {
+                Image(systemName: isSelected ? "checkmark" : "circle")
+                    .font(.caption.bold())
+                    .foregroundStyle(.white)
+                    .frame(width: 28, height: 28)
+                    .background(Circle().fill(isSelected ? Theme.accent : .black.opacity(0.38)))
+                    .overlay {
+                        if !isSelected {
+                            Circle().strokeBorder(.white.opacity(0.8), lineWidth: 1)
+                        }
+                    }
                     .padding(Spacing.xs)
             }
         }
@@ -74,7 +81,7 @@ struct VideoRow: View {
 
     private var durationBadge: some View {
         Text(durationText)
-            .font(.system(size: 10, weight: .semibold).monospacedDigit())
+            .font(AppFont.label.monospacedDigit())
             .foregroundStyle(.white)
             .padding(.horizontal, 5)
             .padding(.vertical, 2)

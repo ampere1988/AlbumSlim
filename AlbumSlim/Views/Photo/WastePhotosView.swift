@@ -9,7 +9,7 @@ struct WastePhotosView: View {
 
     var body: some View {
         Group {
-            if viewModel.isScanning {
+            if viewModel.isScanning && viewModel.wasteItems.isEmpty {
                 ProgressLoadingState(phase: AppStrings.scanning, progress: viewModel.scanProgress)
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if viewModel.wasteItems.isEmpty {
@@ -40,9 +40,10 @@ struct WastePhotosView: View {
         .sheet(isPresented: $showPaywall) { PaywallView() }
         .sheet(isPresented: $showTrash) { GlobalTrashView() }
         .task {
-            if viewModel.wasteItems.isEmpty && !viewModel.isScanning {
-                await viewModel.scanWastePhotos(services: services)
-            }
+            await viewModel.scanWastePhotos(services: services)
+        }
+        .onChange(of: services.photoLibrary.libraryVersion) {
+            Task { await viewModel.scanWastePhotos(services: services) }
         }
         .onChange(of: services.trash.trashedItems.count) { _, _ in
             if services.trash.lastChangeKind == .permanentDelete { return }

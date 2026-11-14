@@ -15,11 +15,11 @@ struct ScreenshotListView: View {
     private var gridColumns: [GridItem] {
         let count: Int
         if hSizeClass == .regular {
-            count = vSizeClass == .regular ? 5 : 7
+            count = vSizeClass == .regular ? 4 : 6
         } else {
-            count = vSizeClass == .regular ? 3 : 5
+            count = vSizeClass == .regular ? 2 : 4
         }
-        return Array(repeating: GridItem(.flexible(), spacing: 2), count: count)
+        return Array(repeating: GridItem(.flexible(), spacing: Spacing.s), count: count)
     }
 
     private var unreadNotesCount: Int {
@@ -124,7 +124,7 @@ struct ScreenshotListView: View {
                 categoryFilterBar
                     .padding(.bottom, Spacing.s)
 
-                LazyVGrid(columns: gridColumns, spacing: Spacing.xs) {
+                LazyVGrid(columns: gridColumns, spacing: Spacing.s) {
                     ForEach(viewModel.filteredScreenshots) { screenshot in
                         ScreenshotThumbnailCell(
                             item: screenshot,
@@ -142,7 +142,7 @@ struct ScreenshotListView: View {
                         .zoomTransitionSource(id: screenshot.id, in: zoomNamespace)
                     }
                 }
-                .padding(.horizontal, Spacing.xs)
+                .padding(.horizontal, Spacing.m)
             }
         }
     }

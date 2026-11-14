@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// 主操作按钮: 渐变实心(或危险操作的红色实心)。
+/// 主操作按钮: 系统强调色实心(或危险操作的系统红)。
 ///
 /// 按压反馈只改缩放和亮度, 不改布局尺寸 —— 避免相邻内容抖动。
 struct AccentButtonStyle: ButtonStyle {
@@ -16,13 +16,10 @@ struct AccentButtonStyle: ButtonStyle {
             .frame(maxWidth: .infinity, minHeight: 50)
             .background {
                 RoundedRectangle(cornerRadius: Radius.row)
-                    .fill(destructive ? AnyShapeStyle(Theme.danger) : AnyShapeStyle(Theme.accentGradient))
+                    .fill(destructive ? Theme.danger : Theme.accent)
             }
             .opacity(isEnabled ? (configuration.isPressed ? 0.88 : 1) : 0.4)
-            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.97 : 1)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.99 : 1)
             .motion(Motion.instant, value: configuration.isPressed)
-            .sensoryFeedback(trigger: configuration.isPressed) { _, pressed in
-                pressed ? .impact(weight: .light) : nil
-            }
     }
 }

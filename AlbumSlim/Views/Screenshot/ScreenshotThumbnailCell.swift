@@ -11,17 +11,26 @@ struct ScreenshotThumbnailCell: View {
 
     var body: some View {
         Button(action: onTap) {
-            AssetThumbnail(asset: item.asset, services: services,
-                           targetSize: CGSize(width: 240, height: 420))
+            VStack(spacing: 0) {
+                AssetThumbnail(
+                    asset: item.asset,
+                    services: services,
+                    targetSize: CGSize(width: 400, height: 712),
+                    cornerRadius: 0
+                )
                 .aspectRatio(9.0 / 16.0, contentMode: .fill)
-                .overlay(alignment: .bottomLeading) { footer }
-                .overlay(alignment: .topLeading) { selectionMark }
+                .overlay(alignment: .topTrailing) { selectionMark }
+
+                footer
+            }
+                .background(Theme.surface)
+                .clipShape(.rect(cornerRadius: Radius.thumb))
                 .overlay {
                     RoundedRectangle(cornerRadius: Radius.thumb)
                         .strokeBorder(isSelected ? Theme.accent : Theme.hairline,
-                                      lineWidth: isSelected ? 2 : 1)
+                                      lineWidth: isSelected ? 3 : 1)
                 }
-                .padding(isSelected ? 2 : 0)
+                .scaleEffect(isSelected ? 0.985 : 1)
                 .motion(Motion.standard, value: isSelected)
         }
         .buttonStyle(PressableCardStyle())
@@ -30,28 +39,23 @@ struct ScreenshotThumbnailCell: View {
     }
 
     private var footer: some View {
-        HStack(spacing: Spacing.xs) {
+        HStack(spacing: Spacing.s) {
             Text(item.fileSizeText)
-                .font(.system(size: 10, weight: .medium))
-                .foregroundStyle(.white)
+                .font(AppFont.label)
+                .foregroundStyle(Theme.textSecondary)
             if let result = ocrResult {
                 Text(result.category.localizedName)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .font(AppFont.label.bold())
+                    .foregroundStyle(result.category.color)
                     .padding(.horizontal, 5)
-                    .padding(.vertical, 1)
-                    .background(Capsule().fill(result.category.color))
+                    .padding(.vertical, 2)
+                    .background(Capsule().fill(result.category.color.opacity(0.14)))
             }
             Spacer(minLength: 0)
         }
-        .padding(Spacing.xs)
-        .background {
-            LinearGradient(colors: [.clear, .black.opacity(0.6)],
-                           startPoint: .top, endPoint: .bottom)
-                .frame(height: 44)
-                .frame(maxHeight: .infinity, alignment: .bottom)
-                .allowsHitTesting(false)
-        }
+        .padding(.horizontal, Spacing.s)
+        .frame(minHeight: 38)
+        .background(Theme.surface)
     }
 
     @ViewBuilder

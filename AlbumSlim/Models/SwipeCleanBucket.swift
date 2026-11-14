@@ -9,9 +9,9 @@ enum SwipeDecision: String, Codable, Sendable {
 }
 
 /// 一「堆」待滑动清理的素材。按堆推进，让用户有明确的开始与结束。
-struct SwipeCleanBucket: Identifiable, Sendable {
+struct SwipeCleanBucket: Identifiable, Sendable, Codable {
     /// Hashable 是必需的——Task 6 用它作为月份分组的字典键
-    enum Kind: Hashable, Sendable {
+    enum Kind: Hashable, Sendable, Codable {
         case month(year: Int, month: Int)
         case sourceAlbum(localIdentifier: String)
         case screenshots

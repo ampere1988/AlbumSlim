@@ -37,4 +37,14 @@ struct CleanupCoordinatorTests {
         // 其他分类不受影响
         #expect(!coordinator.isCategoryFresh(.similar, libraryVersion: 1))
     }
+
+    @Test("空扫描结果也会替换旧分类缓存")
+    func emptyReplacementClearsOldCategory() {
+        let coordinator = CleanupCoordinator()
+        coordinator.replaceGroups([], ofType: .similar)
+        coordinator.markCategoryScanned(.similar, libraryVersion: 7)
+
+        #expect(coordinator.groups(ofType: .similar).isEmpty)
+        #expect(coordinator.isCategoryFresh(.similar, libraryVersion: 7))
+    }
 }

@@ -46,9 +46,11 @@ final class PhotoCleanerViewModel {
         return nonBest.allSatisfy { selectedForDeletion.contains($0.id) }
     }
 
-    func autoSelectAllExceptBest(isPro: Bool) {
+    /// 进入相似照片复核时默认勾选建议删除项。
+    ///
+    /// 选择和复核属于免费浏览能力，真正移入垃圾桶时再做 Pro 门控。
+    func autoSelectAllExceptBest() {
         selectedForDeletion.removeAll()
-        guard ProFeatureGate.canClean(isPro: isPro) else { return }
         for group in similarGroups {
             selectAllExceptBest(in: group)
         }
@@ -87,20 +89,20 @@ final class PhotoCleanerViewModel {
     }
 
     func scanSimilarPhotos(services: AppServiceContainer) async {
+        guard !isScanning else { return }
+        await services.prepareAsync()
+
         let coordinator = services.cleanupCoordinator
         let version = services.photoLibrary.libraryVersion
-        if coordinator.isCategoryFresh(.similar, libraryVersion: version) {
-            let cached = coordinator.groups(ofType: .similar)
-            if !cached.isEmpty {
-                let trashedIDs = services.trash.trashedAssetIDs
-                similarGroups = cached.compactMap { group in
-                    var g = group
-                    g.items = g.items.filter { !trashedIDs.contains($0.id) }
-                    return g.items.count > 1 ? g : nil
-                }
-                return
-            }
+        let cached = coordinator.groups(ofType: .similar)
+        let trashedIDs = services.trash.trashedAssetIDs
+        similarGroups = cached.compactMap { group in
+            var g = group
+            g.items = g.items.filter { !trashedIDs.contains($0.id) }
+            return g.items.count > 1 ? g : nil
         }
+        // 新鲜缓存即使为空也代表已经扫描过，不能再次触发全量分析。
+        if coordinator.isCategoryFresh(.similar, libraryVersion: version) { return }
 
         isScanning = true
         scanProgress = 0
@@ -122,32 +124,29 @@ final class PhotoCleanerViewModel {
             }
         )
 
-        let trashedIDs = services.trash.trashedAssetIDs
         similarGroups = rawSimilarGroups.compactMap { group in
             var g = group
             g.items = g.items.filter { !trashedIDs.contains($0.id) }
             return g.items.count > 1 ? g : nil
         }
 
-        coordinator.addGroups(similarGroups)
+        coordinator.replaceGroups(similarGroups, ofType: .similar)
         coordinator.markCategoryScanned(.similar, libraryVersion: version)
         services.achievement.recordScan()
         scanProgress = 1.0
     }
 
     func scanWastePhotos(services: AppServiceContainer) async {
+        guard !isScanning else { return }
+        await services.prepareAsync()
+
         let coordinator = services.cleanupCoordinator
         let version = services.photoLibrary.libraryVersion
-        if coordinator.isCategoryFresh(.waste, libraryVersion: version) {
-            let cached = coordinator.groups(ofType: .waste)
-            let cachedItems = cached.flatMap(\.items)
-            if !cachedItems.isEmpty {
-                let trashedIDs = services.trash.trashedAssetIDs
-                wasteItems = cachedItems.filter { !trashedIDs.contains($0.id) }
-                wasteReasons = coordinator.wasteReasons
-                return
-            }
-        }
+        let cachedItems = coordinator.groups(ofType: .waste).flatMap(\.items)
+        let trashedIDs = services.trash.trashedAssetIDs
+        wasteItems = cachedItems.filter { !trashedIDs.contains($0.id) }
+        wasteReasons = coordinator.wasteReasons
+        if coordinator.isCategoryFresh(.waste, libraryVersion: version) { return }
 
         isScanning = true
         scanProgress = 0
@@ -220,12 +219,11 @@ final class PhotoCleanerViewModel {
             await Task.yield()
         }
 
-        let trashedIDs = services.trash.trashedAssetIDs
         wasteItems = waste.filter { !trashedIDs.contains($0.id) }
         scanProgress = 1.0
 
         let wasteGroup = CleanupGroup(type: .waste, items: wasteItems, bestItemID: nil)
-        coordinator.addGroups([wasteGroup])
+        coordinator.replaceGroups(wasteItems.isEmpty ? [] : [wasteGroup], ofType: .waste)
         coordinator.markCategoryScanned(.waste, libraryVersion: version)
         services.achievement.recordScan()
     }

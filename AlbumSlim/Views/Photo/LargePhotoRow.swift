@@ -10,37 +10,50 @@ struct LargePhotoRow: View {
 
     var body: some View {
         HStack(spacing: Spacing.m) {
-            AssetThumbnail(asset: item.asset, services: services)
-                .frame(width: 72, height: 72)
+            AssetThumbnail(
+                asset: item.asset,
+                services: services,
+                targetSize: CGSize(width: 320, height: 240)
+            )
+                .frame(width: 120, height: 92)
+                .overlay(alignment: .topTrailing) {
+                    if isEditing {
+                        Image(systemName: isSelected ? "checkmark" : "circle")
+                            .font(.caption.bold())
+                            .foregroundStyle(.white)
+                            .frame(width: 28, height: 28)
+                            .background(Circle().fill(isSelected ? Theme.accent : .black.opacity(0.38)))
+                            .overlay {
+                                if !isSelected {
+                                    Circle().strokeBorder(.white.opacity(0.8), lineWidth: 1)
+                                }
+                            }
+                            .padding(Spacing.s)
+                    }
+                }
                 .overlay {
                     RoundedRectangle(cornerRadius: Radius.thumb)
                         .strokeBorder(isSelected ? Theme.accent : Theme.hairline,
-                                      lineWidth: isSelected ? 2 : 1)
+                                      lineWidth: isSelected ? 3 : 1)
                 }
+                .scaleEffect(isSelected ? 0.985 : 1)
+                .motion(Motion.standard, value: isSelected)
 
             VStack(alignment: .leading, spacing: Spacing.s) {
                 Text(item.fileSizeText)
-                    .font(AppFont.metricSmall)
+                    .font(AppFont.metric)
                     .foregroundStyle(Theme.textPrimary)
-                HStack(spacing: Spacing.s) {
-                    MetaChip(text: item.resolution, systemImage: "aspectratio")
-                    if let date = item.creationDate {
-                        Text(date.formatted(date: .abbreviated, time: .omitted))
-                            .font(AppFont.label)
-                            .foregroundStyle(Theme.textTertiary)
-                    }
+                MetaChip(text: item.resolution, systemImage: "aspectratio")
+                if let date = item.creationDate {
+                    Text(date.formatted(date: .abbreviated, time: .omitted))
+                        .font(AppFont.label)
+                        .foregroundStyle(Theme.textTertiary)
                 }
             }
 
             Spacer(minLength: 0)
-
-            if isEditing {
-                Image(systemName: isSelected ? "checkmark.circle.fill" : "circle")
-                    .font(.title3)
-                    .foregroundStyle(isSelected ? Theme.accent : Theme.textTertiary)
-                    .motion(Motion.standard, value: isSelected)
-            }
         }
+        .frame(minHeight: 92)
         .contentShape(.rect)
         .onTapGesture { if isEditing { onTap() } }
         .accessibilityElement(children: .combine)

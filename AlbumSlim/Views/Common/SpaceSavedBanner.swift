@@ -6,30 +6,30 @@ struct SpaceSavedBanner: View {
     let size: Int64
 
     var body: some View {
-        HStack(spacing: Spacing.l) {
-            GlowIcon(systemImage: "sparkles", tint: Theme.success, size: 48)
+        HStack(spacing: Spacing.m) {
+            Image(systemName: "sparkles")
+                .font(.footnote.weight(.bold))
+                .foregroundStyle(Theme.success)
+                .frame(width: 36, height: 36)
+                .background(Circle().fill(Theme.success.opacity(0.14)))
 
-            VStack(alignment: .leading, spacing: Spacing.xs) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text("可释放 \(size.formattedFileSize)")
-                    .font(AppFont.metric)
+                    .font(AppFont.metricSmall)
                     .foregroundStyle(Theme.textPrimary)
+                    .contentTransition(.numericText())
+                    .motion(Motion.standard, value: size)
                 Text("发现 \(count) 项可清理")
-                    .font(AppFont.meta)
+                    .font(AppFont.label)
                     .foregroundStyle(Theme.textSecondary)
+                    .contentTransition(.numericText())
+                    .motion(Motion.standard, value: count)
             }
 
             Spacer(minLength: 0)
         }
-        .padding(Spacing.l)
-        .glassSurface()
-        .overlay(alignment: .leading) {
-            // 左侧一道成功色，让横幅在长列表里一眼可辨
-            Capsule()
-                .fill(Theme.success)
-                .frame(width: 3)
-                .padding(.vertical, Spacing.l)
-                .padding(.leading, Spacing.xs)
-        }
+        .padding(Spacing.m)
+        .glassSurface(radius: Radius.row, elevation: .flat)
         .padding(.horizontal, Spacing.l)
         .accessibilityElement(children: .combine)
     }

@@ -63,26 +63,40 @@ final class SourceAlbumService {
     private(set) var albums: [SourceAlbum] = []
     private(set) var isLoading = false
     private var loadTask: Task<Void, Never>?
+    private var lastLibraryVersion = Int.min
+    private var lastLoadedAt: Date?
+    private var hasLoaded = false
+    private let cacheLifetime: TimeInterval = 5 * 60
 
     /// 扫描系统里的用户相册，挑出由已知第三方 App 创建的那些。
-    /// 并发去重：多次重叠调用共享同一次执行，避免慢的早期调用在后完成时用过期结果覆盖新结果。
-    /// 每次执行完成后清空 `loadTask`，因此这不是一次性的记忆化——上一次完成后再调用会重新扫描。
+    /// 短期内直接复用结果；过期后也保留旧结果，只在后台刷新发生变化的相册。
     func loadAlbums(photoLibrary: PhotoLibraryService) async {
+        let version = photoLibrary.libraryVersion
+        if hasLoaded,
+           lastLibraryVersion == version,
+           let lastLoadedAt,
+           Date.now.timeIntervalSince(lastLoadedAt) < cacheLifetime {
+            return
+        }
+
         if let task = loadTask {
             await task.value
             return
         }
         let task = Task { @MainActor in
-            await self.performLoad(photoLibrary: photoLibrary)
+            await self.performLoad(photoLibrary: photoLibrary, libraryVersion: version)
         }
         loadTask = task
         await task.value
         loadTask = nil
     }
 
-    private func performLoad(photoLibrary: PhotoLibraryService) async {
-        isLoading = true
-        defer { isLoading = false }
+    private func performLoad(photoLibrary: PhotoLibraryService, libraryVersion: Int) async {
+        let shouldShowLoading = !hasLoaded
+        if shouldShowLoading { isLoading = true }
+        defer {
+            if shouldShowLoading { isLoading = false }
+        }
 
         let collections = PHAssetCollection.fetchAssetCollections(
             with: .album, subtype: .albumRegular, options: nil
@@ -125,16 +139,26 @@ final class SourceAlbumService {
 
         guard !pending.isEmpty else {
             albums = []
+            markLoaded(libraryVersion: libraryVersion)
             return
         }
 
-        // 第二步：把 fileSize 汇总（微信/QQ 等相册常有数千项）挪到后台线程，
-        // 用 autoreleasepool 分批，做法与 StorageAnalyzer.performScan 一致。
+        // 未变化的来源相册复用旧体积，只重新统计内容发生变化的相册。
+        let cachedByID = Dictionary(uniqueKeysWithValues: albums.map { ($0.id, $0) })
+        var reused: [SourceAlbum] = []
+        let changed = pending.filter { item in
+            guard let cached = cachedByID[item.id],
+                  cached.assetIDs == item.assetIDs else { return true }
+            reused.append(cached)
+            return false
+        }
+
+        // 第二步：只把变化相册的 fileSize 汇总放到后台线程。
         let found: [SourceAlbum] = await Task.detached(priority: .utility) { () -> [SourceAlbum] in
             var result: [SourceAlbum] = []
-            result.reserveCapacity(pending.count)
+            result.reserveCapacity(changed.count)
 
-            for item in pending {
+            for item in changed {
                 var size: Int64 = 0
                 let total = item.assetsResult.count
                 let batchSize = 500
@@ -160,7 +184,16 @@ final class SourceAlbumService {
             return result
         }.value
 
+        guard !Task.isCancelled else { return }
+
         // 占空间大的排前面
-        albums = found.sorted { $0.totalSize > $1.totalSize }
+        albums = (reused + found).sorted { $0.totalSize > $1.totalSize }
+        markLoaded(libraryVersion: libraryVersion)
+    }
+
+    private func markLoaded(libraryVersion: Int) {
+        hasLoaded = true
+        lastLibraryVersion = libraryVersion
+        lastLoadedAt = .now
     }
 }

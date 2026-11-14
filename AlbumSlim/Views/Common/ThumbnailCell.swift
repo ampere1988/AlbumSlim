@@ -12,21 +12,21 @@ struct ThumbnailCell: View {
     let services: AppServiceContainer
     var onTap: () -> Void
 
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var image: UIImage?
 
     var body: some View {
         Button(action: handleTap) {
             thumbnail
-                .aspectRatio(1, contentMode: .fill)
+                .aspectRatio(4.0 / 5.0, contentMode: .fill)
                 .clipShape(.rect(cornerRadius: Radius.thumb))
                 .overlay(alignment: .bottomLeading) { sizeLabel }
-                .overlay(alignment: .topTrailing) { badge }
+                .overlay(alignment: .topLeading) { bestBadge }
+                .overlay(alignment: .topTrailing) { selectionBadge }
                 .overlay {
                     RoundedRectangle(cornerRadius: Radius.thumb)
                         .strokeBorder(borderStyle, lineWidth: borderWidth)
                 }
-                .padding(isSelected ? Spacing.xs : 0)
+                .scaleEffect(isSelected ? 0.985 : 1)
                 .motion(Motion.standard, value: isSelected)
         }
         .buttonStyle(PressableCardStyle())
@@ -36,7 +36,7 @@ struct ThumbnailCell: View {
         .task {
             image = await services.photoLibrary.thumbnail(
                 for: item.asset,
-                size: CGSize(width: 320, height: 320)
+                size: CGSize(width: 440, height: 550)
             )
         }
     }
@@ -74,33 +74,47 @@ struct ThumbnailCell: View {
     }
 
     @ViewBuilder
-    private var badge: some View {
-        if isSelectable && isSelected {
-            Image(systemName: "checkmark")
+    private var bestBadge: some View {
+        if isBest {
+            Label("保留", systemImage: "checkmark.circle.fill")
+                .font(AppFont.label)
+                .foregroundStyle(Theme.success)
+                .padding(.horizontal, Spacing.s)
+                .frame(height: 26)
+                .background(.regularMaterial, in: Capsule())
+                .padding(Spacing.s)
+        }
+    }
+
+    @ViewBuilder
+    private var selectionBadge: some View {
+        if isSelectable {
+            Image(systemName: isSelected ? "checkmark" : "circle")
                 .font(.caption.bold())
-                .foregroundStyle(Theme.textOnAccent)
-                .frame(width: 24, height: 24)
-                .background(Circle().fill(Theme.accent))
+                .foregroundStyle(isSelected ? Theme.textOnAccent : .white)
+                .frame(width: 28, height: 28)
+                .background {
+                    Circle()
+                        .fill(isSelected ? Theme.accent : .black.opacity(0.36))
+                        .overlay {
+                            if !isSelected {
+                                Circle().strokeBorder(.white.opacity(0.8), lineWidth: 1)
+                            }
+                        }
+                }
                 .padding(Spacing.s)
                 .transition(.scale.combined(with: .opacity))
-        } else if isBest {
-            Image(systemName: "star.fill")
-                .font(.caption2.bold())
-                .foregroundStyle(.black)
-                .frame(width: 24, height: 24)
-                .background(Circle().fill(Theme.warning))
-                .padding(Spacing.s)
         }
     }
 
     private var borderStyle: Color {
         if isSelected { Theme.accent }
-        else if isBest { Theme.warning }
+        else if isBest { Theme.success }
         else { Theme.hairline }
     }
 
     private var borderWidth: CGFloat {
-        isSelected || isBest ? 2 : 1
+        isSelected ? 3 : (isBest ? 2 : 1)
     }
 
     private func handleTap() {

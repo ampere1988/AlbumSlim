@@ -12,9 +12,9 @@ enum AppFont {
     static let metricSmall = Font.system(.subheadline, design: .rounded).weight(.semibold).monospacedDigit()
 
     /// 页面主标题
-    static let screenTitle = Font.system(.title2, design: .rounded).weight(.bold)
+    static let screenTitle = Font.title2.weight(.bold)
     /// 区块标题
-    static let sectionTitle = Font.system(.headline, design: .rounded)
+    static let sectionTitle = Font.headline
     /// 卡片标题 / 列表行主文案
     static let rowTitle = Font.body.weight(.medium)
     /// 正文

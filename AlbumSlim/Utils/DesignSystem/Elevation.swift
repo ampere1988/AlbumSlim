@@ -2,8 +2,7 @@ import SwiftUI
 
 /// 层级刻度。
 ///
-/// 深色模式下阴影几乎不可见, 层次要靠表面亮度和描边表达; 浅色模式下反过来
-/// 靠阴影表达。所以 elevation 不是单一的"阴影强度", 而是两套映射。
+/// 原生分组界面主要靠系统表面色分层，阴影仅留给真正悬浮的操作面板。
 enum Elevation {
     /// 与背景同层, 只靠描边区分
     case flat
@@ -15,16 +14,16 @@ enum Elevation {
     var shadowRadius: CGFloat {
         switch self {
         case .flat: 0
-        case .card: 12
-        case .floating: 24
+        case .card: 0
+        case .floating: 12
         }
     }
 
     var shadowY: CGFloat {
         switch self {
         case .flat: 0
-        case .card: 4
-        case .floating: 10
+        case .card: 0
+        case .floating: 5
         }
     }
 
@@ -32,8 +31,8 @@ enum Elevation {
     var lightOpacity: Double {
         switch self {
         case .flat: 0
-        case .card: 0.06
-        case .floating: 0.12
+        case .card: 0
+        case .floating: 0.10
         }
     }
 
@@ -41,8 +40,8 @@ enum Elevation {
     var darkOpacity: Double {
         switch self {
         case .flat: 0
-        case .card: 0.24
-        case .floating: 0.44
+        case .card: 0
+        case .floating: 0.28
         }
     }
 }

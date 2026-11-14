@@ -47,7 +47,7 @@ struct AppToast: View {
                 .allowsHitTesting(toast.action != nil)
             }
         }
-        .animation(.spring(response: 0.35, dampingFraction: 0.85), value: toastCenter.current)
+        .motion(Motion.emphasized, value: toastCenter.current)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
     }
 }

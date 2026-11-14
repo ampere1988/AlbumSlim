@@ -19,14 +19,17 @@ struct CleanupCategoryCard: View {
                         .fill(type.tint.opacity(0.16))
                 }
 
-            VStack(alignment: .leading, spacing: Spacing.s) {
+            VStack(alignment: .leading, spacing: 4) {
                 Text(type.title)
                     .font(AppFont.sectionTitle)
                     .foregroundStyle(Theme.textPrimary)
-                HStack(spacing: Spacing.s) {
-                    MetaChip(text: countText)
-                    MetaChip(text: sizeText, systemImage: "internaldrive", tint: type.tint)
+                HStack(spacing: Spacing.xs) {
+                    Text(countText)
+                    Text("·")
+                    Text(sizeText)
                 }
+                .font(AppFont.meta)
+                .foregroundStyle(Theme.textSecondary)
             }
 
             Spacer(minLength: 0)

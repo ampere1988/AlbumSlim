@@ -94,14 +94,14 @@ struct QuickCleanView: View {
     /// 头部把"总共能释放多少"顶到主位 —— 这是用户真正关心的唯一数字
     private var summaryHeader: some View {
         VStack(spacing: Spacing.s) {
-            GlowIcon(
-                systemImage: viewModel.hasCompletedScan ? "checkmark" : "clock.arrow.circlepath",
-                tint: viewModel.hasCompletedScan ? Theme.success : Theme.textSecondary,
-                size: 64
-            )
+            Image(systemName: viewModel.hasCompletedScan
+                  ? "checkmark.circle.fill"
+                  : "clock.arrow.circlepath")
+                .font(.system(size: 34, weight: .semibold))
+                .foregroundStyle(viewModel.hasCompletedScan ? Theme.success : Theme.textSecondary)
             Text(totalSavableSize.formattedFileSize)
                 .font(AppFont.display)
-                .foregroundStyle(Theme.accentGradient)
+                .foregroundStyle(Theme.textPrimary)
             Text(viewModel.hasCompletedScan ? "本次扫描可释放" : "上次扫描可释放")
                 .font(AppFont.meta)
                 .foregroundStyle(Theme.textSecondary)
